@@ -1,0 +1,21 @@
+[project]
+name = "pyngldemos"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pyside6>=6.9.2",
+    "numpy>=2.3.3",
+    "qtpy>=2.4.3",
+    "ngl",
+    "freetype-py>=2.5.1",
+]
+
+
+[tool.uv.workspace]
+members=["VertexArrayObject/Boid","VertexArrayObject/ChangingVAO"]
+exclude =["*"]
+
+[tool.uv.sources]
+ngl = { path = "/Users/jmacey/NGLBuild/py-ngl", editable=true }
