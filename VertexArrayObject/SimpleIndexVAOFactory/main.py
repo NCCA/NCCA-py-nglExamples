@@ -4,15 +4,12 @@ import sys
 
 import OpenGL.GL as gl
 from ngl import (
-    Mat3,
+    IndexVertexData,
     Mat4,
     ShaderLib,
     VAOFactory,
     Vec3,
     Vec3Array,
-    Vec4,
-    VertexData,
-    calc_normal,
     look_at,
     perspective,
 )
@@ -25,11 +22,10 @@ from PySide6.QtWidgets import QApplication
 class MainWindow(QOpenGLWindow):
     def __init__(self, parent=None):
         QOpenGLWindow.__init__(self)
-        # super(QOpenGLWindow, self).__init__(parent)
         self.mouseGlobalTX = Mat4()
         self.width = int(1024)
         self.height = int(720)
-        self.setTitle("Boid")
+        self.setTitle("SimpleIndexVAOFactory")
         self.spinXFace = int(0)
         self.spinYFace = int(0)
         self.rotate = False
@@ -50,27 +46,16 @@ class MainWindow(QOpenGLWindow):
         gl.glClearColor(0.4, 0.4, 0.4, 1.0)
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_MULTISAMPLE)
-        eye = Vec3(0, 1, 4)
+        eye = Vec3(0, 1, 2)
         to = Vec3(0, 0, 0)
         up = Vec3(0, 1, 0)
         self.view = look_at(eye, to, up)
         if not ShaderLib.load_shader(
-            "Phong", "shaders/PhongVertex.glsl", "shaders/PhongFragment.glsl"
+            "Colour", "shaders/ColourVertex.glsl", "shaders/ColourFragment.glsl"
         ):
             print("error loading shaders")
             self.close()
-        ShaderLib.use("Phong")
-        lightPos = Vec4(-2.0, 5.0, 2.0, 0.0)
-        ShaderLib.set_uniform("light.position", lightPos)
-        ShaderLib.set_uniform("light.ambient", 0.0, 0.0, 0.0, 1.0)
-        ShaderLib.set_uniform("light.diffuse", 1.0, 1.0, 1.0, 1.0)
-        ShaderLib.set_uniform("light.specular", 0.8, 0.8, 0.8, 1.0)
-        # gold like phong material
-        ShaderLib.set_uniform("material.ambient", 0.274725, 0.1995, 0.0745, 0.0)
-        ShaderLib.set_uniform("material.diffuse", 0.75164, 0.60648, 0.22648, 0.0)
-        ShaderLib.set_uniform("material.specular", 0.628281, 0.555802, 0.3666065, 0.0)
-        ShaderLib.set_uniform("material.shininess", 51.2)
-        ShaderLib.set_uniform("viewerPos", eye)
+        ShaderLib.use("Colour")
 
         self.buildVAO()
 
@@ -78,62 +63,52 @@ class MainWindow(QOpenGLWindow):
         print("Building VAO")
         # fmt: off
         verts = Vec3Array([
-            Vec3(0.0, 1.0, 1.0), Vec3(0.0, 0.0, -1.0), Vec3(-0.5, 0.0, 1.0),
-            Vec3(0.0, 1.0, 1.0), Vec3(0.0, 0.0, -1.0), Vec3(0.5, 0.0, 1.0),
-            Vec3(0.0, 1.0, 1.0), Vec3(0.0, 0.0, 1.5), Vec3(-0.5, 0.0, 1.0),
-            Vec3(0.0, 1.0, 1.0), Vec3(0.0, 0.0, 1.5), Vec3(0.5, 0.0, 1.0),
-            Vec3(0.0, 1.0, 1.0), Vec3(0.0, 0.0, 1.5), Vec3(0.5, 0.0, 1.0),
+        Vec3(-0.26286500, 0.0000000, 0.42532500), Vec3(1.0,0.0,0.0),
+        Vec3(0.26286500, 0.0000000, 0.42532500), Vec3(1.0,0.55,0.0),
+        Vec3(-0.26286500, 0.0000000, -0.42532500),  Vec3(1.0,0.0,1.0),
+        Vec3(0.26286500, 0.0000000, -0.42532500),  Vec3(0.0,1.0,0.0),
+        Vec3(0.0000000, 0.42532500, 0.26286500),  Vec3(0.0,0.0,1.0),
+        Vec3(0.0000000, 0.42532500, -0.26286500),  Vec3(0.29,0.51,0.0),
+        Vec3(0.0000000, -0.42532500, 0.26286500),  Vec3(0.5,0.0,0.5),
+        Vec3(0.0000000, -0.42532500, -0.26286500),  Vec3(1.0,1.0,1.0),
+        Vec3(0.42532500, 0.26286500, 0.0000000),  Vec3(0.0,1.0,1.0),
+        Vec3(-0.42532500, 0.26286500, 0.0000000),  Vec3(0.0,0.0,0.0),
+        Vec3(0.42532500, -0.26286500, 0.0000000),  Vec3(0.12,0.56,1.0),
+        Vec3(-0.42532500, -0.26286500, 0.0000000),  Vec3(0.86,0.08,0.24)
         ])
+
+        indices=[0,6,1,0,11,6,1,4,0,1,8,4,1,10,8,2,5,3,
+            2,9,5,2,11,9,3,7,2,3,10,7,4,8,5,4,9,0,
+            5,8,3,5,9,4,6,10,1,6,11,7,7,10,6,7,11,2,
+            8,10,3,9,11,0]
+
         # fmt: on
-        n = calc_normal(verts[2], verts[1], verts[0])
-        verts.extend([n, n, n])
-        n = calc_normal(verts[3], verts[4], verts[5])
-        verts.extend([n, n, n])
-        n = calc_normal(verts[6], verts[7], verts[8])
-        verts.extend([n, n, n])
-        n = calc_normal(verts[11], verts[10], verts[9])
-        verts.extend([n, n, n])
-        for i in range(0, len(verts)):
-            print(verts[i])
 
-        self.vao = VAOFactory.create_vao("simpleVAO", gl.GL_TRIANGLES)
+        self.vao = VAOFactory.create_vao("simpleIndexVAO", gl.GL_TRIANGLES)
         self.vao.bind()
-        data = VertexData(data=verts.to_list(), size=len(verts) // 2)
+        data = IndexVertexData(
+            data=verts.to_list(),
+            size=len(indices),
+            indices=indices,
+            index_type=gl.GL_UNSIGNED_SHORT,
+        )
         self.vao.set_data(data)
-        self.vao.set_vertex_attribute_pointer(0, 3, gl.GL_FLOAT, 0, 0)
-        self.vao.set_vertex_attribute_pointer(1, 3, gl.GL_FLOAT, 0, 12 * 3)
-
+        self.vao.set_vertex_attribute_pointer(0, 3, gl.GL_FLOAT, 24, 0)
+        # 12 is the offset for the second attribute 3 * 4 bytes for a Vec3 use size of Vec3
+        self.vao.set_vertex_attribute_pointer(1, 3, gl.GL_FLOAT, 24, Vec3.sizeof())
         self.vao.unbind()
         print("VAO created")
 
     def loadMatricesToShader(self):
-        """
-        shader = ShaderLib.instance()
-        shader.use('Phong')
-
-        MV=  self.view*self.mouseGlobalTX
-        MVP= self.project*MV;
-        normalMatrix=Mat3(MV)
-        normalMatrix.inverse().transpose()
-        shader.setUniform("MV",MV)
-        shader.setUniform("MVP",MVP)
-        shader.setUniform("normalMatrix",normalMatrix)
-        shader.setUniform("M",self.mouseGlobalTX)
-        """
-        MV = self.view @ self.mouseGlobalTX
-        mvp = self.project @ MV
-        normal_matrix = Mat3.from_mat4(MV)
-        normal_matrix.inverse().transpose()
+        ShaderLib.use("Colour")
+        mvp = self.project @ self.view @ self.mouseGlobalTX
         ShaderLib.set_uniform("MVP", mvp)
-        ShaderLib.set_uniform("normalMatrix", normal_matrix)
-        ShaderLib.set_uniform("M", self.mouseGlobalTX)
 
     def paintGL(self):
         self.makeCurrent()
         gl.glViewport(0, 0, self.width, self.height)
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        ShaderLib.use("Phong")
         rotX = Mat4().rotate_x(self.spinXFace)
         rotY = Mat4().rotate_y(self.spinYFace)
         self.mouseGlobalTX = rotY @ rotX
