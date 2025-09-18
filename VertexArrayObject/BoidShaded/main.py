@@ -264,7 +264,7 @@ class MainWindow(QOpenGLWindow):
         """
         Handle mouse wheel events for zooming in/out.
         """
-        numPixels = event.pixelDelta()
+        numPixels = event.angleDelta()
         if numPixels.x() > 0:
             self.modelPos.z += self.ZOOM
         elif numPixels.x() < 0:
@@ -284,7 +284,6 @@ if __name__ == "__main__":
     QSurfaceFormat.setDefaultFormat(format)
 
     window = MainWindow()
-    window.setFormat(format)
     window.resize(1024, 720)
     window.show()
     sys.exit(app.exec())

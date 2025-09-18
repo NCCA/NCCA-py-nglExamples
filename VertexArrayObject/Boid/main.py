@@ -203,7 +203,7 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse wheel events for zooming in and out.
         """
-        numPixels = event.pixelDelta()
+        numPixels = event.angleDelta()
         if numPixels.x() > 0:
             self.modelPos.z += self.ZOOM
         elif numPixels.x() < 0:

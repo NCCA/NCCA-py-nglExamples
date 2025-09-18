@@ -275,7 +275,7 @@ class MainWindow(QOpenGLWindow):
         """
         Handle mouse wheel events for zooming in/out.
         """
-        numPixels = event.pixelDelta()
+        numPixels = event.angleDelta()
         if numPixels.x() > 0:
             self.modelPos.z += self.ZOOM
         elif numPixels.x() < 0:
@@ -289,20 +289,11 @@ def except_hook(exctype, value, tb):
     sys.exit(1)  # optional: quit app on error
 
 
-class DebugApplication(QApplication):
-    def notify(self, receiver, event):
-        try:
-            return super().notify(receiver, event)
-        except Exception:
-            traceback.print_exc()  # show full traceback
-            raise  # -> re-raise so the program stops (remove if you don't want a crash)
-
-
 if __name__ == "__main__":
     # Set up Qt application and OpenGL format
     sys.excepthook = except_hook
     #    app = QApplication(sys.argv)
-    app = DebugApplication(sys.argv)
+    app = QApplication(sys.argv)
     format = QSurfaceFormat()
     format.setSamples(4)
     format.setMajorVersion(4)

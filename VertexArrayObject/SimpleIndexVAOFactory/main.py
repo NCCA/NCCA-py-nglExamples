@@ -185,7 +185,7 @@ class MainWindow(QOpenGLWindow):
             self.translate = False
 
     def wheelEvent(self, event):
-        numPixels = event.pixelDelta()
+        numPixels = event.angleDelta()
 
         if numPixels.x() > 0:
             self.modelPos.z += self.ZOOM
