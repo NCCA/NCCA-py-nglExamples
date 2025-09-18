@@ -1,21 +1,20 @@
 #!/usr/bin/env -S uv run --script
 """
-ChangingVAO Example
+BoidShaded Example
 
-This script demonstrates how to use OpenGL and Qt to render a dynamic set of 3D lines.
-The vertex data changes over time, showing how to update a Vertex Array Object (VAO) each frame.
-User input allows for interactive rotation, translation, and zoom.
+This script demonstrates how to use OpenGL and Qt to render a simple 3D object (a "boid") with Phong shading.
+It sets up a window, handles user input for rotation/translation/zoom, and manages OpenGL resources.
 """
 
+import math
 import sys
+import traceback
 
 import OpenGL.GL as gl
 from ngl import (
-    DefaultShader,
     Mat4,
-    Random,
     ShaderLib,
-    Text,
+    Texture,
     VAOFactory,
     VAOType,
     Vec3,
@@ -28,13 +27,13 @@ from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 
+TEXTURE_SHADER = "TextureShader"
+
 
 class MainWindow(QOpenGLWindow):
     """
-    Main application window for rendering dynamic 3D lines with OpenGL.
 
     Handles OpenGL initialization, rendering, and user input for interactive control.
-    The vertex data is updated periodically to demonstrate dynamic VAO usage.
     """
 
     def __init__(self, parent: object = None) -> None:
@@ -45,7 +44,7 @@ class MainWindow(QOpenGLWindow):
         self.mouseGlobalTX: Mat4 = Mat4()
         self.width: int = 1024
         self.height: int = 720
-        self.setTitle("Changing VAO")
+        self.setTitle("VAO Sphere with Texture")
         self.spinXFace: int = 0  # Rotation around X axis
         self.spinYFace: int = 0  # Rotation around Y axis
         self.rotate: bool = False
@@ -55,11 +54,10 @@ class MainWindow(QOpenGLWindow):
         self.origXPos: int = 0
         self.origYPos: int = 0
         self.INCREMENT: float = 0.01  # Translation increment per pixel
-        self.ZOOM: float = 2.1  # Zoom increment
+        self.ZOOM: float = 0.1  # Zoom increment
         self.modelPos: Vec3 = Vec3()  # Model position in world space
         self.view: Mat4 = Mat4()  # View matrix
         self.project: Mat4 = Mat4()  # Projection matrix
-        self.data: list[float] = []  # Dynamic vertex data
 
     def initializeGL(self) -> None:
         """
@@ -71,21 +69,94 @@ class MainWindow(QOpenGLWindow):
         gl.glEnable(gl.GL_MULTISAMPLE)  # Enable anti-aliasing
 
         # Set up camera/view matrix
-        self.view = look_at(Vec3(0, 1, 40), Vec3(0, 0, 0), Vec3(0, 1, 0))
+        eye = Vec3(0, 1, 4)
+        to = Vec3(0, 0, 0)
+        up = Vec3(0, 1, 0)
+        self.view = look_at(eye, to, up)
 
-        # Use a simple color shader
-        ShaderLib.use(DefaultShader.COLOUR)
-        ShaderLib.set_uniform("Colour", 1.0, 1.0, 1.0, 1.0)
+        # Load and use Phong shader
+        if not ShaderLib.load_shader(
+            TEXTURE_SHADER, "shaders/TextureVertex.glsl", "shaders/TextureFragment.glsl"
+        ):
+            print("error loading shaders")
+            self.close()
+        ShaderLib.use(TEXTURE_SHADER)
+        texture = Texture("textures/earth.png")
+        self.texture_id = texture.set_texture_gl()
 
-        # Create VAO for lines
-        self.vao = VAOFactory.create_vao(VAOType.SIMPLE, gl.GL_LINES)
+        self.build_vao_sphere()
 
-        # # Set up text rendering for displaying data size
-        self.text = Text("../fonts/Arial.ttf", 18)
-        self.text.set_screen_size(self.width, self.height)
+    def build_vao_sphere(self, radius: float = 1.0, precision: int = 100):
+        """
+        Creates a sphere VAO using triangle strips.
+        based on an algorithm by Paul Bourke.
+        http://astronomy.swin.edu.au/~pbourke/opengl/sphere/
 
-        # Start a timer to update the vertex data periodically
-        self.startTimer(220.0)
+        Args:
+            radius: The radius of the sphere.
+            precision: The number of divisions around the sphere. Higher is more detailed.
+
+        Returns:
+            A configured ngl.AbstractVAO containing the sphere geometry.
+        """
+        # In NGL, "simpleVAO" is a basic VAO that holds interleaved data in a single buffer.
+        self.vao = VAOFactory.create_vao(VAOType.SIMPLE, gl.GL_TRIANGLE_STRIP)
+
+        if radius < 0:
+            radius = -radius
+        if precision < 4:
+            precision = 4
+
+        vertex_data = []
+
+        for i in range(precision // 2):
+            theta1 = i * (2 * math.pi) / precision - (math.pi / 2)
+            theta2 = (i + 1) * (2 * math.pi) / precision - (math.pi / 2)
+
+            for j in range(precision + 1):
+                theta3 = j * (2 * math.pi) / precision
+
+                # Vertex 1 (for the top of the strip)
+                nx1 = math.cos(theta2) * math.cos(theta3)
+                ny1 = math.sin(theta2)
+                nz1 = math.cos(theta2) * math.sin(theta3)
+                x1 = radius * nx1
+                y1 = radius * ny1
+                z1 = radius * nz1
+                u1 = j / precision
+                v1 = 1.0 - (2 * (i + 1) / precision)
+                vertex_data.extend([x1, y1, z1, nx1, ny1, nz1, u1, v1])
+
+                # Vertex 2 (for the bottom of the strip)
+                nx2 = math.cos(theta1) * math.cos(theta3)
+                ny2 = math.sin(theta1)
+                nz2 = math.cos(theta1) * math.sin(theta3)
+                x2 = radius * nx2
+                y2 = radius * ny2
+                z2 = radius * nz2
+                u2 = j / precision
+                v2 = 1.0 - (2 * i / precision)
+                vertex_data.extend([x2, y2, z2, nx2, ny2, nz2, u2, v2])
+
+        num_verts = len(vertex_data) // 8
+
+        with self.vao:
+            data = VertexData(data=vertex_data, size=len(vertex_data))
+            self.vao.set_data(data)
+
+            # Stride is 8 floats * 4 bytes/float = 32 bytes
+            stride = 8 * 4
+
+            # Set attribute pointers for the interleaved data
+            # Attribute 0: Vertex (x, y, z)
+            self.vao.set_vertex_attribute_pointer(0, 3, gl.GL_FLOAT, stride, 0)
+            # Attribute 1: Normal (nx, ny, nz) - offset is 3 floats (12 bytes)
+            self.vao.set_vertex_attribute_pointer(1, 3, gl.GL_FLOAT, stride, 3 * 4)
+            # Attribute 2: UV (u, v) - offset is 6 floats (24 bytes)
+            self.vao.set_vertex_attribute_pointer(2, 2, gl.GL_FLOAT, stride, 6 * 4)
+
+            # Set the number of vertices to draw
+            self.vao.set_num_indices(num_verts)
 
     def loadMatricesToShader(self) -> None:
         """
@@ -101,33 +172,20 @@ class MainWindow(QOpenGLWindow):
         self.makeCurrent()
         gl.glViewport(0, 0, self.width, self.height)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        ShaderLib.use(DefaultShader.COLOUR)
-        ShaderLib.set_uniform("Colour", 1.0, 1.0, 1.0, 1.0)
+        ShaderLib.use(TEXTURE_SHADER)
 
         # Apply rotation based on user input
         rotX = Mat4().rotate_x(self.spinXFace)
         rotY = Mat4().rotate_y(self.spinYFace)
         self.mouseGlobalTX = rotY @ rotX
-
         # Update model position
         self.mouseGlobalTX[3][0] = self.modelPos.x
         self.mouseGlobalTX[3][1] = self.modelPos.y
         self.mouseGlobalTX[3][2] = self.modelPos.z
-
         self.loadMatricesToShader()
-
-        # Bind VAO and update vertex data
+        # Draw geometry
         with self.vao:
-            data = VertexData(data=self.data, size=len(self.data) // 3)
-            self.vao.set_data(data)
-
-            # Set vertex attribute pointer for position (3 floats per vertex)
-            self.vao.set_vertex_attribute_pointer(0, 3, gl.GL_FLOAT, 0, 0)
             self.vao.draw()
-
-        # Render text showing the current data size
-        self.text.set_colour(1, 1, 1)
-        self.text.render_text(10, 18, f"Data Size {(len(self.data) / 2)}")
 
     def resizeGL(self, w: int, h: int) -> None:
         """
@@ -137,10 +195,10 @@ class MainWindow(QOpenGLWindow):
             w: New window width.
             h: New window height.
         """
+
         self.width = int(w * self.devicePixelRatio())
         self.height = int(h * self.devicePixelRatio())
-        self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
-        # self.text.set_screen_size(self.width, self.height)
+        self.project = perspective(45.0, float(w) / h, 0.1, 350.0)
 
     def keyPressEvent(self, event) -> None:
         """
@@ -158,8 +216,10 @@ class MainWindow(QOpenGLWindow):
             self.spinXFace = 0
             self.spinYFace = 0
             self.modelPos.set(0, 0, 0)
+        else:
+            # Call base implementation for unhandled keys
+            super().keyPressEvent(event)
         self.update()
-        super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:
         """
@@ -222,26 +282,27 @@ class MainWindow(QOpenGLWindow):
             self.modelPos.z -= self.ZOOM
         self.update()
 
-    def timerEvent(self, event) -> None:
-        """
-        Periodically called by Qt to update the vertex data with random values.
 
-        This demonstrates how to update a VAO with new data each frame.
-        """
-        size = 100 + int(Random.random_positive_number(12000))
-        # Clear old data
-        del self.data[:]
-        for i in range(0, size * 2):
-            p = Random.get_random_vec3() * 5
-            self.data.append(p.x)
-            self.data.append(p.y)
-            self.data.append(p.z)
-        self.update()
+def except_hook(exctype, value, tb):
+    traceback.print_exception(exctype, value, tb)
+    sys.__excepthook__(exctype, value, tb)  # forward to default
+    sys.exit(1)  # optional: quit app on error
+
+
+class DebugApplication(QApplication):
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()  # show full traceback
+            raise  # -> re-raise so the program stops (remove if you don't want a crash)
 
 
 if __name__ == "__main__":
     # Set up Qt application and OpenGL format
-    app = QApplication(sys.argv)
+    sys.excepthook = except_hook
+    #    app = QApplication(sys.argv)
+    app = DebugApplication(sys.argv)
     format = QSurfaceFormat()
     format.setSamples(4)
     format.setMajorVersion(4)

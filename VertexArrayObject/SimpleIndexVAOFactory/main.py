@@ -8,6 +8,7 @@ from ngl import (
     Mat4,
     ShaderLib,
     VAOFactory,
+    VAOType,
     Vec3,
     Vec3Array,
     look_at,
@@ -84,20 +85,19 @@ class MainWindow(QOpenGLWindow):
 
         # fmt: on
 
-        self.vao = VAOFactory.create_vao("simpleIndexVAO", gl.GL_TRIANGLES)
-        self.vao.bind()
-        data = IndexVertexData(
-            data=verts.to_list(),
-            size=len(indices),
-            indices=indices,
-            index_type=gl.GL_UNSIGNED_SHORT,
-        )
-        self.vao.set_data(data)
-        self.vao.set_vertex_attribute_pointer(0, 3, gl.GL_FLOAT, 24, 0)
-        # 12 is the offset for the second attribute 3 * 4 bytes for a Vec3 use size of Vec3
-        self.vao.set_vertex_attribute_pointer(1, 3, gl.GL_FLOAT, 24, Vec3.sizeof())
-        self.vao.unbind()
-        print("VAO created")
+        self.vao = VAOFactory.create_vao(VAOType.SIMPLE_INDEX, gl.GL_TRIANGLES)
+        with self.vao:
+            data = IndexVertexData(
+                data=verts.to_list(),
+                size=len(indices),
+                indices=indices,
+                index_type=gl.GL_UNSIGNED_SHORT,
+            )
+            self.vao.set_data(data)
+            self.vao.set_vertex_attribute_pointer(0, 3, gl.GL_FLOAT, 24, 0)
+            # 12 is the offset for the second attribute 3 * 4 bytes for a Vec3 use size of Vec3
+            self.vao.set_vertex_attribute_pointer(1, 3, gl.GL_FLOAT, 24, Vec3.sizeof())
+            print("VAO created")
 
     def loadMatricesToShader(self):
         ShaderLib.use("Colour")
@@ -116,9 +116,8 @@ class MainWindow(QOpenGLWindow):
         self.mouseGlobalTX[3][1] = self.modelPos.y
         self.mouseGlobalTX[3][2] = self.modelPos.z
         self.loadMatricesToShader()
-        self.vao.bind()
-        self.vao.draw()
-        self.vao.unbind()
+        with self.vao:
+            self.vao.draw()
 
     def resizeGL(self, w, h):
         self.width = int(w * self.devicePixelRatio())

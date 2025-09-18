@@ -7,19 +7,18 @@ The vertex data changes over time, showing how to update a Vertex Array Object (
 User input allows for interactive rotation, translation, and zoom.
 """
 
+import logging
 import sys
 
 import OpenGL.GL as gl
+from MultiBufferIndexVAO import MultiBufferIndexVAO, VertexData
 from ngl import (
-    DefaultShader,
     Mat4,
-    Random,
     ShaderLib,
-    Text,
+    Transform,
     VAOFactory,
-    VAOType,
     Vec3,
-    VertexData,
+    Vec3Array,
     look_at,
     perspective,
 )
@@ -27,6 +26,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
+
+COLOUR_SHADER = "ColourShader"
 
 
 class MainWindow(QOpenGLWindow):
@@ -45,7 +46,7 @@ class MainWindow(QOpenGLWindow):
         self.mouseGlobalTX: Mat4 = Mat4()
         self.width: int = 1024
         self.height: int = 720
-        self.setTitle("Changing VAO")
+        self.setTitle("Extended VAO")
         self.spinXFace: int = 0  # Rotation around X axis
         self.spinYFace: int = 0  # Rotation around Y axis
         self.rotate: bool = False
@@ -60,6 +61,7 @@ class MainWindow(QOpenGLWindow):
         self.view: Mat4 = Mat4()  # View matrix
         self.project: Mat4 = Mat4()  # Projection matrix
         self.data: list[float] = []  # Dynamic vertex data
+        self.index: int = 0
 
     def initializeGL(self) -> None:
         """
@@ -69,30 +71,82 @@ class MainWindow(QOpenGLWindow):
         gl.glClearColor(0.4, 0.4, 0.4, 1.0)  # Set background color
         gl.glEnable(gl.GL_DEPTH_TEST)  # Enable depth testing
         gl.glEnable(gl.GL_MULTISAMPLE)  # Enable anti-aliasing
+        # first Register VAO creators
+        VAOFactory.register_vao_creator("MultiBufferIndexVAO", MultiBufferIndexVAO)
+        self.build_vao()
+
+        # Use a simple colour shader
+        if not ShaderLib.load_shader(
+            COLOUR_SHADER,
+            vert="shaders/ColourVertex.glsl",
+            frag="shaders/ColourFragment.glsl",
+        ):
+            logging.error("Error loading shaders")
+            self.close()
+        ShaderLib.use(COLOUR_SHADER)
 
         # Set up camera/view matrix
-        self.view = look_at(Vec3(0, 1, 40), Vec3(0, 0, 0), Vec3(0, 1, 0))
-
-        # Use a simple color shader
-        ShaderLib.use(DefaultShader.COLOUR)
-        ShaderLib.set_uniform("Colour", 1.0, 1.0, 1.0, 1.0)
-
-        # Create VAO for lines
-        self.vao = VAOFactory.create_vao(VAOType.SIMPLE, gl.GL_LINES)
-
-        # # Set up text rendering for displaying data size
-        self.text = Text("../fonts/Arial.ttf", 18)
-        self.text.set_screen_size(self.width, self.height)
+        self.view = look_at(Vec3(0, 1, 3), Vec3(0, 0, 0), Vec3(0, 1, 0))
+        self.project = perspective(45.0, 1024.0 / 720.0, 0.001, 500.0)
 
         # Start a timer to update the vertex data periodically
-        self.startTimer(220.0)
+        self.startTimer(160)
 
-    def loadMatricesToShader(self) -> None:
-        """
-        Load transformation matrices to the shader uniforms.
-        """
-        mvp = self.project @ self.view @ self.mouseGlobalTX
-        ShaderLib.set_uniform("MVP", mvp)
+    def build_vao(self):
+        # fmt: off
+        verts = Vec3Array([
+            Vec3(-0.26286500 , 0.0000000 , 0.42532500 ),
+            Vec3(0.26286500 , 0.0000000 , 0.42532500 ),
+            Vec3(-0.26286500 , 0.0000000 , -0.42532500 ),
+            Vec3(0.26286500 , 0.0000000 , -0.42532500 ),
+            Vec3(0.0000000 , 0.42532500 , 0.26286500 ),
+            Vec3(0.0000000 , 0.42532500 , -0.26286500 ),
+            Vec3(0.0000000 , -0.42532500 , 0.26286500 ),
+            Vec3(0.0000000 , -0.42532500 , -0.26286500 ),
+            Vec3(0.42532500 , 0.26286500 , 0.0000000 ),
+            Vec3(-0.42532500 , 0.26286500 , 0.0000000 ),
+            Vec3(0.42532500 , -0.26286500 , 0.0000000 ),
+            Vec3(-0.42532500 , -0.26286500 , 0.0000000 )
+        ])
+
+
+
+        colours = Vec3Array([
+            Vec3(1.0, 0.0, 0.0),
+            Vec3(1.0, 0.55, 0.0),
+            Vec3(1.0, 0.0, 1.0),
+            Vec3(0.0, 1.0, 0.0),
+            Vec3(0.0, 0.0, 1.0),
+            Vec3(0.29, 0.51, 0.0),
+            Vec3(0.5, 0.0, 0.5),
+            Vec3(1.0, 1.0, 1.0),
+            Vec3(0.0, 1.0, 1.0),
+            Vec3(0.0, 0.0, 0.0),
+            Vec3(0.12, 0.56, 1.0),
+            Vec3(0.86, 0.08, 0.24),
+        ])
+
+        indices = [
+            0, 6, 1, 0, 11, 6, 1, 4, 0, 1, 8, 4, 1, 10, 8, 2, 5, 3, 2, 9, 5, 2, 11, 9, 3, 7, 2, 3, 10, 7,
+            4, 8, 5, 4, 9, 0, 5, 8, 3, 5, 9, 4, 6, 10, 1, 6, 11, 7, 7, 10, 6, 7, 11, 2, 8, 10, 3, 9, 11, 0,
+        ]
+
+        self.num_indices = len(indices)
+        # fmt: on
+        self.vao = VAOFactory.create_vao("MultiBufferIndexVAO", gl.GL_TRIANGLES)
+
+        with self.vao:
+            # As this is a Multi buffer VAO we can add two initial buffer one for Vertex and one for Color
+            data = VertexData(data=verts.to_list(), size=len(verts))
+            self.vao.set_data(data)
+            self.vao.set_vertex_attribute_pointer(0, 3, gl.GL_FLOAT, 0, 0)
+
+            colour_data = VertexData(data=colours.to_list(), size=len(colours))
+            self.vao.set_data(colour_data)
+            self.vao.set_vertex_attribute_pointer(1, 3, gl.GL_FLOAT, 0, 0)
+
+            self.vao.set_indices(indices, gl.GL_UNSIGNED_SHORT)
+            self.vao.set_num_indices(len(indices))
 
     def paintGL(self) -> None:
         """
@@ -101,33 +155,36 @@ class MainWindow(QOpenGLWindow):
         self.makeCurrent()
         gl.glViewport(0, 0, self.width, self.height)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        ShaderLib.use(DefaultShader.COLOUR)
-        ShaderLib.set_uniform("Colour", 1.0, 1.0, 1.0, 1.0)
+        ShaderLib.use(COLOUR_SHADER)
 
         # Apply rotation based on user input
         rotX = Mat4().rotate_x(self.spinXFace)
         rotY = Mat4().rotate_y(self.spinYFace)
-        self.mouseGlobalTX = rotY @ rotX
+        mouse_global_tx = rotY @ rotX
 
         # Update model position
-        self.mouseGlobalTX[3][0] = self.modelPos.x
-        self.mouseGlobalTX[3][1] = self.modelPos.y
-        self.mouseGlobalTX[3][2] = self.modelPos.z
+        mouse_global_tx[3][0] = self.modelPos.x
+        mouse_global_tx[3][1] = self.modelPos.y
+        mouse_global_tx[3][2] = self.modelPos.z
 
-        self.loadMatricesToShader()
-
-        # Bind VAO and update vertex data
         with self.vao:
-            data = VertexData(data=self.data, size=len(self.data) // 3)
-            self.vao.set_data(data)
-
-            # Set vertex attribute pointer for position (3 floats per vertex)
-            self.vao.set_vertex_attribute_pointer(0, 3, gl.GL_FLOAT, 0, 0)
+            t = Transform()
+            t.set_position(-1.2, 0.0, 0.0)
+            mvp = self.project @ self.view @ t.get_matrix() @ mouse_global_tx
+            ShaderLib.set_uniform("MVP", mvp)
+            self.vao.draw(0, self.index * 3)
+            t.set_position(0.0, 0.0, 0.0)
+            mvp = self.project @ self.view @ t.get_matrix() @ mouse_global_tx
+            ShaderLib.set_uniform("MVP", mvp)
+            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
             self.vao.draw()
-
-        # Render text showing the current data size
-        self.text.set_colour(1, 1, 1)
-        self.text.render_text(10, 18, f"Data Size {(len(self.data) / 2)}")
+            t.set_position(1.2, 0.0, 0.0)
+            mvp = self.project @ self.view @ t.get_matrix() @ mouse_global_tx
+            ShaderLib.set_uniform("MVP", mvp)
+            self.vao.draw(self.index * 3, 3)
+            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
+            self.vao.draw()
+            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
 
     def resizeGL(self, w: int, h: int) -> None:
         """
@@ -139,8 +196,7 @@ class MainWindow(QOpenGLWindow):
         """
         self.width = int(w * self.devicePixelRatio())
         self.height = int(h * self.devicePixelRatio())
-        self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
-        # self.text.set_screen_size(self.width, self.height)
+        self.project = perspective(45.0, float(w) / h, 0.05, 350.0)
 
     def keyPressEvent(self, event) -> None:
         """
@@ -224,18 +280,11 @@ class MainWindow(QOpenGLWindow):
 
     def timerEvent(self, event) -> None:
         """
-        Periodically called by Qt to update the vertex data with random values.
-
-        This demonstrates how to update a VAO with new data each frame.
+        Periodically called by Qt to update the index for drawing.
         """
-        size = 100 + int(Random.random_positive_number(12000))
-        # Clear old data
-        del self.data[:]
-        for i in range(0, size * 2):
-            p = Random.get_random_vec3() * 5
-            self.data.append(p.x)
-            self.data.append(p.y)
-            self.data.append(p.z)
+        self.index += 3
+        if self.index >= self.num_indices // 3:
+            self.index = 0
         self.update()
 
 
