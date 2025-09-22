@@ -98,6 +98,8 @@ class MainWindow(QOpenGLWindow):
         self.timer = QElapsedTimer()
         self.timer.start()
         self.last_frame = 0.0
+        self.seed = 12345
+        self.light_on = [True, True, True, True]
 
     def initializeGL(self) -> None:
         """
@@ -132,10 +134,10 @@ class MainWindow(QOpenGLWindow):
 
         light_colors = Vec3Array(
             [
-                Vec3(300.0, 300.0, 300.0),
-                Vec3(300.0, 300.0, 300.0),
-                Vec3(300.0, 300.0, 300.0),
-                Vec3(300.0, 300.0, 300.0),
+                Vec3(250.0, 250.0, 250.0),
+                Vec3(250.0, 250.0, 250.0),
+                Vec3(250.0, 250.0, 250.0),
+                Vec3(250.0, 250.0, 250.0),
             ]
         )
 
@@ -154,7 +156,7 @@ class MainWindow(QOpenGLWindow):
         ShaderLib.set_uniform("Colour", 1.0, 1.0, 1.0, 1.0)
 
         Primitives.create_sphere("sphere", 0.5, 40)
-        Primitives.create_triangle_plane("floor", 20, 20, 10, 10, Vec3(0, 1, 0))
+        Primitives.create_triangle_plane("floor", 30, 30, 10, 10, Vec3(0, 1, 0))
         TexturePack.load_json("textures/textures.json")
         Primitives.load_default_primitives()
 
@@ -216,13 +218,7 @@ class MainWindow(QOpenGLWindow):
         if len(self.keys_pressed) != 0:
             self.camera.move(xDirection, yDirection, delta_time)
 
-        # Render the floor
         ShaderLib.use(DefaultShader.COLOUR)
-        ShaderLib.set_uniform("Colour", 0.8, 0.8, 0.8, 1.0)
-        self.transform.reset()
-        self.transform.set_position(0, -1.5, 0)
-        self.load_matrices_to_colour_shader()
-        Primitives.draw("floor")
         # render lights as spheres
         for i in range(4):
             ShaderLib.use(DefaultShader.COLOUR)
@@ -239,11 +235,11 @@ class MainWindow(QOpenGLWindow):
         ShaderLib.use(PBR_SHADER)
         # render rows*column number of spheres with varying metallic/roughness values scaled by rows and columns respectively
 
-        Random.set_seed_value(23445)
+        Random.set_seed_value(self.seed)
 
         textures = ["copper", "greasy", "panel", "rusty", "wood"]
-        for row in np.arange(-10, 10, 1.5):
-            for col in np.arange(-10, 10, 1.5):
+        for row in np.arange(-10, 10, 1.6):
+            for col in np.arange(-10, 10, 1.6):
                 TexturePack.activate_texture_pack(random.choice(textures))
                 self.transform.set_position(col, 0.0, row)
                 self.transform.set_rotation(
@@ -252,14 +248,12 @@ class MainWindow(QOpenGLWindow):
                 self.load_matrices_to_shader()
                 Primitives.draw("teapot")
 
-        # // draw floor
-        # t.activateTexturePack("greasy");
+        TexturePack.activate_texture_pack("greasy")
 
-        # //  ngl::ShaderLib::setUniform("roughnessScale",0.0f);
-        # m_transform.reset();
-        # m_transform.setPosition(0.0f,-0.5f,0.0f);
-        # loadMatricesToShader();
-        # ngl::VAOPrimitives::draw("floor")
+        self.transform.reset()
+        self.transform.set_position(0.0, -0.5, 0.0)
+        self.load_matrices_to_shader()
+        Primitives.draw("floor")
 
     def resizeGL(self, w: int, h: int) -> None:
         """
@@ -284,15 +278,38 @@ class MainWindow(QOpenGLWindow):
         Args:
             event: The QKeyEvent object containing information about the key press.
         """
+
+        def _set_light(num, mode):
+            ShaderLib.use(PBR_SHADER)
+            if mode:
+                colour = Vec3(255.0, 255.0, 255.0)
+            else:
+                colour = Vec3(0.0, 0.0, 0.0)
+            ShaderLib.set_uniform(num, colour)
+
         key = event.key()
         self.keys_pressed.add(key)
         if key == Qt.Key_Escape:
             self.close()  # Exit the application
+        elif key == Qt.Key_R:
+            self.seed = random.randint(0, 1000000)
         elif key == Qt.Key_Space:
             # Reset camera rotation and position
             self.spin_x_face = 0
             self.spin_y_face = 0
             self.model_position.set(0, 0, 0)
+        elif key == Qt.Key_1:
+            self.light_on[0] ^= True
+            _set_light("lightColors[0]", self.light_on[0])
+        elif key == Qt.Key_2:
+            self.light_on[1] ^= True
+            _set_light("lightColors[1]", self.light_on[1])
+        elif key == Qt.Key_3:
+            self.light_on[2] ^= True
+            _set_light("lightColors[2]", self.light_on[2])
+        elif key == Qt.Key_4:
+            self.light_on[3] ^= True
+            _set_light("lightColors[3]", self.light_on[3])
         # Trigger a redraw to apply changes
         self.update()
         # Call the base class implementation for any unhandled events
