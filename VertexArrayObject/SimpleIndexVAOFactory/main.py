@@ -6,6 +6,7 @@ import OpenGL.GL as gl
 from ngl import (
     IndexVertexData,
     Mat4,
+    PySideEventHandlingMixin,
     ShaderLib,
     VAOFactory,
     VAOType,
@@ -14,30 +15,24 @@ from ngl import (
     look_at,
     perspective,
 )
-from PySide6.QtCore import Qt
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 
 
-class MainWindow(QOpenGLWindow):
+class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
     def __init__(self, parent=None):
-        QOpenGLWindow.__init__(self)
-        self.mouseGlobalTX = Mat4()
+        super().__init__()
+        self.setup_event_handling(
+            rotation_sensitivity=0.5,
+            translation_sensitivity=0.01,
+            zoom_sensitivity=0.1,
+            initial_position=Vec3(0, 0, 0),
+        )
+
         self.width = int(1024)
         self.height = int(720)
         self.setTitle("SimpleIndexVAOFactory")
-        self.spinXFace = int(0)
-        self.spinYFace = int(0)
-        self.rotate = False
-        self.translate = False
-        self.origX = int(0)
-        self.origY = int(0)
-        self.origXPos = int(0)
-        self.origYPos = int(0)
-        self.INCREMENT = 0.01
-        self.ZOOM = 0.1
-        self.modelPos = Vec3()
         self.view = Mat4()
         self.project = Mat4()
         self.vao = None
@@ -101,7 +96,7 @@ class MainWindow(QOpenGLWindow):
 
     def loadMatricesToShader(self):
         ShaderLib.use("Colour")
-        mvp = self.project @ self.view @ self.mouseGlobalTX
+        mvp = self.project @ self.view @ self.mouse_global_tx
         ShaderLib.set_uniform("MVP", mvp)
 
     def paintGL(self):
@@ -109,12 +104,15 @@ class MainWindow(QOpenGLWindow):
         gl.glViewport(0, 0, self.width, self.height)
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        rotX = Mat4().rotate_x(self.spinXFace)
-        rotY = Mat4().rotate_y(self.spinYFace)
-        self.mouseGlobalTX = rotY @ rotX
-        self.mouseGlobalTX[3][0] = self.modelPos.x
-        self.mouseGlobalTX[3][1] = self.modelPos.y
-        self.mouseGlobalTX[3][2] = self.modelPos.z
+        # Apply rotation based on user input
+        rot_x = Mat4().rotate_x(self.spin_x_face)
+        rot_y = Mat4().rotate_y(self.spin_y_face)
+        self.mouse_global_tx = rot_y @ rot_x
+
+        # Update model position
+        self.mouse_global_tx[3][0] = self.model_position.x
+        self.mouse_global_tx[3][1] = self.model_position.y
+        self.mouse_global_tx[3][2] = self.model_position.z
         self.loadMatricesToShader()
         with self.vao:
             self.vao.draw()
@@ -123,76 +121,6 @@ class MainWindow(QOpenGLWindow):
         self.width = int(w * self.devicePixelRatio())
         self.height = int(h * self.devicePixelRatio())
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
-
-    def keyPressEvent(self, event):
-        key = event.key()
-        if key == Qt.Key_Escape:
-            self.close()
-        elif key == Qt.Key_W:
-            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
-        elif key == Qt.Key_S:
-            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
-        elif key == Qt.Key_Space:
-            self.spinXFace = 0
-            self.spinYFace = 0
-            self.modelPos.set(0, 0, 0)
-        else:
-            # always call the base implementation for unhandled keys
-            super().keyPressEvent(event)
-        self.update()
-
-    def mouseMoveEvent(self, event):
-        if self.rotate and event.buttons() == Qt.LeftButton:
-            position = event.position()
-            diffx = position.x() - self.origX
-            diffy = position.y() - self.origY
-            self.spinXFace += int(0.5 * diffy)
-            self.spinYFace += int(0.5 * diffx)
-            self.origX = position.x()
-            self.origY = position.y()
-            self.update()
-
-        elif self.translate and event.buttons() == Qt.RightButton:
-            position = event.position()
-
-            diffX = int(position.x() - self.origXPos)
-            diffY = int(position.y() - self.origYPos)
-            self.origXPos = position.x()
-            self.origYPos = position.y()
-            self.modelPos.x += self.INCREMENT * diffX
-            self.modelPos.y -= self.INCREMENT * diffY
-            self.update()
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            position = event.position()
-            self.origX = position.x()
-            self.origY = position.y()
-            self.rotate = True
-
-        elif event.button() == Qt.RightButton:
-            position = event.position()
-
-            self.origXPos = position.x()
-            self.origYPos = position.y()
-            self.translate = True
-
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.rotate = False
-
-        elif event.button() == Qt.RightButton:
-            self.translate = False
-
-    def wheelEvent(self, event):
-        numPixels = event.angleDelta()
-
-        if numPixels.x() > 0:
-            self.modelPos.z += self.ZOOM
-
-        elif numPixels.x() < 0:
-            self.modelPos.z -= self.ZOOM
-        self.update()
 
 
 if __name__ == "__main__":

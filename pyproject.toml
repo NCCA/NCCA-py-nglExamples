@@ -10,12 +10,12 @@ dependencies = [
     "qtpy>=2.4.3",
     "ngl",
     "freetype-py>=2.5.1",
+    "pysdl3>=0.9.8b9",
 ]
 
 
 [tool.uv.workspace]
-members=["VertexArrayObject/Boid","VertexArrayObject/ChangingVAO"]
-exclude =["*"]
-
+members=["*"]
+exclude=["*"]
 [tool.uv.sources]
-ngl = { path = "/Users/jmacey/NGLBuild/py-ngl", editable=true }
+ngl = { path = "/Users/jmacey/teaching/Code/PyNGL/", editable=true }

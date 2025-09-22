@@ -32,17 +32,17 @@ class MainWindow(QOpenGLWindow):
         """
         super().__init__()
         # --- Camera and Transformation Attributes ---
-        self.mouseGlobalTX: Mat4 = (
+        self.mouse_global_tx: Mat4 = (
             Mat4()
         )  # Global transformation matrix controlled by the mouse
         self.view: Mat4 = Mat4()  # View matrix (camera's position and orientation)
         self.project: Mat4 = (
             Mat4()
         )  # Projection matrix (defines the camera's viewing frustum)
-        self.modelPos: Vec3 = Vec3()  # Position of the model in world space
+        self.model_position: Vec3 = Vec3()  # Position of the model in world space
 
         # --- Window and UI Attributes ---
-        self.width: int = 1024  # Window width
+        self.width: int = 1024  # Window width¦
         self.height: int = 720  # Window height
         self.setTitle("Blank PySide6 py-ngl")
 
@@ -51,14 +51,18 @@ class MainWindow(QOpenGLWindow):
         self.translate: bool = (
             False  # Flag to check if the scene is being translated (panned)
         )
-        self.spinXFace: int = 0  # Accumulated rotation around the X-axis
-        self.spinYFace: int = 0  # Accumulated rotation around the Y-axis
-        self.origX: int = 0  # Initial X position of the mouse when a rotation starts
-        self.origY: int = 0  # Initial Y position of the mouse when a rotation starts
-        self.origXPos: int = (
+        self.spin_x_face: int = 0  # Accumulated rotation around the X-axis
+        self.spin_y_face: int = 0  # Accumulated rotation around the Y-axis
+        self.original_x_rotation: int = (
+            0  # Initial X position of the mouse when a rotation starts
+        )
+        self.original_y_rotation: int = (
+            0  # Initial Y position of the mouse when a rotation starts
+        )
+        self.original_x_pos: int = (
             0  # Initial X position of the mouse when a translation starts
         )
-        self.origYPos: int = (
+        self.original_y_pos: int = (
             0  # Initial Y position of the mouse when a translation starts
         )
         self.INCREMENT: float = 0.01  # Sensitivity for translation
@@ -129,9 +133,9 @@ class MainWindow(QOpenGLWindow):
             )  # Switch to solid fill rendering
         elif key == Qt.Key_Space:
             # Reset camera rotation and position
-            self.spinXFace = 0
-            self.spinYFace = 0
-            self.modelPos.set(0, 0, 0)
+            self.spin_x_face = 0
+            self.spin_y_face = 0
+            self.model_position.set(0, 0, 0)
         # Trigger a redraw to apply changes
         self.update()
         # Call the base class implementation for any unhandled events
@@ -147,22 +151,22 @@ class MainWindow(QOpenGLWindow):
         # Rotate the scene if the left mouse button is pressed
         if self.rotate and event.buttons() == Qt.LeftButton:
             position = event.position()
-            diffx = position.x() - self.origX
-            diffy = position.y() - self.origY
-            self.spinXFace += int(0.5 * diffy)
-            self.spinYFace += int(0.5 * diffx)
-            self.origX = position.x()
-            self.origY = position.y()
+            diff_x = position.x() - self.original_x_rotation
+            diff_y = position.y() - self.original_y_rotation
+            self.spin_x_face += int(0.5 * diff_y)
+            self.spin_y_face += int(0.5 * diff_x)
+            self.original_x_rotation = position.x()
+            self.original_y_rotation = position.y()
             self.update()
         # Translate (pan) the scene if the right mouse button is pressed
         elif self.translate and event.buttons() == Qt.RightButton:
             position = event.position()
-            diffX = int(position.x() - self.origXPos)
-            diffY = int(position.y() - self.origYPos)
-            self.origXPos = position.x()
-            self.origYPos = position.y()
-            self.modelPos.x += self.INCREMENT * diffX
-            self.modelPos.y -= self.INCREMENT * diffY
+            diff_x = int(position.x() - self.original_x_pos)
+            diff_y = int(position.y() - self.original_y_pos)
+            self.original_x_pos = position.x()
+            self.original_y_pos = position.y()
+            self.model_position.x += self.INCREMENT * diff_x
+            self.model_position.y -= self.INCREMENT * diff_y
             self.update()
 
     def mousePressEvent(self, event) -> None:
@@ -175,13 +179,13 @@ class MainWindow(QOpenGLWindow):
         position = event.position()
         # Left button initiates rotation
         if event.button() == Qt.LeftButton:
-            self.origX = position.x()
-            self.origY = position.y()
+            self.original_x_rotation = position.x()
+            self.original_y_rotation = position.y()
             self.rotate = True
         # Right button initiates translation
         elif event.button() == Qt.RightButton:
-            self.origXPos = position.x()
-            self.origYPos = position.y()
+            self.original_x_pos = position.x()
+            self.original_y_pos = position.y()
             self.translate = True
 
     def mouseReleaseEvent(self, event) -> None:
@@ -205,12 +209,12 @@ class MainWindow(QOpenGLWindow):
         Args:
             event: The QWheelEvent object.
         """
-        numPixels = event.angleDelta()
+        num_pixels = event.angleDelta()
         # Zoom in or out by adjusting the Z position of the model
-        if numPixels.x() > 0:
-            self.modelPos.z += self.ZOOM
-        elif numPixels.x() < 0:
-            self.modelPos.z -= self.ZOOM
+        if num_pixels.x() > 0:
+            self.model_position.z += self.ZOOM
+        elif num_pixels.x() < 0:
+            self.model_position.z -= self.ZOOM
         self.update()
 
 
