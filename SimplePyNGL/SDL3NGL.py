@@ -53,8 +53,8 @@ class Scene:
         self.model_position: Vec3 = Vec3()  # Position of the model in world space
 
         # --- Window and UI Attributes ---
-        self.width: int = width
-        self.height: int = height
+        self.window_width: int = width
+        self.window_height: int = height
 
         # --- Mouse Control Attributes for Camera Manipulation ---
         self.rotate: bool = False  # Flag to check if the scene is being rotated
@@ -75,7 +75,7 @@ class Scene:
         gl.glEnable(gl.GL_MULTISAMPLE)
         self.view = look_at(Vec3(0, 1, 4), Vec3(0, 0, 0), Vec3(0, 1, 0))
         # Set initial projection matrix
-        self.resize(self.width, self.height)
+        self.resize(self.window_width, self.window_height)
         # Set up the camera's view matrix.
         # It looks from (0, 1, 4) towards (0, 0, 0) with the 'up' direction along the Y-axis.
         self.view = look_at(Vec3(0, 1, 4), Vec3(0, 0, 0), Vec3(0, 1, 0))
@@ -121,10 +121,12 @@ class Scene:
         """
         Called when the window is resized to update the viewport and projection matrix.
         """
-        self.width = w
-        self.height = h
-        gl.glViewport(0, 0, self.width, self.height)
-        self.project = perspective(45.0, self.width / self.height, 0.01, 350.0)
+        self.window_width = w
+        self.window_height = h
+        gl.glViewport(0, 0, self.window_width, self.window_height)
+        self.project = perspective(
+            45.0, self.window_width / self.window_height, 0.01, 350.0
+        )
 
     def load_matrices_to_shader(self) -> None:
         ShaderLib.use(PBR_SHADER)
@@ -154,7 +156,7 @@ class Scene:
         t[0]["MVP"] = MVP.to_numpy().flatten()
         t[0]["normal_matrix"] = normal_matrix.to_numpy().flatten()
         t[0]["M"] = M.to_numpy().flatten()
-        ShaderLib.set_uniform_buffer("TransformUBO", t)
+        ShaderLib.set_uniform_buffer("TransformUBO", data=t.data, size=t.data.nbytes)
 
     def handle_event(self, event: sdl3.SDL_Event) -> bool:
         """
@@ -229,7 +231,7 @@ class Scene:
         """
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         # Set the viewport to cover the entire window
-        gl.glViewport(0, 0, self.width, self.height)
+        gl.glViewport(0, 0, self.window_width, self.window_height)
         # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         self.load_matrices_to_shader()

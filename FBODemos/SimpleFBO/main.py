@@ -59,8 +59,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         )  # Projection matrix (defines the camera's viewing frustum)
 
         # --- Window and UI Attributes ---
-        self.width: int = 1024  # Window width¦
-        self.height: int = 720  # Window height
+        self.window_width: int = 1024  # Window width¦
+        self.window_height: int = 720  # Window height
         self.setTitle("FBO Render to Texture")
         self.transform: Transform = Transform()
         self.rotation: float = 0.0
@@ -79,7 +79,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glEnable(gl.GL_MULTISAMPLE)
         # Set up the camera's view matrix.
         self.view = look_at(Vec3(2, 2, 2), Vec3(0, 0, 0), Vec3(0, 1, 0))
-        self.projection = perspective(45.0, self.width / self.height, 0.1, 100.0)
+        self.projection = perspective(
+            45.0, self.window_width / self.window_height, 0.1, 100.0
+        )
         self._load_shaders()
         self._create_texture_object()
         self._create_fbo()
@@ -213,8 +215,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         # get the new shader and set the new viewport size
         ShaderLib.use(TEXTURE_SHADER)
         # this takes into account retina displays etc
-        # gl.glViewport(0, 0, int(self.width * self.devicePixelRatio()), int(self.height * self.devicePixelRatio()))
-        gl.glViewport(0, 0, self.width, self.height)
+        # gl.glViewport(0, 0, int(self.window_width * self.devicePixelRatio()), int(self.window_height * self.devicePixelRatio()))
+        gl.glViewport(0, 0, self.window_width, self.window_height)
 
         self.transform.reset()
         MVP = self.projection @ self.view @ self.mouse_global_tx
@@ -255,8 +257,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             h: The new height of the window.
         """
         # Update the stored width and height, considering high-DPI displays
-        self.width = int(w * self.devicePixelRatio())
-        self.height = int(h * self.devicePixelRatio())
+        self.window_width = int(w * self.devicePixelRatio())
+        self.window_height = int(h * self.devicePixelRatio())
         # Update the projection matrix to match the new aspect ratio.
         # This creates a perspective projection with a 45-degree field of view.
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)

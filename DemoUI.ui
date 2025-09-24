@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1039</width>
+    <height>740</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <item>
+    <widget class="QGroupBox" name="demo_list">
+     <property name="title">
+      <string>Demo</string>
+     </property>
+     <layout class="QVBoxLayout" name="demo_vertical_layout"/>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="Demo">
+     <property name="title">
+      <string>Description</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout" stretch="0,2,1">
+      <item>
+       <widget class="QLabel" name="image_label">
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QTextEdit" name="demo_text"/>
+      </item>
+      <item>
+       <widget class="QPushButton" name="run_demo">
+        <property name="text">
+         <string>Run Demo</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

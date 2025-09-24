@@ -53,8 +53,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             zoom_sensitivity=0.1,
             initial_position=Vec3(0, 0, 0),
         )
-        self.width: int = 1024
-        self.height: int = 720
+        self.window_width: int = 1024
+        self.window_height: int = 720
         self.setTitle("Changing VAO")
         self.view: Mat4 = Mat4()  # View matrix
         self.project: Mat4 = Mat4()  # Projection matrix
@@ -102,7 +102,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             self.vao.set_vertex_attribute_pointer(1, 4, gl.GL_FLOAT, 0, 0)
         # # Set up text rendering for displaying data size
         self.text = Text("../fonts/Arial.ttf", 18)
-        self.text.set_screen_size(self.width, self.height)
+        self.text.set_screen_size(self.window_width, self.window_height)
 
         # Start a timer to update the vertex data periodically
         self.startTimer(220.0)
@@ -119,7 +119,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Render the scene. Called automatically by Qt.
         """
         self.makeCurrent()
-        gl.glViewport(0, 0, self.width, self.height)
+        gl.glViewport(0, 0, self.window_width, self.window_height)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         ShaderLib.use(COLOUR_SHADER)
 
@@ -156,10 +156,10 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             w: New window width.
             h: New window height.
         """
-        self.width = int(w * self.devicePixelRatio())
-        self.height = int(h * self.devicePixelRatio())
+        self.window_width = int(w * self.devicePixelRatio())
+        self.window_height = int(h * self.devicePixelRatio())
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
-        self.text.set_screen_size(self.width, self.height)
+        self.text.set_screen_size(self.window_width, self.window_height)
 
     def keyPressEvent(self, event) -> None:
         """

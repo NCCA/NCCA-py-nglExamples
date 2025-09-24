@@ -58,8 +58,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         )  # Projection matrix (defines the camera's viewing frustum)
 
         # --- Window and UI Attributes ---
-        self.width: int = 1024  # Window width¦
-        self.height: int = 720  # Window height
+        self.window_width: int = 1024  # Window width¦
+        self.window_height: int = 720  # Window height
         self.setTitle("Blank PySide6 py-ngl")
         self.transform = Transform()
 
@@ -150,7 +150,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         """
         self.makeCurrent()
         # Set the viewport to cover the entire window
-        gl.glViewport(0, 0, self.width, self.height)
+        gl.glViewport(0, 0, self.window_width, self.window_height)
         # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
@@ -209,8 +209,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             h: The new height of the window.
         """
         # Update the stored width and height, considering high-DPI displays
-        self.width = int(w * self.devicePixelRatio())
-        self.height = int(h * self.devicePixelRatio())
+        self.window_width = int(w * self.devicePixelRatio())
+        self.window_height = int(h * self.devicePixelRatio())
         # Update the projection matrix to match the new aspect ratio.
         # This creates a perspective projection with a 45-degree field of view.
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)

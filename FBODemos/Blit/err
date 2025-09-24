@@ -1,0 +1,31 @@
+[36m12:50:43 - INFO - Running in full debug mode[0m
+[36m12:50:43 - INFO - max_attach=np.int32(8) max_draw_buff=np.int32(8)[0m
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/py-nglExamples/FBODemos/Blit/./main.py", line 277, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/py-nglExamples/FBODemos/Blit/./main.py", line 79, in initializeGL
+    self._create_frambuffer_object()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/py-nglExamples/FBODemos/Blit/./main.py", line 106, in _create_frambuffer_object
+    gl.glTexImage2D(
+    ~~~~~~~~~~~~~~~^
+        gl.GL_TEXTURE_2D,
+        ^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+        ctypes.c_void_p(0),
+        ^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/py-nglExamples/.venv/lib/python3.13/site-packages/OpenGL/latebind.py", line 43, in __call__
+    return self._finalCall( *args, **named )
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/py-nglExamples/.venv/lib/python3.13/site-packages/OpenGL/wrapper.py", line 990, in wrapperCall
+    pyArgs = tuple(calculate_pyArgs(args))
+  File "/Volumes/teaching/Code/py-nglExamples/.venv/lib/python3.13/site-packages/OpenGL/wrapper.py", line 523, in calculate_pyArgs
+    yield converter(args[index], self, args)
+          ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/py-nglExamples/.venv/lib/python3.13/site-packages/OpenGL/GL/images.py", line 456, in __call__
+    arrayType = arrays.GL_CONSTANT_TO_ARRAY_TYPE[ images.TYPE_TO_ARRAYTYPE[ type ] ]
+                                                  ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+KeyError: (GL_UNSIGNED_INT_24_8, <OpenGL.GL.images.ImageInputConverter object at 0x101387100>)

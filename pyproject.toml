@@ -19,3 +19,8 @@ members=["*"]
 exclude=["*"]
 [tool.uv.sources]
 ngl = { path = "/Users/jmacey/teaching/Code/PyNGL/", editable=true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]

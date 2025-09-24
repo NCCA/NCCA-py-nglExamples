@@ -9,9 +9,22 @@ It is designed to be a starting point for more complex OpenGL applications.
 
 import sys
 import traceback
+from dataclasses import dataclass
 
 import OpenGL.GL as gl
-from ngl import Mat4, Vec3, logger, look_at, perspective
+from ngl import (
+    DefaultShader,
+    Mat3,
+    Mat4,
+    Primitives,
+    ShaderLib,
+    Transform,
+    Vec3,
+    Vec4,
+    logger,
+    look_at,
+    perspective,
+)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
@@ -42,9 +55,9 @@ class MainWindow(QOpenGLWindow):
         self.model_position: Vec3 = Vec3()  # Position of the model in world space
 
         # --- Window and UI Attributes ---
-        self.window_width: int = 1024  # Window width¦
+        self.window_width: int = 1024  # Window width
         self.window_height: int = 720  # Window height
-        self.setTitle("Blank PySide6 py-ngl")
+        self.setTitle("VAOPrimitives")
 
         # --- Mouse Control Attributes for Camera Manipulation ---
         self.rotate: bool = False  # Flag to check if the scene is being rotated
@@ -84,6 +97,33 @@ class MainWindow(QOpenGLWindow):
         # It looks from (0, 1, 4) towards (0, 0, 0) with the 'up' direction along the Y-axis.
         self.view = look_at(Vec3(0, 1, 4), Vec3(0, 0, 0), Vec3(0, 1, 0))
 
+        ShaderLib.use(DefaultShader.DIFFUSE)
+        ShaderLib.set_uniform("Colour", 1.0, 1.0, 0.0, 1.0)
+        ShaderLib.set_uniform("lightPos", 1.0, 1.0, 1.0)
+        ShaderLib.set_uniform("lightDiffuse", 1.0, 1.0, 1.0, 1.0)
+        Primitives.load_default_primitives()
+        # Add a ground plane
+        Primitives.create_triangle_plane("ground", 10, 10, 20, 20, Vec3(0, 1, 0))
+        Primitives.create_sphere("sphere", 0.3, 32)
+        Primitives.create_cone("cone", 0.5, 1.0, 20, 20)
+        Primitives.create_capsule("capsule", 0.2, 0.4, 20)
+        Primitives.create_cylinder("cylinder", 0.2, 0.4, 20, 20)
+        Primitives.create_torus("torus", 0.1, 0.3, 20, 20)
+        Primitives.create_disk("disk", 0.5, 20)
+
+    def load_matrices_to_shader(self, transform) -> None:
+        """
+        Load transformation matrices to the shader uniforms.
+        """
+        ShaderLib.use(DefaultShader.DIFFUSE)
+        MV = self.view @ self.mouse_global_tx @ transform.get_matrix()
+        mvp = self.project @ MV
+        normal_matrix = Mat3.from_mat4(MV)
+        normal_matrix.inverse().transpose()
+        ShaderLib.set_uniform("MVP", mvp)
+        ShaderLib.set_uniform("MV", MV)
+        ShaderLib.set_uniform("normalMatrix", normal_matrix)
+
     def paintGL(self) -> None:
         """
         Called every time the window needs to be redrawn.
@@ -94,8 +134,59 @@ class MainWindow(QOpenGLWindow):
         gl.glViewport(0, 0, self.window_width, self.window_height)
         # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+        # Apply rotation based on user input
+        rot_x: Mat4 = Mat4().rotate_x(self.spin_x_face)
+        rot_y: Mat4 = Mat4().rotate_y(self.spin_y_face)
+        self.mouse_global_tx = rot_y @ rot_x
+        # Apply translation
+        self.mouse_global_tx[3][0] = self.model_position.x
+        self.mouse_global_tx[3][1] = self.model_position.y
+        self.mouse_global_tx[3][2] = self.model_position.z
+        # draw ground
+        tx = Transform()
+        tx.set_position(0, -0.5, 0)
+        ShaderLib.set_uniform("Colour", 1.0, 1.0, 1.0, 1.0)
+        self.load_matrices_to_shader(tx)
 
-        # --- All drawing code should go here ---
+        def render_mesh(tx, prim, pos, scale, rot, colour):
+            tx.reset()
+            tx.set_position(pos)
+            tx.set_scale(scale)
+            tx.set_rotation(rot)
+            ShaderLib.set_uniform("Colour", colour[0], colour[1], colour[2], colour[3])
+            self.load_matrices_to_shader(tx)
+            Primitives.draw(prim)
+
+        @dataclass
+        class Primitive:
+            name: str
+            position: Vec3
+            scale: Vec3
+            rotation: Vec3
+            color: Vec4
+
+        # fmt: off
+        prims = [
+            Primitive("ground",Vec3(0, -0.5, 0),Vec3(10, 1, 10),Vec3(0, 0, 0),Vec4(1.0, 1.0, 1.0, 1.0)),
+            Primitive("teapot",Vec3(0, 0, 0),Vec3(1, 1, 1),Vec3(0, 0, 0),Vec4(1.0, 0.0, 0.0, 1.0)),
+            Primitive("cube",Vec3(-1, -0.2, 0),Vec3(0.5, 0.5, 0.5),Vec3(0, 45, 0),Vec4(0.0, 1.0, 0.0, 1.0)),
+            Primitive("sphere",Vec3(1, -0.2, 0),Vec3(0.5, 0.5, 0.5),Vec3(0, 0, 0),Vec4(0.0, 0.0, 1.0, 1.0)),
+            Primitive("bunny",Vec3(2, -0.5, 0),Vec3(0.1, 0.1, 0.1),Vec3(0, -90, 0),Vec4(1.0, 0.0, 1.0, 1.0)),
+            Primitive("buddah",Vec3(3, -0.5, 0),Vec3(0.1, 0.1, 0.1),Vec3(0, -90, 0),Vec4(0.0, 1.0, 1.0, 1.0)),
+            Primitive("dragon",Vec3(-1, -0.2, -1),Vec3(0.1, 0.1, 0.1),Vec3(0, -90, 0),Vec4(1.0, 1.0, 0.0, 1.0)),
+            Primitive("troll",Vec3(1, 0.1, -1),Vec3(1, 1, 1),Vec3(0, -90, 0),Vec4(1.0, 0.0, 0.0, 1.0)),
+            Primitive("tetrahedron",Vec3(-1, 0.5, -2),Vec3(0.5, 0.5, 0.5),Vec3(0, 0, 0),Vec4(1.0, 1.0, 0.0, 1.0)),
+            Primitive("octahedron",Vec3(1, 0.5, -2),Vec3(0.5, 0.5, 0.5),Vec3(0, 0, 0),Vec4(1.0, 1.0, 0.0, 1.0)),
+            Primitive("icosahedron",Vec3(-2.5, 0.5, -2),Vec3(0.5, 0.5, 0.5),Vec3(0, 0, 0),Vec4(1.0, 1.0, 0.0, 1.0)),
+            Primitive("dodecahedron",Vec3(2.5, 0.5, -2),Vec3(0.5, 0.5, 0.5),Vec3(0, 0, 0),Vec4(1.0, 1.0, 0.0, 1.0)),
+            Primitive("cone",Vec3(0, 0, -3),Vec3(1, 1, 1),Vec3(-90, 0, 0),Vec4(1.0, 1.0, 0.0, 1.0)),
+            Primitive("capsule",Vec3(-1, 0, -3),Vec3(1, 1, 1),Vec3(0, 0, 0),Vec4(1.0, 1.0, 0.0, 1.0)),
+            Primitive("cylinder",Vec3(1, 0, -3),Vec3(1, 1, 1),Vec3(0, 0, 0),Vec4(1.0, 1.0, 0.0, 1.0)),
+            Primitive("torus",Vec3(2, 0, -3),Vec3(1, 1, 1),Vec3(0, 0, 0),Vec4(1.0, 1.0, 0.0, 1.0)),
+            Primitive("disk",Vec3(-2, 0, -3),Vec3(1, 1, 1),Vec3(0, 0, 0),Vec4(1.0, 1.0, 0.0, 1.0)),
+        ]
+        [render_mesh( tx, prim.name, prim.position, prim.scale, prim.rotation, prim.color )  for prim in prims]
+        # fmt: on
 
     def resizeGL(self, w: int, h: int) -> None:
         """
@@ -133,8 +224,8 @@ class MainWindow(QOpenGLWindow):
             )  # Switch to solid fill rendering
         elif key == Qt.Key_Space:
             # Reset camera rotation and position
-            self.spin_x_face = 0
-            self.spin_y_face = 0
+            self.spinXFace = 0
+            self.spinYFace = 0
             self.model_position.set(0, 0, 0)
         # Trigger a redraw to apply changes
         self.update()

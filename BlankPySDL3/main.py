@@ -41,8 +41,8 @@ class Scene:
         self.modelPos: Vec3 = Vec3()  # Position of the model in world space
 
         # --- Window and UI Attributes ---
-        self.width: int = width
-        self.height: int = height
+        self.window_width: int = width
+        self.window_height: int = height
 
         # --- Mouse Control Attributes for Camera Manipulation ---
         self.rotate: bool = False  # Flag to check if the scene is being rotated
@@ -63,16 +63,18 @@ class Scene:
         gl.glEnable(gl.GL_MULTISAMPLE)
         self.view = look_at(Vec3(0, 1, 4), Vec3(0, 0, 0), Vec3(0, 1, 0))
         # Set initial projection matrix
-        self.resize(self.width, self.height)
+        self.resize(self.window_width, self.window_height)
 
     def resize(self, w: int, h: int) -> None:
         """
         Called when the window is resized to update the viewport and projection matrix.
         """
-        self.width = w
-        self.height = h
-        gl.glViewport(0, 0, self.width, self.height)
-        self.project = perspective(45.0, self.width / self.height, 0.01, 350.0)
+        self.window_width = w
+        self.window_height = h
+        gl.glViewport(0, 0, self.window_width, self.window_height)
+        self.project = perspective(
+            45.0, self.window_width / self.window_height, 0.01, 350.0
+        )
 
     def handle_event(self, event: sdl3.SDL_Event) -> bool:
         """

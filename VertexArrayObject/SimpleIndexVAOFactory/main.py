@@ -30,8 +30,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             initial_position=Vec3(0, 0, 0),
         )
 
-        self.width = int(1024)
-        self.height = int(720)
+        self.window_width = int(1024)
+        self.window_height = int(720)
         self.setTitle("SimpleIndexVAOFactory")
         self.view = Mat4()
         self.project = Mat4()
@@ -101,7 +101,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
     def paintGL(self):
         self.makeCurrent()
-        gl.glViewport(0, 0, self.width, self.height)
+        gl.glViewport(0, 0, self.window_width, self.window_height)
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         # Apply rotation based on user input
@@ -118,8 +118,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             self.vao.draw()
 
     def resizeGL(self, w, h):
-        self.width = int(w * self.devicePixelRatio())
-        self.height = int(h * self.devicePixelRatio())
+        self.window_width = int(w * self.devicePixelRatio())
+        self.window_height = int(h * self.devicePixelRatio())
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
 
 

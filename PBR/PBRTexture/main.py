@@ -54,8 +54,8 @@ class MainWindow(QOpenGLWindow):
         super().__init__()
 
         # --- Window and UI Attributes ---
-        self.width: int = 1024
-        self.height: int = 720
+        self.window_width: int = 1024
+        self.window_height: int = 720
         self.setTitle("PBR Texture Demo")
 
         # --- Scene and Transformation Attributes ---
@@ -85,7 +85,9 @@ class MainWindow(QOpenGLWindow):
         look = Vec3(0, 0, 0)
         up = Vec3(0, 1, 0)
         self.camera = FirstPersonCamera(eye, look, up, 45.0)
-        self.camera.set_projection(45.0, self.width / self.height, 0.05, 350.0)
+        self.camera.set_projection(
+            45.0, self.window_width / self.window_height, 0.05, 350.0
+        )
 
     def initializeGL(self) -> None:
         """
@@ -158,7 +160,7 @@ class MainWindow(QOpenGLWindow):
         The main rendering loop. Called for every frame.
         """
         self.makeCurrent()
-        gl.glViewport(0, 0, self.width, self.height)
+        gl.glViewport(0, 0, self.window_width, self.window_height)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
         self._update_camera_movement()
@@ -228,8 +230,8 @@ class MainWindow(QOpenGLWindow):
         """
         Handles window resize events. Updates viewport and projection matrix.
         """
-        self.width = int(w * self.devicePixelRatio())
-        self.height = int(h * self.devicePixelRatio())
+        self.window_width = int(w * self.devicePixelRatio())
+        self.window_height = int(h * self.devicePixelRatio())
         self.camera.set_projection(45.0, w / h, 0.05, 350.0)
 
     def load_matrices_to_shader(self) -> None:

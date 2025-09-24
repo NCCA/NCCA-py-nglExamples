@@ -55,8 +55,8 @@ class MainWindow(QOpenGLWindow):
         self.model_position: Vec3 = Vec3()  # Position of the model in world space
 
         # --- Window and UI Attributes ---
-        self.width: int = 1024  # Window width
-        self.height: int = 720  # Window height
+        self.window_width: int = 1024  # Window width
+        self.window_height: int = 720  # Window height
         self.setTitle("Blank PySide6 py-ngl")
 
         # --- Mouse Control Attributes for Camera Manipulation ---
@@ -162,7 +162,7 @@ class MainWindow(QOpenGLWindow):
         t[0]["MVP"] = MVP.to_numpy().flatten()
         t[0]["normal_matrix"] = normal_matrix.to_numpy().flatten()
         t[0]["M"] = M.to_numpy().flatten()
-        ShaderLib.set_uniform_buffer("TransformUBO", t)
+        ShaderLib.set_uniform_buffer("TransformUBO", data=t.data, size=t.data.nbytes)
 
     def paintGL(self) -> None:
         """
@@ -171,7 +171,7 @@ class MainWindow(QOpenGLWindow):
         """
         self.makeCurrent()
         # Set the viewport to cover the entire window
-        gl.glViewport(0, 0, self.width, self.height)
+        gl.glViewport(0, 0, self.window_width, self.window_height)
         # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         self.load_matrices_to_shader()
@@ -205,8 +205,8 @@ class MainWindow(QOpenGLWindow):
             h: The new height of the window.
         """
         # Update the stored width and height, considering high-DPI displays
-        self.width = int(w * self.devicePixelRatio())
-        self.height = int(h * self.devicePixelRatio())
+        self.window_width = int(w * self.devicePixelRatio())
+        self.window_height = int(h * self.devicePixelRatio())
         # Update the projection matrix to match the new aspect ratio.
         # This creates a perspective projection with a 45-degree field of view.
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)

@@ -49,8 +49,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             zoom_sensitivity=0.1,
             initial_position=Vec3(0, 0, 0),
         )
-        self.width: int = 1024
-        self.height: int = 720
+        self.window_width: int = 1024
+        self.window_height: int = 720
         self.setTitle("Extended VAO")
         self.view: Mat4 = Mat4()  # View matrix
         self.project: Mat4 = Mat4()  # Projection matrix
@@ -145,7 +145,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Render the scene. Called automatically by Qt.
         """
         self.makeCurrent()
-        gl.glViewport(0, 0, self.width, self.height)
+        gl.glViewport(0, 0, self.window_width, self.window_height)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         ShaderLib.use(COLOUR_SHADER)
 
@@ -186,8 +186,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             w: New window width.
             h: New window height.
         """
-        self.width = int(w * self.devicePixelRatio())
-        self.height = int(h * self.devicePixelRatio())
+        self.window_width = int(w * self.devicePixelRatio())
+        self.window_height = int(h * self.devicePixelRatio())
         self.project = perspective(45.0, float(w) / h, 0.05, 350.0)
 
     def timerEvent(self, event) -> None:
