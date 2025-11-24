@@ -1,14 +1,14 @@
 import numpy as np
 import wgpu
 from MeshData import MeshData
-from ncca.ngl import PrimData, Prims, Vec3
+from ncca.ngl import Mat4, PerspMode, PrimData, Prims, Vec3, look_at, perspective
 
 _FLOAT_SIZE = np.dtype(np.float32).itemsize
 _TEXTURE_FORMAT = wgpu.TextureFormat.rgba8unorm
 
 
 class Pipeline:
-    def __init__(self, device, eye, view, project):
+    def __init__(self, device, camera):
         self.device = device
         self.pipeline = None
         self.transform_buffer = None
@@ -16,15 +16,13 @@ class Pipeline:
         self.light_buffer = None
         self.view_buffer = None
         self.bind_group_0 = None
-        self.bind_group_1 = None
         self.vertex_uniforms = None
         self.light_uniforms = None
-        self.eye = eye
-        self.view = view
-        self.project = project
+        self.camera = camera
         self.prim_buffers = {}
         self.mesh_data = MeshData(self.device)
         self._create_lights()
+        self._create_global_transforms()
         self._create_buffers()
         self._create_render_pipeline()
 
@@ -45,30 +43,57 @@ class Pipeline:
 
         self.mesh_data.create_buffers()
 
+    def _create_global_transforms(self):
+        self.transforms_data = np.zeros(
+            1,
+            dtype=[
+                ("view", "float32", (16)),
+                ("projection", "float32", (16)),
+            ],
+        )
+        self.transforms_data["view"] = Mat4().to_numpy().flatten()
+        self.transforms_data["projection"] = Mat4().to_numpy().flatten()
+
+        self.transforms_buffer = self.device.create_buffer_with_data(
+            data=self.transforms_data.tobytes(),
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+            label="transforms_buffer",
+        )
+
     def _create_lights(self):
         # going to use 3 point lighting here
         self.light_uniform_data = np.zeros(
             (3),
-            dtype=[("light_pos", "float32", (4)), ("light_diffuse", "float32", (4))],
+            dtype=[
+                ("light_pos", "float32", (4)),
+                ("light_diffuse", "float32", (4)),
+                ("camera_pos", "float32", (4)),
+            ],
         )
         self.light_uniform_data[0]["light_pos"] = np.array(
-            [0.0, 1.0, 1.0, 1.0], dtype=np.float32
+            [0.0, 2.0, 2.0, 1.0], dtype=np.float32
         )
-        self.light_uniform_data[0]["light_diffuse"] = np.array(
-            [20.0, 20.0, 20.0, 1.0], dtype=np.float32
+        self.light_uniform_data[0]["camera_pos"] = np.array(
+            [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z, 1.0],
+            dtype=np.float32,
         )
+
         self.light_uniform_data[1]["light_pos"] = np.array(
-            [-1.0, 1.0, -1.0, 1.0], dtype=np.float32
+            [-2.0, 2.0, -2.0, 1.0], dtype=np.float32
         )
-        self.light_uniform_data[1]["light_diffuse"] = np.array(
-            [2.0, 2.0, 2.0, 1.0], dtype=np.float32
+        self.light_uniform_data[1]["camera_pos"] = np.array(
+            [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z, 1.0],
+            dtype=np.float32,
         )
+
         self.light_uniform_data[2]["light_pos"] = np.array(
-            [1.0, 1.0, -1.0, 1.0], dtype=np.float32
+            [2.0, 2.0, -2.0, 1.0], dtype=np.float32
         )
-        self.light_uniform_data[2]["light_diffuse"] = np.array(
-            [1.0, 1.0, 1.0, 1.0], dtype=np.float32
+        self.light_uniform_data[2]["camera_pos"] = np.array(
+            [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z, 1.0],
+            dtype=np.float32,
         )
+
         self.light_uniform_buffer = self.device.create_buffer_with_data(
             data=self.light_uniform_data.tobytes(),
             usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_DST,
@@ -78,16 +103,16 @@ class Pipeline:
     def update_lights(self, one_state, two_state, three_state):
         off = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32)
         self.light_uniform_data[0]["light_diffuse"] = (
-            np.array([6.0, 6.0, 6.0, 1.0], dtype=np.float32) if one_state else off
+            np.array([0.8, 0.8, 0.8, 1.0], dtype=np.float32) if one_state else off
         )
         self.light_uniform_data[1]["light_diffuse"] = (
-            np.array([5.0, 5.0, 5.0, 1.0], dtype=np.float32) if two_state else off
+            np.array([0.4, 0.4, 0.4, 1.0], dtype=np.float32) if two_state else off
         )
         self.light_uniform_data[2]["light_diffuse"] = (
-            np.array([2.0, 2.0, 2.0, 1.0], dtype=np.float32) if three_state else off
+            np.array([0.2, 0.2, 0.2, 1.0], dtype=np.float32) if three_state else off
         )
         self.device.queue.write_buffer(
-            self.light_uniform_buffer, 0, self.light_uniform_data
+            self.light_uniform_buffer, 0, self.light_uniform_data.tobytes()
         )
 
     def _create_render_pipeline(self) -> None:
@@ -149,6 +174,14 @@ class Pipeline:
                         "has_dynamic_offset": False,
                     },
                 },
+                {
+                    "binding": 2,
+                    "visibility": wgpu.ShaderStage.VERTEX,
+                    "buffer": {
+                        "type": wgpu.BufferBindingType.uniform,
+                        "has_dynamic_offset": False,
+                    },
+                },
             ],
         )
 
@@ -162,6 +195,7 @@ class Pipeline:
                     "resource": {"buffer": self.mesh_data.storage_buffer},
                 },
                 {"binding": 1, "resource": {"buffer": self.light_uniform_buffer}},
+                {"binding": 2, "resource": {"buffer": self.transforms_buffer}},
             ],
         )
 
@@ -204,6 +238,9 @@ class Pipeline:
         Renders a complete scene with the given objects.
         This method consolidates the entire render pass.
         """
+        # This sets the camera shared by all objects
+        self.transforms_data["view"] = self.camera.view.to_numpy().flatten()
+        self.transforms_data["projection"] = self.camera.projection.to_numpy().flatten()
         # 1. Update CPU-side storage buffer with new data from scene objects
         for name, transform, colour in scene_objects:
             self._update_mesh_storage_buffer(name, transform, colour)
@@ -220,19 +257,18 @@ class Pipeline:
         # 4. End the render pass and submit
         self._end_render_pass()
 
-    def _update_mesh_storage_buffer(self, name: str, model, colour) -> None:
+    def _update_mesh_storage_buffer(
+        self, name: str, model: Mat4, colour: tuple
+    ) -> None:
         """
         (Internal) Update the storage buffer for a single mesh.
         """
 
-        model_view = self.view @ model
-        MVP = self.project @ model_view
-        normal_matrix = model_view.copy()
+        normal_matrix = model.copy()
         normal_matrix.inverse().transpose()
         self.mesh_data.update_mesh_data(
             name,
-            MVP.to_numpy(),
-            model_view.to_numpy(),
+            model.to_numpy(),
             normal_matrix.to_numpy(),
             colour,
         )
@@ -243,6 +279,9 @@ class Pipeline:
         self.command_encoder = self.device.create_command_encoder()
         # Before rendering, write all the updated mesh data to the GPU buffer
         self.mesh_data.write_buffers()
+        self.device.queue.write_buffer(
+            self.transforms_buffer, 0, self.transforms_data.tobytes()
+        )
 
         self.render_pass = self.command_encoder.begin_render_pass(
             color_attachments=[

@@ -1,12 +1,19 @@
 @group(0) @binding(0) var<storage, read> mesh_uniforms: array<VertexUniforms>;
 @group(0) @binding(1) var<storage, read> light_uniforms : array<LightUniforms>;
 
+@group(0) @binding(2) var<uniform> transforms : GlobalUniforms;
+
+struct GlobalUniforms
+{
+    view : mat4x4<f32>,
+    projection : mat4x4<f32>
+};
 
 
 struct VertexUniforms
 {
-    MVP : mat4x4<f32>,
-    model_view : mat4x4<f32>,
+
+    model : mat4x4<f32>,
     normal_matrix : mat4x4<f32>,
     colour : vec4<f32>
 };
@@ -15,7 +22,8 @@ struct VertexUniforms
 struct LightUniforms
 {
     light_pos : vec4<f32>,
-    light_diffuse : vec4<f32>
+    light_diffuse : vec4<f32>,
+    camera_pos : vec4<f32>
 };
 
 
@@ -47,13 +55,15 @@ fn extract_mat3x3(mat: mat4x4<f32>) -> mat3x3<f32> {
 fn vertex_main(input : VertexInput,@builtin(instance_index) instanceIdx: u32) -> VertexOutput
 {
     var output : VertexOutput;
-
     let uniforms = mesh_uniforms[instanceIdx];
 
-    output.position = uniforms.MVP * vec4<f32>(input.position, 1.0);
+    let MVP = transforms.projection * transforms.view * uniforms.model;
+
+
+    output.position = MVP * vec4<f32>(input.position, 1.0);
     output.normal = extract_mat3x3(uniforms.normal_matrix) * input.normal;
     output.uv = input.uv;
-    output.frag_pos = (uniforms.model_view * vec4<f32>(input.position, 1.0)).xyz;
+    output.frag_pos = (uniforms.model * vec4<f32>(input.position, 1.0)).xyz;
     output.colour = uniforms.colour;
 
     return output;
@@ -86,12 +96,10 @@ fn fragment_main(input : FragmentInput) -> FragmentOutput
     {
         let light = light_uniforms[i];
         let L = normalize(light.light_pos.xyz - input.frag_pos);
-        let distance = length(light.light_pos.xyz - input.frag_pos);
-        // Avoid division by zero and extreme brightness at close range
-        let attenuation = 1.0 / (distance * distance + 1.0);
-        let radiance = light.light_diffuse.rgb * attenuation;
-        let diffuse = max(dot(normalize(input.normal), L), 0.0);
-        final_colour += input.colour.rgb * radiance * diffuse;
+        let V = normalize(light.camera_pos.xyz - input.frag_pos);
+        let H = normalize(L + V);
+        let diffuse = max(dot(normalize(input.normal), H), 0.0);
+        final_colour += input.colour.rgb * light.light_diffuse.rgb * diffuse;
     }
     output.colour = vec4<f32>(final_colour, input.colour.a);
     return output;

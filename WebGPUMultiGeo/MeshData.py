@@ -1,5 +1,6 @@
 import numpy as np
 import wgpu
+from ncca.ngl import Mat4
 
 
 class MeshData:
@@ -47,6 +48,15 @@ class MeshData:
             ]
         )
 
+        # This dtype MUST match the layout in the WGSL shader
+        storage_dtype = np.dtype(
+            [
+                ("model", "float32", (16)),
+                ("normal_matrix", "float32", (16)),
+                ("colour", "float32", (4)),
+            ]
+        )
+
         # --- Pass 1: Calculate total sizes ---
         total_vertices = 0
         for prim_data in self._raw_meshes.values():
@@ -54,16 +64,6 @@ class MeshData:
             total_vertices += (
                 np.array(prim_data.data, copy=False).view(vertex_dtype).shape[0]
             )
-
-        # This dtype MUST match the layout in the WGSL shader
-        storage_dtype = np.dtype(
-            [
-                ("MVP", "float32", (4, 4)),
-                ("model_view", "float32", (4, 4)),
-                ("normal_matrix", "float32", (4, 4)),
-                ("colour", "float32", (4)),
-            ]
-        )
 
         # --- Allocate host-side (NumPy) arrays ---
         self.vertex_data = np.empty(total_vertices, dtype=vertex_dtype)
@@ -98,7 +98,7 @@ class MeshData:
 
         # --- Create device-side (GPU) buffers ---
         self.vertex_buffer = self.device.create_buffer_with_data(
-            data=self.vertex_data,
+            data=self.vertex_data.tobytes(),
             usage=wgpu.BufferUsage.VERTEX,
             label="consolidated_vertex_buffer",
         )
@@ -108,24 +108,27 @@ class MeshData:
             label="consolidated_storage_buffer",
         )
 
-    def update_mesh_data(self, name: str, mvp, model_view, normal_matrix, colour):
+    def update_mesh_data(
+        self, name: str, model: Mat4, normal_matrix: Mat4, colour: tuple
+    ):
         """
         Updates the transformation/color data for a mesh in the host-side NumPy array.
         """
         if name not in self._mesh_info:
             return
         instance_index = self._mesh_info[name]["instance_index"]
-        self.storage_data[instance_index]["MVP"] = mvp
-        self.storage_data[instance_index]["model_view"] = model_view
-        self.storage_data[instance_index]["normal_matrix"] = normal_matrix
+        self.storage_data[instance_index]["model"] = model.flatten()
+        self.storage_data[instance_index]["normal_matrix"] = normal_matrix.flatten()
         self.storage_data[instance_index]["colour"] = colour
 
     def write_buffers(self):
         """
         Uploads the (potentially updated) host-side storage data to the GPU buffer.
         """
-        if self.storage_data is not None and self.storage_buffer is not None:
-            self.device.queue.write_buffer(self.storage_buffer, 0, self.storage_data)
+        # if self.storage_data is not None and self.storage_buffer is not None:
+        self.device.queue.write_buffer(
+            self.storage_buffer, 0, self.storage_data.tobytes()
+        )
 
     def get_mesh_info(self, name: str):
         """

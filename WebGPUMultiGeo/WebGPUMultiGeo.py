@@ -3,9 +3,20 @@ import sys
 
 import numpy as np
 import wgpu
-from ncca.ngl import Mat4, PrimData, Prims, Transform, Vec3, Vec4, look_at, perspective
+from ncca.ngl import (
+    FirstPersonCamera,
+    Mat4,
+    PerspMode,
+    PrimData,
+    Prims,
+    Transform,
+    Vec3,
+    Vec4,
+    look_at,
+    perspective,
+)
 from Pipeline import Pipeline
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QElapsedTimer, Qt
 from PySide6.QtWidgets import QApplication
 from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
@@ -23,8 +34,6 @@ class WebGPUScene(WebGPUWidget):
         super().__init__()
         self.setWindowTitle("WebGPU Multi Mesh")
         self.device = None
-        self.mouse_global_tx: Mat4 = Mat4()
-        self.model_position: Vec3 = Vec3()  # Position of the model in world space
         # --- Mouse Control Attributes for Camera Manipulation ---
         self.rotate: bool = False  # Flag to check if the scene is being rotated
         self.translate: bool = (
@@ -49,23 +58,18 @@ class WebGPUScene(WebGPUWidget):
         self.light_one_state = True
         self.light_two_state = True
         self.light_three_state = True
+        self.keys_pressed = set()
+        # --- Frame Timing used to update the camera
+        self.timer = QElapsedTimer()
+        self.timer.start()
+        self.last_frame = 1.0
 
         self.pipeline = None
         self.rotation = 0.0
-        self.eye = Vec3(0.0, 2.0, 4.0)
-        self.view = look_at(self.eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
-        gl_to_web = Mat4.from_list(
-            [
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 0.5, 0.5],
-                [0.0, 0.0, 0.0, 1.0],
-            ]
+        self.camera = FirstPersonCamera(
+            Vec3(0, 2, 8), Vec3(0, 0, 0), Vec3(0, 1, 0), 45.0, PerspMode.WebGPU
         )
 
-        self.project = gl_to_web @ perspective(
-            45.0, self.width() / self.height(), 0.1, 100.0
-        )
         self._initialize_web_gpu()
         self.update()
 
@@ -90,13 +94,17 @@ class WebGPUScene(WebGPUWidget):
         """
         Create a render pipeline.
         """
-        self.pipeline = Pipeline(self.device, self.eye, self.view, self.project)
+        self.pipeline = Pipeline(self.device, self.camera)
 
     def paintWebGPU(self) -> None:
         """
         Paint the WebGPU content.
         """
-        self.update_transformations()
+        # Update frame timing here
+        current_frame = self.timer.elapsed() * 0.001
+        delta_time = current_frame - self.last_frame
+        self.last_frame = current_frame
+        self._update_camera_movement(delta_time)
         self.pipeline.update_lights(
             self.light_one_state, self.light_two_state, self.light_three_state
         )
@@ -108,105 +116,75 @@ class WebGPUScene(WebGPUWidget):
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(-1.0, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("buddah", self.mouse_global_tx @ tx.get_matrix(), (1, 0, 0, 1))
-        )
+        scene_objects.append(("buddah", tx.get_matrix(), (1, 0, 0, 1)))
 
         tx.reset()
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(-2.0, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("bunny", self.mouse_global_tx @ tx.get_matrix(), (1, 0, 1, 1))
-        )
+        scene_objects.append(("bunny", tx.get_matrix(), (0.1, 0.2, 1, 1)))
 
         tx.reset()
         tx.set_position(0.0, 0.0, 0.0)  # Move it to the right
-        scene_objects.append(
-            ("teapot", self.mouse_global_tx @ tx.get_matrix(), (0, 1, 0, 1))
-        )
+        scene_objects.append(("teapot", tx.get_matrix(), (0, 1, 0, 1)))
 
         tx.reset()
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(1.5, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("dragon", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 0, 1))
-        )
+        scene_objects.append(("dragon", tx.get_matrix(), (1, 1, 0, 1)))
 
         tx.reset()
         tx.set_position(0.0, 0.1, 1.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("troll", self.mouse_global_tx @ tx.get_matrix(), (0, 0.2, 1, 1))
-        )
+        scene_objects.append(("troll", tx.get_matrix(), (0, 0.2, 1, 1)))
         tx.reset()
         tx.set_position(-1.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, 0, 0)
-        scene_objects.append(
-            ("icosahedron", self.mouse_global_tx @ tx.get_matrix(), (0.2, 0.2, 0.8, 1))
-        )
+        scene_objects.append(("icosahedron", tx.get_matrix(), (0.2, 0.2, 0.8, 1)))
         tx.reset()
         tx.set_position(-2.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("dodecahedron", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
-        )
+        scene_objects.append(("dodecahedron", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(2.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("football", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
-        )
+        scene_objects.append(("football", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(1.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("tetrahedron", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
-        )
+        scene_objects.append(("tetrahedron", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
 
         tx.reset()
         tx.set_position(1.0, 0.0, -1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("octahedron", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
-        )
+        scene_objects.append(("octahedron", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
 
         tx.reset()
         tx.set_position(0.0, 0.0, -1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("cube", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
-        )
+        scene_objects.append(("cube", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
 
         tx.reset()
         tx.set_position(0, -0.5, 0)
-        scene_objects.append(
-            ("floor", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1))
-        )
+        scene_objects.append(("floor", tx.get_matrix(), (1, 1, 1, 1)))
 
         ## Render Lights
         tx.reset()
         tx.set_position(0.0, 1.0, 1.0)
-        scene_objects.append(
-            ("light1", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1))
-        )
+        scene_objects.append(("light1", tx.get_matrix(), (1, 1, 1, 1)))
         tx.reset()
         tx.set_position(-1.0, 1.0, -1.0)
-        scene_objects.append(
-            ("light2", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1))
-        )
+        scene_objects.append(("light2", tx.get_matrix(), (1, 1, 1, 1)))
         # tx.reset()
         tx.set_position(1.0, 1.0, -1.0)
-        scene_objects.append(
-            ("light3", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1))
-        )
+        scene_objects.append(("light3", tx.get_matrix(), (1, 1, 1, 1)))
 
         # 2. Pass the entire scene to the pipeline to be rendered
         self.pipeline.render(
@@ -219,24 +197,18 @@ class WebGPUScene(WebGPUWidget):
 
         self._update_colour_buffer()
 
-    def update_transformations(self) -> None:
-        """
-        Update the global transformation matrix from mouse input.
-        """
-        # Apply rotation based on user input
-        rot_x = Mat4().rotate_x(self.spin_x_face)
-        rot_y = Mat4().rotate_y(self.spin_y_face)
-        self.mouse_global_tx = rot_y @ rot_x
-        # Update model position
-        self.mouse_global_tx[3][0] = self.model_position.x
-        self.mouse_global_tx[3][1] = self.model_position.y
-        self.mouse_global_tx[3][2] = self.model_position.z
+    def resizeWebGPU(self, width, height):
+        ratio = self.devicePixelRatio()
+        w = width * ratio
+        h = height * ratio
+        self.camera.set_projection(45.0, (w / h), 0.1, 300.0, PerspMode.WebGPU)
 
     def keyPressEvent(self, event) -> None:
         """
         Handles keyboard press events.
         """
         key = event.key()
+        self.keys_pressed.add(key)
 
         if key == Qt.Key_Escape:
             self.close()  # Exit the application
@@ -254,68 +226,75 @@ class WebGPUScene(WebGPUWidget):
         self.update()
         super().keyPressEvent(event)
 
+    def keyReleaseEvent(self, event) -> None:
+        """
+        Handles keyboard release events.
+        """
+        key = event.key()
+        self.keys_pressed.discard(key)
+        self.update()
+        super().keyReleaseEvent(event)
+
+    def _update_camera_movement(self, dt) -> None:
+        """Calculates and applies camera movement based on currently pressed keys."""
+        x_direction = 0.0
+        y_direction = 0.0
+        for key in self.keys_pressed:
+            if key == Qt.Key_Left:
+                y_direction = -1.0
+            elif key == Qt.Key_Right:
+                y_direction = 1.0
+            elif key == Qt.Key_Up:
+                x_direction = 1.0
+            elif key == Qt.Key_Down:
+                x_direction = -1.0
+
+        current_frame = self.timer.elapsed() * 0.001
+        # Clamp delta_time to avoid jumps
+        delta_time = min(dt, 0.05)  # max 50ms per frame
+        self.last_frame = current_frame
+
+        if x_direction != 0.0 or y_direction != 0.0:
+            self.camera.move(x_direction, y_direction, delta_time)
+
     def mouseMoveEvent(self, event) -> None:
         """
-        Handles mouse movement events for camera control.
+        Handles mouse movement for camera rotation.
         """
-        # Rotate the scene if the left mouse button is pressed
         if self.rotate and event.buttons() == Qt.LeftButton:
             position = event.position()
             diff_x = position.x() - self.original_x_rotation
             diff_y = position.y() - self.original_y_rotation
-            self.spin_x_face += int(0.5 * diff_y)
-            self.spin_y_face += int(0.5 * diff_x)
             self.original_x_rotation = position.x()
             self.original_y_rotation = position.y()
-            self.update()
-        # Translate (pan) the scene if the right mouse button is pressed
-        elif self.translate and event.buttons() == Qt.RightButton:
-            position = event.position()
-            diff_x = int(position.x() - self.original_x_pos)
-            diff_y = int(position.y() - self.original_y_pos)
-            self.original_x_pos = position.x()
-            self.original_y_pos = position.y()
-            self.model_position.x += self.INCREMENT * diff_x
-            self.model_position.y -= self.INCREMENT * diff_y
+            self.camera.process_mouse_movement(
+                diff_x, -diff_y
+            )  # Invert Y for intuitive rotation
             self.update()
 
     def mousePressEvent(self, event) -> None:
         """
-        Handles mouse button press events to initiate rotation or translation.
+        Handles mouse button presses to initiate camera rotation or translation.
         """
         position = event.position()
-        # Left button initiates rotation
         if event.button() == Qt.LeftButton:
             self.original_x_rotation = position.x()
             self.original_y_rotation = position.y()
             self.rotate = True
-        # Right button initiates translation
-        elif event.button() == Qt.RightButton:
-            self.original_x_pos = position.x()
-            self.original_y_pos = position.y()
-            self.translate = True
 
     def mouseReleaseEvent(self, event) -> None:
         """
-        Handles mouse button release events to stop rotation or translation.
+        Handles mouse button releases to stop camera control actions.
         """
-        # Stop rotating when the left button is released
         if event.button() == Qt.LeftButton:
             self.rotate = False
-        # Stop translating when the right button is released
-        elif event.button() == Qt.RightButton:
-            self.translate = False
 
     def wheelEvent(self, event) -> None:
         """
-        Handles mouse wheel events for zooming.
+        Handles mouse wheel events for zooming the camera.
         """
-        num_pixels = event.angleDelta()
-        # Zoom in or out by adjusting the Z position of the model
-        if num_pixels.x() > 0:
-            self.model_position.z += self.ZOOM
-        elif num_pixels.x() < 0:
-            self.model_position.z -= self.ZOOM
+        num_pixels = event.angleDelta().y()  # Use y() for vertical scroll
+        self.camera.process_mouse_scroll(num_pixels * 0.01)  # Adjust sensitivity
         self.update()
 
 
