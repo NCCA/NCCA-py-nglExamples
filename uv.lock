@@ -779,7 +779,7 @@ wheels = [
 
 [[package]]
 name = "ncca-ngl"
-version = "0.2.4"
+version = "0.2.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "freetype-py" },
@@ -789,9 +789,9 @@ dependencies = [
     { name = "pyopengl" },
     { name = "pyside6" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/91/57/54836dbcf8bd7c9c2c8a63e83b7521834bda5b21fe65c720587577dda90b/ncca_ngl-0.2.4.tar.gz", hash = "sha256:df42edae7a92b8c94785d4ae590b77583bcab2057ae4cc91e0d62d1332457ad4", size = 29962031, upload-time = "2025-11-13T17:51:09.156Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9c/cf/56f28364c0661fb8c5d98dfbe794c7838ebcb90fd38089ac2fe388cdd45f/ncca_ngl-0.2.6.tar.gz", hash = "sha256:5519ba6e0b965d32dc2dbd605bf3501b0a50b1112a2895d3e76b437a4b5c1d97", size = 29962045, upload-time = "2025-11-24T12:25:09.463Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/22/06/ad4176591ba8b58230f2c429d63e7b918b43f3cb521190d53b7b1e1be3d0/ncca_ngl-0.2.4-py3-none-any.whl", hash = "sha256:b4e235022f85a099435053280ec2e314f7fc9d7cf4e91b02fb74f7da77fe58c8", size = 29982729, upload-time = "2025-11-13T17:49:55.622Z" },
+    { url = "https://files.pythonhosted.org/packages/36/9e/ab3088d718e05db380d57252ae19698cb9f118d22044fa1d18dfffe5711c/ncca_ngl-0.2.6-py3-none-any.whl", hash = "sha256:43551f3cb8c29ef22db3fcfbf28ba5ad0ad0d62dbd4f7a695f525170c64751e8", size = 29982975, upload-time = "2025-11-24T12:23:59.966Z" },
 ]
 
 [[package]]
@@ -1083,7 +1083,7 @@ requires-dist = [
     { name = "freetype-py", specifier = ">=2.5.1" },
     { name = "marimo", specifier = ">=0.17.2" },
     { name = "matplotlib", specifier = ">=3.10.7" },
-    { name = "ncca-ngl", specifier = ">=0.2.4" },
+    { name = "ncca-ngl", specifier = ">=0.2.6" },
     { name = "numpy", specifier = ">=2.3.3" },
     { name = "pysdl3", specifier = ">=0.9.8b9" },
     { name = "pyside6", specifier = ">=6.9.2" },

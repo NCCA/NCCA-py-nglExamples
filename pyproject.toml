@@ -13,7 +13,7 @@ dependencies = [
     "pyside6>=6.9.2",
     "numpy>=2.3.3",
     "qtpy>=2.4.3",
-    "ncca-ngl>=0.2.4",
+    "ncca-ngl>=0.2.6",
     "freetype-py>=2.5.1",
     "pysdl3>=0.9.8b9",
     "wgpu",

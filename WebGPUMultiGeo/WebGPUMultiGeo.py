@@ -46,12 +46,14 @@ class WebGPUScene(WebGPUWidget):
         )
         self.INCREMENT: float = 0.01  # Sensitivity for translation
         self.ZOOM: float = 0.1  # Sensitivity for zooming
+        self.light_one_state = True
+        self.light_two_state = True
+        self.light_three_state = True
 
         self.pipeline = None
         self.rotation = 0.0
         self.eye = Vec3(0.0, 2.0, 4.0)
         self.view = look_at(self.eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
-        self.light_pos = Vec4(0.0, 2.0, 2.0, 1.0)
         gl_to_web = Mat4.from_list(
             [
                 [1.0, 0.0, 0.0, 0.0],
@@ -88,44 +90,116 @@ class WebGPUScene(WebGPUWidget):
         """
         Create a render pipeline.
         """
-        self.pipeline = Pipeline(
-            self.device, self.eye, self.light_pos, self.view, self.project
-        )
+        self.pipeline = Pipeline(self.device, self.eye, self.view, self.project)
 
     def paintWebGPU(self) -> None:
         """
         Paint the WebGPU content.
-
-        This method renders the WebGPU content for the scene.
         """
         self.update_transformations()
+        self.pipeline.update_lights(
+            self.light_one_state, self.light_two_state, self.light_three_state
+        )
+        # 1. Define the objects in our scene as a list of tuples:
+        # (mesh_name, transform_matrix, colour)
+        scene_objects = []
 
-        # Update the data for each mesh on the CPU side
         tx = Transform()
         tx.set_scale(0.1, 0.1, 0.1)
-        tx.set_position(-1.0, 0.0, 0.0)
-        self.pipeline.update_mesh_storage_buffer(
-            "buddah", self.mouse_global_tx @ tx.get_matrix(), (1, 0, 0, 1)
-        )
-        tx.reset()
-        tx.set_position(1, 0.0, 0.0)
-        self.pipeline.update_mesh_storage_buffer(
-            "teapot", self.mouse_global_tx @ tx.get_matrix(), (0, 1, 0, 1)
+        tx.set_position(-1.0, -0.5, 0.0)
+        tx.set_rotation(0, -90, 0)
+        scene_objects.append(
+            ("buddah", self.mouse_global_tx @ tx.get_matrix(), (1, 0, 0, 1))
         )
 
-        # Now begin the render pass. This will upload the updated data to the GPU.
-        self.pipeline.begin_render_pass(
-            self.texture_size,
+        tx.reset()
+        tx.set_scale(0.1, 0.1, 0.1)
+        tx.set_position(-2.0, -0.5, 0.0)
+        tx.set_rotation(0, -90, 0)
+        scene_objects.append(
+            ("bunny", self.mouse_global_tx @ tx.get_matrix(), (1, 0, 1, 1))
+        )
+
+        tx.reset()
+        tx.set_position(0.0, 0.0, 0.0)  # Move it to the right
+        scene_objects.append(
+            ("teapot", self.mouse_global_tx @ tx.get_matrix(), (0, 1, 0, 1))
+        )
+
+        tx.reset()
+        tx.set_scale(0.1, 0.1, 0.1)
+        tx.set_position(1.5, -0.5, 0.0)
+        tx.set_rotation(0, -90, 0)
+        scene_objects.append(
+            ("dragon", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 0, 1))
+        )
+
+        tx.reset()
+        tx.set_position(0.0, 0.1, 1.0)
+        tx.set_rotation(0, -90, 0)
+        scene_objects.append(
+            ("troll", self.mouse_global_tx @ tx.get_matrix(), (0, 0.2, 1, 1))
+        )
+        tx.reset()
+        tx.set_position(-1.0, 0.0, 1.0)
+        tx.set_scale(0.5, 0.5, 0.5)
+        tx.set_rotation(0, 0, 0)
+        scene_objects.append(
+            ("icosahedron", self.mouse_global_tx @ tx.get_matrix(), (0.2, 0.2, 0.8, 1))
+        )
+        tx.reset()
+        tx.set_position(-2.0, 0.0, 1.0)
+        tx.set_scale(0.5, 0.5, 0.5)
+        tx.set_rotation(0, -90, 0)
+        scene_objects.append(
+            ("dodecahedron", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
+        )
+        tx.reset()
+        tx.set_position(2.0, 0.0, 1.0)
+        tx.set_scale(0.5, 0.5, 0.5)
+        tx.set_rotation(0, -90, 0)
+        scene_objects.append(
+            ("football", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
+        )
+        tx.reset()
+        tx.set_position(1.0, 0.0, 1.0)
+        tx.set_scale(0.5, 0.5, 0.5)
+        tx.set_rotation(0, -90, 0)
+        scene_objects.append(
+            ("tetrahedron", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
+        )
+
+        tx.reset()
+        tx.set_position(1.0, 0.0, -1.0)
+        tx.set_scale(0.5, 0.5, 0.5)
+        tx.set_rotation(0, -90, 0)
+        scene_objects.append(
+            ("octahedron", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
+        )
+
+        tx.reset()
+        tx.set_position(0.0, 0.0, -1.0)
+        tx.set_scale(0.5, 0.5, 0.5)
+        tx.set_rotation(0, -90, 0)
+        scene_objects.append(
+            ("cube", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
+        )
+
+        tx.reset()
+        tx.set_position(0, -0.5, 0)
+        scene_objects.append(
+            ("floor", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1))
+        )
+
+        # 2. Pass the entire scene to the pipeline to be rendered
+        self.pipeline.render(
             self.colour_buffer_texture_view,
             self.multisample_texture_view,
             self.depth_buffer_view,
+            self.texture_size,
+            scene_objects,
         )
 
-        # Issue the draw calls
-        self.pipeline.render_mesh("buddah")
-        self.pipeline.render_mesh("teapot")
-
-        self.pipeline.end_render_pass()
         self._update_colour_buffer()
 
     def update_transformations(self) -> None:
@@ -154,7 +228,12 @@ class WebGPUScene(WebGPUWidget):
             self.spin_x_face = 0
             self.spin_y_face = 0
             self.model_position.set(0, 0, 0)
-
+        elif key == Qt.Key_1:
+            self.light_one_state ^= True
+        elif key == Qt.Key_2:
+            self.light_two_state ^= True
+        elif key == Qt.Key_3:
+            self.light_three_state ^= True
         self.update()
         super().keyPressEvent(event)
 

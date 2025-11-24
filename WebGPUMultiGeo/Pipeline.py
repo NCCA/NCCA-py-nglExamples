@@ -1,14 +1,14 @@
 import numpy as np
 import wgpu
 from MeshData import MeshData
-from ncca.ngl import PrimData, Prims
+from ncca.ngl import PrimData, Prims, Vec3
 
 _FLOAT_SIZE = np.dtype(np.float32).itemsize
 _TEXTURE_FORMAT = wgpu.TextureFormat.rgba8unorm
 
 
 class Pipeline:
-    def __init__(self, device, eye, light_pos, view, project):
+    def __init__(self, device, eye, view, project):
         self.device = device
         self.pipeline = None
         self.transform_buffer = None
@@ -20,22 +20,72 @@ class Pipeline:
         self.vertex_uniforms = None
         self.light_uniforms = None
         self.eye = eye
-        self.light_pos = light_pos
         self.view = view
         self.project = project
         self.prim_buffers = {}
         self.mesh_data = MeshData(self.device)
+        self._create_lights()
         self._create_buffers()
         self._create_render_pipeline()
 
     def _create_buffers(self):
-        teapot = PrimData.primitive(Prims.TEAPOT.value)
-        self.mesh_data.add_mesh("teapot", teapot)
+        for prim in Prims:
+            try:
+                self.mesh_data.add_mesh(prim.value, PrimData.primitive(prim))
+                print(f"Added mesh: {prim.value}")
+            except Exception:
+                pass  # some prims need to call the create functions instead
 
-        buddah = PrimData.primitive(Prims.BUDDHA.value)
-        self.mesh_data.add_mesh("buddah", buddah)
+        self.mesh_data.add_mesh(
+            "floor", PrimData.triangle_plane(10, 10, 20, 20, Vec3(0, 1, 0))
+        )
 
         self.mesh_data.create_buffers()
+
+    def _create_lights(self):
+        # going to use 3 point lighting here
+        self.light_uniform_data = np.zeros(
+            (3),
+            dtype=[("light_pos", "float32", (4)), ("light_diffuse", "float32", (4))],
+        )
+        self.light_uniform_data[0]["light_pos"] = np.array(
+            [0.0, 1.0, 1.0, 1.0], dtype=np.float32
+        )
+        self.light_uniform_data[0]["light_diffuse"] = np.array(
+            [20.0, 20.0, 20.0, 1.0], dtype=np.float32
+        )
+        self.light_uniform_data[1]["light_pos"] = np.array(
+            [0.0, 0.0, -1.0, 1.0], dtype=np.float32
+        )
+        self.light_uniform_data[1]["light_diffuse"] = np.array(
+            [2.0, 2.0, 2.0, 1.0], dtype=np.float32
+        )
+        self.light_uniform_data[2]["light_pos"] = np.array(
+            [0.0, 1.0, 0.0, 1.0], dtype=np.float32
+        )
+        self.light_uniform_data[2]["light_diffuse"] = np.array(
+            [1.0, 1.0, 1.0, 1.0], dtype=np.float32
+        )
+        self.light_uniform_buffer = self.device.create_buffer_with_data(
+            data=self.light_uniform_data.tobytes(),
+            usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_DST,
+            label="light_uniform_data",
+        )
+
+    def update_lights(self, one_state, two_state, three_state):
+        off = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32)
+        self.light_uniform_data[0]["light_diffuse"] = (
+            np.array([6.0, 6.0, 6.0, 1.0], dtype=np.float32) if one_state else off
+        )
+        self.light_uniform_data[1]["light_diffuse"] = (
+            np.array([5.0, 5.0, 5.0, 1.0], dtype=np.float32) if two_state else off
+        )
+        self.light_uniform_data[2]["light_diffuse"] = (
+            np.array([2.0, 2.0, 2.0, 1.0], dtype=np.float32) if three_state else off
+        )
+        self.device.queue.write_buffer(
+            self.light_uniform_buffer, 0, self.light_uniform_data
+        )
 
     def _create_render_pipeline(self) -> None:
         """
@@ -76,22 +126,9 @@ class Pipeline:
             "entry_point": "fragment_main",
             "targets": [{"format": _TEXTURE_FORMAT}],
         }
-        # Create a uniform buffer for the light. This is just a single light
-        light_uniform_data = np.zeros(
-            (), dtype=[("light_pos", "float32", (4)), ("light_diffuse", "float32", (4))]
-        )
 
-        self.light_uniform_buffer = self.device.create_buffer_with_data(
-            data=light_uniform_data.tobytes(),
-            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
-            label="light_uniform_data",
-        )
-        # bind the uniforms to the shader stages. The vertex uniform is used in both
-        # the vertex and fragment shaders. The light uniform is only used in the fragment shader.
-        # note the use of dynamic offsets for the vertex uniform buffer as we have an array of them
-        #  We cant use get_bind_group_layout(0) as it can't determine if it dynamic or not.
         bind_group_layout_0 = self.device.create_bind_group_layout(
-            label="vertex_uniform_bind_group_layout",
+            label="vertex_storage_bind_group_layout",
             entries=[
                 {
                     "binding": 0,
@@ -105,7 +142,7 @@ class Pipeline:
                     "binding": 1,
                     "visibility": wgpu.ShaderStage.FRAGMENT,
                     "buffer": {
-                        "type": wgpu.BufferBindingType.uniform,
+                        "type": wgpu.BufferBindingType.read_only_storage,
                         "has_dynamic_offset": False,
                     },
                 },
@@ -152,9 +189,37 @@ class Pipeline:
             },
         )
 
-    def update_mesh_storage_buffer(self, name: str, model, colour) -> None:
+    def render(
+        self,
+        texture_view,
+        multisample_texture_view,
+        depth_buffer_view,
+        size,
+        scene_objects,
+    ):
         """
-        Update the storage buffer for a single mesh.
+        Renders a complete scene with the given objects.
+        This method consolidates the entire render pass.
+        """
+        # 1. Update CPU-side storage buffer with new data from scene objects
+        for name, transform, colour in scene_objects:
+            self._update_mesh_storage_buffer(name, transform, colour)
+
+        # 2. Begin the render pass (this also uploads the buffer to the GPU)
+        self._begin_render_pass(
+            size, texture_view, multisample_texture_view, depth_buffer_view
+        )
+
+        # 3. Issue draw calls for each object
+        for name, _, _ in scene_objects:
+            self._render_mesh(name)
+
+        # 4. End the render pass and submit
+        self._end_render_pass()
+
+    def _update_mesh_storage_buffer(self, name: str, model, colour) -> None:
+        """
+        (Internal) Update the storage buffer for a single mesh.
         """
 
         model_view = self.view @ model
@@ -169,7 +234,7 @@ class Pipeline:
             colour,
         )
 
-    def begin_render_pass(
+    def _begin_render_pass(
         self, size, texture_view, multisample_texture_view, depth_buffer_view
     ):
         self.command_encoder = self.device.create_command_encoder()
@@ -200,10 +265,9 @@ class Pipeline:
         # Set the consolidated vertex buffer once
         self.render_pass.set_vertex_buffer(0, self.mesh_data.vertex_buffer)
 
-    def render_mesh(self, name: str) -> None:
+    def _render_mesh(self, name: str) -> None:
         """
-        Draws a single mesh using the consolidated buffers.
-        The instance_index in the shader corresponds to the mesh's original insertion order.
+        (Internal) Draws a single mesh using the consolidated buffers.
         """
         mesh_info = self.mesh_data.get_mesh_info(name)
         if mesh_info is None:
@@ -216,6 +280,6 @@ class Pipeline:
             first_instance=mesh_info["instance_index"],
         )
 
-    def end_render_pass(self) -> None:
+    def _end_render_pass(self) -> None:
         self.render_pass.end()
         self.device.queue.submit([self.command_encoder.finish()])

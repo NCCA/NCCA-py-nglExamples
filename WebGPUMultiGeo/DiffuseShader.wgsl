@@ -1,7 +1,6 @@
-//@group(0) @binding(0) var<uniform> vertexUniforms : VertexUniforms;
 @group(0) @binding(0) var<storage, read> mesh_uniforms: array<VertexUniforms>;
+@group(0) @binding(1) var<storage, read> light_uniforms : array<LightUniforms>;
 
-@group(0) @binding(1) var<uniform> lightUniforms : LightUniforms;
 
 
 struct VertexUniforms
@@ -78,17 +77,22 @@ struct FragmentOutput
 fn fragment_main(input : FragmentInput) -> FragmentOutput
 {
     var output : FragmentOutput;
+    let num_lights = arrayLength(&light_uniforms);
 
-    let N = normalize(input.normal);
-    let L = normalize(lightUniforms.light_pos.rgb - input.frag_pos);
-    let distance = length(lightUniforms.light_pos.rgb - input.frag_pos);
-    let attenuation = 1.0 / (distance * distance);
-    let radiance= lightUniforms.light_diffuse.rgb * attenuation;
-    let diffuse = max(dot(N,L), 0.0);
-    let rgb = input.colour.rgb  *diffuse;
-    //output.colour  = vec4<f32>(vertexUniforms.colour);
-    //output.colour  = vec4<f32>(rgb,1.0);
-    output.colour  = vec4<f32>(rgb,1.0);
+    // Start with a simple ambient light term
+    var final_colour : vec3<f32> = input.colour.rgb * 0.01;
 
+    for (var i: u32 = 0u; i < num_lights; i = i + 1u)
+    {
+        let light = light_uniforms[i];
+        let L = normalize(light.light_pos.xyz - input.frag_pos);
+        let distance = length(light.light_pos.xyz - input.frag_pos);
+        // Avoid division by zero and extreme brightness at close range
+        let attenuation = 1.0 / (distance * distance + 1.0);
+        let radiance = light.light_diffuse.rgb * attenuation;
+        let diffuse = max(dot(normalize(input.normal), L), 0.0);
+        final_colour += input.colour.rgb * radiance * diffuse;
+    }
+    output.colour = vec4<f32>(final_colour, input.colour.a);
     return output;
 }
