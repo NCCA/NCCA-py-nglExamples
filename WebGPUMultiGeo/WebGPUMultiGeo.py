@@ -21,7 +21,7 @@ class WebGPUScene(WebGPUWidget):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Simple WebGPU ?")
+        self.setWindowTitle("WebGPU Multi Mesh")
         self.device = None
         self.mouse_global_tx: Mat4 = Mat4()
         self.model_position: Vec3 = Vec3()  # Position of the model in world space
@@ -47,8 +47,7 @@ class WebGPUScene(WebGPUWidget):
         self.INCREMENT: float = 0.01  # Sensitivity for translation
         self.ZOOM: float = 0.1  # Sensitivity for zooming
 
-        self.pipelines = []
-        self.vertex_buffer = None
+        self.pipeline = None
         self.rotation = 0.0
         self.eye = Vec3(0.0, 2.0, 4.0)
         self.view = look_at(self.eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
@@ -78,19 +77,12 @@ class WebGPUScene(WebGPUWidget):
         try:
             self.device = get_default_device()
             self._create_render_buffer()
-            self._init_buffers()
             self._create_render_pipeline()
             self.startTimer(16)
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
-            exit(1)
-
-    def _init_buffers(self):
-        teapot = PrimData.primitive(Prims.TEAPOT.value)
-        self.teapot_size = teapot.size // 8
-        self.vertex_buffer = self.device.create_buffer_with_data(
-            data=teapot, usage=wgpu.BufferUsage.VERTEX
-        )
+            # exit(1)
+            raise e
 
     def _create_render_pipeline(self) -> None:
         """
@@ -106,8 +98,22 @@ class WebGPUScene(WebGPUWidget):
 
         This method renders the WebGPU content for the scene.
         """
-        self.update_uniform_buffers()
+        self.update_transformations()
 
+        # Update the data for each mesh on the CPU side
+        tx = Transform()
+        tx.set_scale(0.1, 0.1, 0.1)
+        tx.set_position(-1.0, 0.0, 0.0)
+        self.pipeline.update_mesh_storage_buffer(
+            "buddah", self.mouse_global_tx @ tx.get_matrix(), (1, 0, 0, 1)
+        )
+        tx.reset()
+        tx.set_position(1, 0.0, 0.0)
+        self.pipeline.update_mesh_storage_buffer(
+            "teapot", self.mouse_global_tx @ tx.get_matrix(), (0, 1, 0, 1)
+        )
+
+        # Now begin the render pass. This will upload the updated data to the GPU.
         self.pipeline.begin_render_pass(
             self.texture_size,
             self.colour_buffer_texture_view,
@@ -115,22 +121,16 @@ class WebGPUScene(WebGPUWidget):
             self.depth_buffer_view,
         )
 
-        tx = Transform()
-        tx.set_scale(0.1, 0.1, 0.1)
-        tx.set_position(-1.0, 0.0, 0.0)
-        self.pipeline.render_mesh(
-            Prims.BUDDHA, self.mouse_global_tx @ tx.get_matrix(), (1, 0, 0, 1), 0
-        )
-        tx.reset()
-        self.pipeline.render_mesh(
-            Prims.TEAPOT, self.mouse_global_tx @ tx.get_matrix(), (0, 1, 0, 1), 1
-        )
+        # Issue the draw calls
+        self.pipeline.render_mesh("buddah")
+        self.pipeline.render_mesh("teapot")
+
         self.pipeline.end_render_pass()
         self._update_colour_buffer()
 
-    def update_uniform_buffers(self) -> None:
+    def update_transformations(self) -> None:
         """
-        update the uniform buffers.
+        Update the global transformation matrix from mouse input.
         """
         # Apply rotation based on user input
         rot_x = Mat4().rotate_x(self.spin_x_face)
@@ -144,9 +144,6 @@ class WebGPUScene(WebGPUWidget):
     def keyPressEvent(self, event) -> None:
         """
         Handles keyboard press events.
-
-        Args:
-            event: The QKeyEvent object containing information about the key press.
         """
         key = event.key()
 
@@ -159,15 +156,11 @@ class WebGPUScene(WebGPUWidget):
             self.model_position.set(0, 0, 0)
 
         self.update()
-        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:
         """
         Handles mouse movement events for camera control.
-
-        Args:
-            event: The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
         if self.rotate and event.buttons() == Qt.LeftButton:
@@ -193,9 +186,6 @@ class WebGPUScene(WebGPUWidget):
     def mousePressEvent(self, event) -> None:
         """
         Handles mouse button press events to initiate rotation or translation.
-
-        Args:
-            event: The QMouseEvent object.
         """
         position = event.position()
         # Left button initiates rotation
@@ -212,9 +202,6 @@ class WebGPUScene(WebGPUWidget):
     def mouseReleaseEvent(self, event) -> None:
         """
         Handles mouse button release events to stop rotation or translation.
-
-        Args:
-            event: The QMouseEvent object.
         """
         # Stop rotating when the left button is released
         if event.button() == Qt.LeftButton:
@@ -226,9 +213,6 @@ class WebGPUScene(WebGPUWidget):
     def wheelEvent(self, event) -> None:
         """
         Handles mouse wheel events for zooming.
-
-        Args:
-            event: The QWheelEvent object.
         """
         num_pixels = event.angleDelta()
         # Zoom in or out by adjusting the Z position of the model
@@ -242,7 +226,6 @@ class WebGPUScene(WebGPUWidget):
 def main():
     """
     Main function to run the application.
-    Parses command line arguments and initializes the WebGPUScene.
     """
     app = QApplication(sys.argv)
     win = WebGPUScene()

@@ -1,5 +1,6 @@
 import numpy as np
 import wgpu
+from MeshData import MeshData
 from ncca.ngl import PrimData, Prims
 
 _FLOAT_SIZE = np.dtype(np.float32).itemsize
@@ -23,24 +24,18 @@ class Pipeline:
         self.view = view
         self.project = project
         self.prim_buffers = {}
+        self.mesh_data = MeshData(self.device)
         self._create_buffers()
         self._create_render_pipeline()
 
     def _create_buffers(self):
         teapot = PrimData.primitive(Prims.TEAPOT.value)
-        self.prim_buffers[Prims.TEAPOT] = [
-            self.device.create_buffer_with_data(
-                data=teapot, usage=wgpu.BufferUsage.VERTEX
-            ),
-            teapot.size // 8,
-        ]
+        self.mesh_data.add_mesh("teapot", teapot)
+
         buddah = PrimData.primitive(Prims.BUDDHA.value)
-        self.prim_buffers[Prims.BUDDHA] = [
-            self.device.create_buffer_with_data(
-                data=buddah, usage=wgpu.BufferUsage.VERTEX
-            ),
-            buddah.size // 8,
-        ]
+        self.mesh_data.add_mesh("buddah", buddah)
+
+        self.mesh_data.create_buffers()
 
     def _create_render_pipeline(self) -> None:
         """
@@ -81,26 +76,6 @@ class Pipeline:
             "entry_point": "fragment_main",
             "targets": [{"format": _TEXTURE_FORMAT}],
         }
-        # Create a uniform buffer this is the layout of each uniform
-        # there will be 1 for each mesh
-        self.vertex_uniform_data = np.zeros(
-            (),
-            dtype=[
-                ("MVP", "float32", (4, 4)),
-                ("model_view", "float32", (4, 4)),
-                ("normal_matrix", "float32", (4, 4)),  # need 4x4 for mat3
-                ("colour", "float32", (4)),
-                ("padding", "float32", (12)),  # to 256 bytes
-            ],
-        )
-        num_meshes = len(self.prim_buffers.items())
-        buffer_size = num_meshes * self.vertex_uniform_data.nbytes
-        self.vertex_uniform_buffer = self.device.create_buffer(
-            size=buffer_size,
-            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
-            label="vertex_uniform_data",
-        )
-
         # Create a uniform buffer for the light. This is just a single light
         light_uniform_data = np.zeros(
             (), dtype=[("light_pos", "float32", (4)), ("light_diffuse", "float32", (4))]
@@ -122,8 +97,8 @@ class Pipeline:
                     "binding": 0,
                     "visibility": wgpu.ShaderStage.VERTEX | wgpu.ShaderStage.FRAGMENT,
                     "buffer": {
-                        "type": wgpu.BufferBindingType.uniform,
-                        "has_dynamic_offset": True,
+                        "type": wgpu.BufferBindingType.read_only_storage,
+                        "has_dynamic_offset": False,
                     },
                 },
                 {
@@ -144,12 +119,7 @@ class Pipeline:
             entries=[
                 {
                     "binding": 0,
-                    "resource": {
-                        "label": "vertex_uniform_buffer",
-                        "buffer": self.vertex_uniform_buffer,
-                        "offset": 0,  # Initial offset
-                        "size": 256,  # Size of the buffer
-                    },
+                    "resource": {"buffer": self.mesh_data.storage_buffer},
                 },
                 {"binding": 1, "resource": {"buffer": self.light_uniform_buffer}},
             ],
@@ -182,29 +152,30 @@ class Pipeline:
             },
         )
 
-    def update_uniform_buffers(self, index, model, colour) -> None:
+    def update_mesh_storage_buffer(self, name: str, model, colour) -> None:
         """
-        update the uniform buffers.
+        Update the storage buffer for a single mesh.
         """
+
         model_view = self.view @ model
         MVP = self.project @ model_view
         normal_matrix = model_view.copy()
         normal_matrix.inverse().transpose()
-
-        self.vertex_uniform_data["model_view"] = model_view.to_numpy()
-        self.vertex_uniform_data["MVP"] = MVP.to_numpy()
-        self.vertex_uniform_data["normal_matrix"] = normal_matrix.to_numpy()
-        self.vertex_uniform_data["colour"] = colour
-        self.device.queue.write_buffer(
-            buffer=self.vertex_uniform_buffer,
-            buffer_offset=self.vertex_uniform_data.nbytes * index,
-            data=self.vertex_uniform_data.tobytes(),
+        self.mesh_data.update_mesh_data(
+            name,
+            MVP.to_numpy(),
+            model_view.to_numpy(),
+            normal_matrix.to_numpy(),
+            colour,
         )
 
     def begin_render_pass(
         self, size, texture_view, multisample_texture_view, depth_buffer_view
     ):
         self.command_encoder = self.device.create_command_encoder()
+        # Before rendering, write all the updated mesh data to the GPU buffer
+        self.mesh_data.write_buffers()
+
         self.render_pass = self.command_encoder.begin_render_pass(
             color_attachments=[
                 {
@@ -224,19 +195,26 @@ class Pipeline:
         )
         self.render_pass.set_viewport(0, 0, size[0], size[1], 0, 1)
         self.render_pass.set_pipeline(self.pipeline)
+        # Set the bind group once. The shader will use instance_index to get the right data.
+        self.render_pass.set_bind_group(0, self.bind_group_0)
+        # Set the consolidated vertex buffer once
+        self.render_pass.set_vertex_buffer(0, self.mesh_data.vertex_buffer)
 
-    def render_mesh(self, mesh: str, transform, colour, index) -> None:
+    def render_mesh(self, name: str) -> None:
         """
-        Paint the WebGPU content.
-
-        This method renders the WebGPU content for the scene.
+        Draws a single mesh using the consolidated buffers.
+        The instance_index in the shader corresponds to the mesh's original insertion order.
         """
-        self.update_uniform_buffers(index, transform, colour)
-        self.render_pass.set_bind_group(0, self.bind_group_0, [index * 256], 0, 999999)
-        self.render_pass.set_bind_group(1, self.bind_group_0, [index * 256], 0, 999999)
-        self.render_pass.set_vertex_buffer(0, self.prim_buffers[mesh][0])
+        mesh_info = self.mesh_data.get_mesh_info(name)
+        if mesh_info is None:
+            return
 
-        self.render_pass.draw(self.prim_buffers[mesh][1])
+        self.render_pass.draw(
+            vertex_count=mesh_info["vertex_count"],
+            instance_count=1,
+            first_vertex=mesh_info["first_vertex"],
+            first_instance=mesh_info["instance_index"],
+        )
 
     def end_render_pass(self) -> None:
         self.render_pass.end()
