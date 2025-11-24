@@ -39,6 +39,9 @@ class Pipeline:
         self.mesh_data.add_mesh(
             "floor", PrimData.triangle_plane(10, 10, 20, 20, Vec3(0, 1, 0))
         )
+        self.mesh_data.add_mesh("light1", PrimData.sphere(0.1, 20).flatten())
+        self.mesh_data.add_mesh("light2", PrimData.sphere(0.1, 20).flatten())
+        self.mesh_data.add_mesh("light3", PrimData.sphere(0.1, 20).flatten())
 
         self.mesh_data.create_buffers()
 
@@ -55,13 +58,13 @@ class Pipeline:
             [20.0, 20.0, 20.0, 1.0], dtype=np.float32
         )
         self.light_uniform_data[1]["light_pos"] = np.array(
-            [0.0, 0.0, -1.0, 1.0], dtype=np.float32
+            [-1.0, 1.0, -1.0, 1.0], dtype=np.float32
         )
         self.light_uniform_data[1]["light_diffuse"] = np.array(
             [2.0, 2.0, 2.0, 1.0], dtype=np.float32
         )
         self.light_uniform_data[2]["light_pos"] = np.array(
-            [0.0, 1.0, 0.0, 1.0], dtype=np.float32
+            [1.0, 1.0, -1.0, 1.0], dtype=np.float32
         )
         self.light_uniform_data[2]["light_diffuse"] = np.array(
             [1.0, 1.0, 1.0, 1.0], dtype=np.float32

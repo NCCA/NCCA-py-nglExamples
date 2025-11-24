@@ -191,6 +191,23 @@ class WebGPUScene(WebGPUWidget):
             ("floor", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1))
         )
 
+        ## Render Lights
+        tx.reset()
+        tx.set_position(0.0, 1.0, 1.0)
+        scene_objects.append(
+            ("light1", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1))
+        )
+        tx.reset()
+        tx.set_position(-1.0, 1.0, -1.0)
+        scene_objects.append(
+            ("light2", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1))
+        )
+        # tx.reset()
+        tx.set_position(1.0, 1.0, -1.0)
+        scene_objects.append(
+            ("light3", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1))
+        )
+
         # 2. Pass the entire scene to the pipeline to be rendered
         self.pipeline.render(
             self.colour_buffer_texture_view,
