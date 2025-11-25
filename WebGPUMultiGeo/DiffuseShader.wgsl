@@ -1,12 +1,13 @@
 @group(0) @binding(0) var<storage, read> mesh_uniforms: array<VertexUniforms>;
 @group(0) @binding(1) var<storage, read> light_uniforms : array<LightUniforms>;
 
-@group(0) @binding(2) var<uniform> transforms : GlobalUniforms;
+@group(0) @binding(2) var<uniform> global_uniforms : GlobalUniforms;
 
 struct GlobalUniforms
 {
     view : mat4x4<f32>,
-    projection : mat4x4<f32>
+    projection : mat4x4<f32>,
+    camera_pos : vec4<f32>
 };
 
 
@@ -23,7 +24,6 @@ struct LightUniforms
 {
     light_pos : vec4<f32>,
     light_diffuse : vec4<f32>,
-    camera_pos : vec4<f32>
 };
 
 
@@ -57,7 +57,7 @@ fn vertex_main(input : VertexInput,@builtin(instance_index) instanceIdx: u32) ->
     var output : VertexOutput;
     let uniforms = mesh_uniforms[instanceIdx];
 
-    let MVP = transforms.projection * transforms.view * uniforms.model;
+    let MVP = global_uniforms.projection * global_uniforms.view * uniforms.model;
 
 
     output.position = MVP * vec4<f32>(input.position, 1.0);
@@ -96,7 +96,7 @@ fn fragment_main(input : FragmentInput) -> FragmentOutput
     {
         let light = light_uniforms[i];
         let L = normalize(light.light_pos.xyz - input.frag_pos);
-        let V = normalize(light.camera_pos.xyz - input.frag_pos);
+        let V = normalize(global_uniforms.camera_pos.xyz - input.frag_pos);
         let H = normalize(L + V);
         let diffuse = max(dot(normalize(input.normal), H), 0.0);
         final_colour += input.colour.rgb * light.light_diffuse.rgb * diffuse;
