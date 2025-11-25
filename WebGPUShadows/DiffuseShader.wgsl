@@ -89,14 +89,18 @@ fn fragment_main(input : FragmentInput) -> FragmentOutput
     // transform from clip space to texture space
     let shadow_uv = shadow_coords.xy * vec2<f32>(0.5, -0.5) + vec2<f32>(0.5, 0.5);
     let shadow_depth = shadow_coords.z;
+    let light0 = light_uniforms[0];
+
+    let L0 = normalize(light0.light_pos.xyz - input.frag_pos);
 
     // Sample the shadow map
     var shadow_factor = 1.0;
     // Only sample if the fragment is within the shadow map's frustum
     if (shadow_uv.x >= 0.0 && shadow_uv.x <= 1.0 && shadow_uv.y >= 0.0 && shadow_uv.y <= 1.0 && shadow_depth <=1.0)
     {
+        let bias= max(0.02 * (1.0 - dot(normalize(input.normal), L0)), 0.002);
         // use a small bias to avoid shadow acne
-        shadow_factor = textureSampleCompare(shadow_map, shadow_sampler, shadow_uv, shadow_depth - 0.005);
+        shadow_factor = textureSampleCompare(shadow_map, shadow_sampler, shadow_uv, shadow_depth - bias);
     }
 
 
@@ -104,8 +108,6 @@ fn fragment_main(input : FragmentInput) -> FragmentOutput
     var final_colour : vec3<f32> = input.colour.rgb * 0.01;
 
     // We are only shadowing the first light
-    let light0 = light_uniforms[0];
-    let L0 = normalize(light0.light_pos.xyz - input.frag_pos);
     let distance0 = length(light0.light_pos.xyz - input.frag_pos);
     let attenuation0 = 1.0 / (distance0 * distance0 + 1.0);
     let radiance0 = light0.light_diffuse.rgb * attenuation0;

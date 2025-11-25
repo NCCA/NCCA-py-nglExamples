@@ -14,11 +14,12 @@ from ncca.ngl import (
     look_at,
     perspective,
 )
-from Pipeline import Pipeline
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
+
+from Pipeline import Pipeline
+from WebGPUWidget import WebGPUWidget
 
 
 class WebGPUScene(WebGPUWidget):
@@ -37,23 +38,13 @@ class WebGPUScene(WebGPUWidget):
         self.model_position: Vec3 = Vec3()  # Position of the model in world space
         # --- Mouse Control Attributes for Camera Manipulation ---
         self.rotate: bool = False  # Flag to check if the scene is being rotated
-        self.translate: bool = (
-            False  # Flag to check if the scene is being translated (panned)
-        )
+        self.translate: bool = False  # Flag to check if the scene is being translated (panned)
         self.spin_x_face: int = 0  # Accumulated rotation around the X-axis
         self.spin_y_face: int = 0  # Accumulated rotation around the Y-axis
-        self.original_x_rotation: int = (
-            0  # Initial X position of the mouse when a rotation starts
-        )
-        self.original_y_rotation: int = (
-            0  # Initial Y position of the mouse when a rotation starts
-        )
-        self.original_x_pos: int = (
-            0  # Initial X position of the mouse when a translation starts
-        )
-        self.original_y_pos: int = (
-            0  # Initial Y position of the mouse when a translation starts
-        )
+        self.original_x_rotation: int = 0  # Initial X position of the mouse when a rotation starts
+        self.original_y_rotation: int = 0  # Initial Y position of the mouse when a rotation starts
+        self.original_x_pos: int = 0  # Initial X position of the mouse when a translation starts
+        self.original_y_pos: int = 0  # Initial Y position of the mouse when a translation starts
         self.INCREMENT: float = 0.01  # Sensitivity for translation
         self.ZOOM: float = 0.1  # Sensitivity for zooming
         self.light_one_state = True
@@ -63,9 +54,7 @@ class WebGPUScene(WebGPUWidget):
         self.rotation = 0.0
         self.eye = Vec3(0.0, 4.0, 8.0)
         self.view = look_at(self.eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
-        self.project = perspective(
-            45.0, self.width() / self.height(), 0.1, 100.0, PerspMode.WebGPU
-        )
+        self.project = perspective(45.0, self.width() / self.height(), 0.1, 100.0, PerspMode.WebGPU)
         self._initialize_web_gpu()
         self.update()
 
@@ -99,21 +88,14 @@ class WebGPUScene(WebGPUWidget):
         self.update_transformations()
         self.pipeline.update_lights(self.light_one_state)
 
-        # Animate lights
+        # Animate the single light
         self.light_rotation += 0.5
         light_rot_mat = Mat4().rotate_y(self.light_rotation)
 
         light_pos_1 = Vec4(0.0, 2.0, 2.0, 1.0)
-        light_pos_2 = Vec4(-2.0, 1.0, -2.0, 1.0)
-        light_pos_3 = Vec4(2.0, 1.0, -2.0, 1.0)
-
         rotated_light_1 = light_rot_mat @ light_pos_1
-        rotated_light_2 = light_rot_mat @ light_pos_2
-        rotated_light_3 = light_rot_mat @ light_pos_3
 
-        self.pipeline.update_light_positions(
-            [rotated_light_1, rotated_light_2, rotated_light_3]
-        )
+        self.pipeline.update_light_positions([rotated_light_1])
 
         # 1. Define the objects in our scene as a list of tuples:
         # (mesh_name, transform_matrix, colour)
@@ -123,105 +105,69 @@ class WebGPUScene(WebGPUWidget):
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(-1.0, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("buddah", self.mouse_global_tx @ tx.get_matrix(), (1, 0, 0, 1))
-        )
+        scene_objects.append(("buddah", self.mouse_global_tx @ tx.get_matrix(), (1, 0, 0, 1)))
 
         tx.reset()
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(-2.0, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("bunny", self.mouse_global_tx @ tx.get_matrix(), (1, 0, 1, 1))
-        )
+        scene_objects.append(("bunny", self.mouse_global_tx @ tx.get_matrix(), (1, 0, 1, 1)))
 
         tx.reset()
         tx.set_position(0.0, 0.0, 0.0)  # Move it to the right
-        scene_objects.append(
-            ("teapot", self.mouse_global_tx @ tx.get_matrix(), (0, 1, 0, 1))
-        )
+        scene_objects.append(("teapot", self.mouse_global_tx @ tx.get_matrix(), (0, 1, 0, 1)))
 
         tx.reset()
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(1.5, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("dragon", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 0, 1))
-        )
+        scene_objects.append(("dragon", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 0, 1)))
 
         tx.reset()
         tx.set_position(0.0, 0.1, 1.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("troll", self.mouse_global_tx @ tx.get_matrix(), (0, 0.2, 1, 1))
-        )
+        scene_objects.append(("troll", self.mouse_global_tx @ tx.get_matrix(), (0, 0.2, 1, 1)))
         tx.reset()
         tx.set_position(-1.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, 0, 0)
-        scene_objects.append(
-            ("icosahedron", self.mouse_global_tx @ tx.get_matrix(), (0.2, 0.2, 0.8, 1))
-        )
+        scene_objects.append(("icosahedron", self.mouse_global_tx @ tx.get_matrix(), (0.2, 0.2, 0.8, 1)))
         tx.reset()
         tx.set_position(-2.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("dodecahedron", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
-        )
+        scene_objects.append(("dodecahedron", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(2.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("football", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
-        )
+        scene_objects.append(("football", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(1.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("tetrahedron", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
-        )
+        scene_objects.append(("tetrahedron", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
 
         tx.reset()
         tx.set_position(1.0, 0.0, -1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("octahedron", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
-        )
+        scene_objects.append(("octahedron", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
 
         tx.reset()
         tx.set_position(0.0, 0.0, -1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(
-            ("cube", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1))
-        )
+        scene_objects.append(("cube", self.mouse_global_tx @ tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
 
         tx.reset()
         tx.set_position(0, -0.5, 0)
-        scene_objects.append(
-            ("floor", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1))
-        )
+        scene_objects.append(("floor", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1)))
 
-        ## Render Lights
+        ## Render single light
         tx.reset()
         tx.set_position(rotated_light_1.x, rotated_light_1.y, rotated_light_1.z)
-        scene_objects.append(
-            ("light1", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1))
-        )
-        tx.reset()
-        tx.set_position(rotated_light_2.x, rotated_light_2.y, rotated_light_2.z)
-        scene_objects.append(
-            ("light2", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1))
-        )
-        tx.reset()
-        tx.set_position(rotated_light_3.x, rotated_light_3.y, rotated_light_3.z)
-        scene_objects.append(
-            ("light3", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1))
-        )
+        scene_objects.append(("light1", self.mouse_global_tx @ tx.get_matrix(), (1, 1, 1, 1)))
 
         # 2. Pass the entire scene to the pipeline to be rendered
         self.pipeline.render(

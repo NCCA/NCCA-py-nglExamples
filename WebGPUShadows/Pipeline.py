@@ -1,7 +1,8 @@
 import numpy as np
 import wgpu
-from MeshData import MeshData
 from ncca.ngl import PrimData, Prims, Vec3, look_at, perspective
+
+from MeshData import MeshData
 
 _FLOAT_SIZE = np.dtype(np.float32).itemsize
 _TEXTURE_FORMAT = wgpu.TextureFormat.rgba8unorm
@@ -38,12 +39,8 @@ class Pipeline:
             except Exception:
                 pass  # some prims need to call the create functions instead
 
-        self.mesh_data.add_mesh(
-            "floor", PrimData.triangle_plane(10, 10, 20, 20, Vec3(0, 1, 0))
-        )
+        self.mesh_data.add_mesh("floor", PrimData.triangle_plane(10, 10, 20, 20, Vec3(0, 1, 0)))
         self.mesh_data.add_mesh("light1", PrimData.sphere(0.1, 20).flatten())
-        # self.mesh_data.add_mesh("light2", PrimData.sphere(0.1, 20).flatten())
-        # self.mesh_data.add_mesh("light3", PrimData.sphere(0.1, 20).flatten())
 
         self.mesh_data.create_buffers()
 
@@ -54,13 +51,10 @@ class Pipeline:
             size=self.shadow_map_size,
             sample_count=1,
             format=wgpu.TextureFormat.depth24plus,
-            usage=wgpu.TextureUsage.RENDER_ATTACHMENT
-            | wgpu.TextureUsage.TEXTURE_BINDING,
+            usage=wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.TEXTURE_BINDING,
         )
         self.shadow_view = shadow_texture.create_view()
-        self.shadow_sampler = self.device.create_sampler(
-            compare=wgpu.CompareFunction.less
-        )
+        self.shadow_sampler = self.device.create_sampler(compare=wgpu.CompareFunction.less)
         light_pos = self.light_uniform_data[0]["light_pos"]
         self.light_eye = Vec3(light_pos[0], light_pos[1], light_pos[2])
         self.light_view = look_at(self.light_eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
@@ -107,14 +101,10 @@ class Pipeline:
 
         self.shadow_bind_group = self.device.create_bind_group(
             layout=bind_group_layout,
-            entries=[
-                {"binding": 0, "resource": {"buffer": self.mesh_data.storage_buffer}}
-            ],
+            entries=[{"binding": 0, "resource": {"buffer": self.mesh_data.storage_buffer}}],
         )
 
-        layout = self.device.create_pipeline_layout(
-            bind_group_layouts=[bind_group_layout]
-        )
+        layout = self.device.create_pipeline_layout(bind_group_layouts=[bind_group_layout])
 
         self.shadow_pipeline = self.device.create_render_pipeline(
             label=label,
@@ -137,21 +127,13 @@ class Pipeline:
         )
 
     def _create_lights(self):
-        # going to use 3 point lighting here
+        # Single light setup
         self.light_uniform_data = np.zeros(
             (1),
             dtype=[("light_pos", "float32", (4)), ("light_diffuse", "float32", (4))],
         )
-        self.light_uniform_data[0]["light_pos"] = np.array(
-            [0.0, 2.0, 2.0, 1.0], dtype=np.float32
-        )
-        self.light_uniform_data[0]["light_diffuse"] = np.array(
-            [20.0, 20.0, 20.0, 1.0], dtype=np.float32
-        )
-        # self.light_uniform_data[1]["light_pos"] = np.array([-2.0, 1.0, -2.0, 1.0], dtype=np.float32)
-        # self.light_uniform_data[1]["light_diffuse"] = np.array([5.0, 5.0, 5.0, 1.0], dtype=np.float32)
-        # self.light_uniform_data[2]["light_pos"] = np.array([2.0, 1.0, -2.0, 1.0], dtype=np.float32)
-        # self.light_uniform_data[2]["light_diffuse"] = np.array([2.0, 2.0, 2.0, 1.0], dtype=np.float32)
+        self.light_uniform_data["light_pos"] = np.array([0.0, 2.0, 2.0, 1.0], dtype=np.float32)
+        self.light_uniform_data["light_diffuse"] = np.array([20.0, 20.0, 20.0, 1.0], dtype=np.float32)
         self.light_uniform_buffer = self.device.create_buffer_with_data(
             data=self.light_uniform_data.tobytes(),
             usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_DST,
@@ -160,12 +142,10 @@ class Pipeline:
 
     def update_lights(self, one_state):
         off = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32)
-        self.light_uniform_data[0]["light_diffuse"] = (
-            np.array([6.0, 6.0, 6.0, 1.0], dtype=np.float32) if one_state else off
+        self.light_uniform_data["light_diffuse"] = (
+            np.array([100.0, 100.0, 100.0, 1.0], dtype=np.float32) if one_state else off
         )
-        self.device.queue.write_buffer(
-            self.light_uniform_buffer, 0, self.light_uniform_data
-        )
+        self.device.queue.write_buffer(self.light_uniform_buffer, 0, self.light_uniform_data)
 
     def update_light_positions(self, positions):
         if len(positions) != len(self.light_uniform_data):
@@ -180,9 +160,7 @@ class Pipeline:
         self.light_view = look_at(self.light_eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
 
         # Write the updated light data to the GPU
-        self.device.queue.write_buffer(
-            self.light_uniform_buffer, 0, self.light_uniform_data
-        )
+        self.device.queue.write_buffer(self.light_uniform_buffer, 0, self.light_uniform_data)
 
     def _create_render_pipeline(self) -> None:
         """
