@@ -46,7 +46,6 @@ class ArcballCamera:
         self.min_distance = 0.1
         self.max_distance = 100.0
 
-
         # Rotation as quaternion for smooth, gimbal-lock-free rotation
         self.quaternion = [1.0, 0.0, 0.0, 0.0]  # [w, x, y, z]
 
@@ -110,24 +109,26 @@ class ArcballCamera:
         xy, xz, yz = x * y, x * z, y * z
         wx, wy, wz = w * x, w * y, w * z
 
-        return Mat4([
-            1 - 2 * (yy + zz),
-            2 * (xy - wz),
-            2 * (xz + wy),
-            0,
-            2 * (xy + wz),
-            1 - 2 * (xx + zz),
-            2 * (yz - wx),
-            0,
-            2 * (xz - wy),
-            2 * (yz + wx),
-            1 - 2 * (xx + yy),
-            0,
-            0,
-            0,
-            0,
-            1,
-        ])
+        return Mat4(
+            [
+                1 - 2 * (yy + zz),
+                2 * (xy - wz),
+                2 * (xz + wy),
+                0,
+                2 * (xy + wz),
+                1 - 2 * (xx + zz),
+                2 * (yz - wx),
+                0,
+                2 * (xz - wy),
+                2 * (yz + wx),
+                1 - 2 * (xx + yy),
+                0,
+                0,
+                0,
+                0,
+                1,
+            ]
+        )
 
     def rotate_vector_by_quaternion(self, vec, quat):
         """Rotate a vector by a quaternion."""
@@ -159,7 +160,9 @@ class ArcballCamera:
         current_arcball = self.screen_to_arcball(x, y, width, height)
 
         # Calculate rotation quaternion
-        dot_product = sum(a * b for a, b in zip(self.last_arcball, current_arcball, strict=False))
+        dot_product = sum(
+            a * b for a, b in zip(self.last_arcball, current_arcball, strict=False)
+        )
 
         # Handle case where vectors are opposite (180-degree rotation)
         if dot_product < -0.999999:
@@ -174,9 +177,12 @@ class ArcballCamera:
         else:
             # Regular arcball rotation with acceleration
             cross_product = [
-                self.last_arcball[1] * current_arcball[2] - self.last_arcball[2] * current_arcball[1],
-                self.last_arcball[2] * current_arcball[0] - self.last_arcball[0] * current_arcball[2],
-                self.last_arcball[0] * current_arcball[1] - self.last_arcball[1] * current_arcball[0],
+                self.last_arcball[1] * current_arcball[2]
+                - self.last_arcball[2] * current_arcball[1],
+                self.last_arcball[2] * current_arcball[0]
+                - self.last_arcball[0] * current_arcball[2],
+                self.last_arcball[0] * current_arcball[1]
+                - self.last_arcball[1] * current_arcball[0],
             ]
 
             rotation_quat = [
@@ -215,8 +221,12 @@ class ArcballCamera:
         current_view = self.get_view_matrix()
 
         # Extract right and up vectors from view matrix
-        right = Vec3(current_view[0][0], current_view[1][0], current_view[2][0]).normalize()
-        up = Vec3(current_view[0][1], current_view[1][1], current_view[2][1]).normalize()
+        right = Vec3(
+            current_view[0][0], current_view[1][0], current_view[2][0]
+        ).normalize()
+        up = Vec3(
+            current_view[0][1], current_view[1][1], current_view[2][1]
+        ).normalize()
 
         # Scale pan by distance and field of view with improved sensitivity
         fov_scale = math.tan(math.radians(22.5))  # Half of 45-degree FOV
@@ -236,7 +246,9 @@ class ArcballCamera:
         """Zoom in/out based on mouse wheel with improved responsiveness."""
         # More responsive zoom with exponential scaling
         zoom_factor = math.exp(-delta * self.zoom_sensitivity * 0.001)
-        self.distance = max(self.min_distance, min(self.max_distance, self.distance * zoom_factor))
+        self.distance = max(
+            self.min_distance, min(self.max_distance, self.distance * zoom_factor)
+        )
 
         # Maintain direction from target to eye
         direction = (self.eye - self.target).normalize()
@@ -248,7 +260,9 @@ class ArcballCamera:
         relative_eye = self.eye - self.target
 
         # Rotate the relative position by the quaternion
-        rotated_relative = self.rotate_vector_by_quaternion(relative_eye, self.quaternion)
+        rotated_relative = self.rotate_vector_by_quaternion(
+            relative_eye, self.quaternion
+        )
 
         # Calculate new eye position
         rotated_eye = self.target + rotated_relative
@@ -296,7 +310,9 @@ class MainWindow(QOpenGLWindow):
         self.view = self.camera.get_view_matrix()
 
         # Load shaders and create geometry
-        ShaderLib.load_shader(PBR_SHADER, "shaders/PBRVertex.glsl", "shaders/PBRFragment.glsl")
+        ShaderLib.load_shader(
+            PBR_SHADER, "shaders/PBRVertex.glsl", "shaders/PBRFragment.glsl"
+        )
         ShaderLib.use(PBR_SHADER)
 
         eye = self.camera.eye
@@ -336,11 +352,13 @@ class MainWindow(QOpenGLWindow):
         # Create identity model matrix since we're using camera rotation now
         model = Mat4.identity()
 
-        transform_dtype = np.dtype([
-            ("MVP", np.float32, (16)),
-            ("normal_matrix", np.float32, (16)),
-            ("M", np.float32, (16)),
-        ])
+        transform_dtype = np.dtype(
+            [
+                ("MVP", np.float32, (4, 4)),
+                ("normal_matrix", np.float32, (4, 4)),
+                ("M", np.float32, (4, 4)),
+            ]
+        )
 
         t = np.zeros(1, dtype=transform_dtype)
 
@@ -348,9 +366,9 @@ class MainWindow(QOpenGLWindow):
         normal_matrix = self.view @ model
         normal_matrix.inverse().transpose()
 
-        t[0]["MVP"] = MVP.to_numpy().flatten()
-        t[0]["normal_matrix"] = normal_matrix.to_numpy().flatten()
-        t[0]["M"] = model.to_numpy().flatten()
+        t[0]["MVP"] = MVP.to_numpy()
+        t[0]["normal_matrix"] = normal_matrix.to_numpy()
+        t[0]["M"] = model.to_numpy()
         ShaderLib.set_uniform_buffer("TransformUBO", data=t.data, size=t.data.nbytes)
 
     def paintGL(self) -> None:

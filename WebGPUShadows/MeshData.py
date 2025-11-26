@@ -114,9 +114,9 @@ class MeshData:
         if name not in self._mesh_info:
             return
         instance_index = self._mesh_info[name]["instance_index"]
-        self.storage_data[instance_index]["model"] = model
+        self.storage_data[instance_index]["model"] = model.to_numpy()
         self.storage_data[instance_index]["colour"] = colour
-        self.storage_data[instance_index]["normal_matrix"] = normal_matrix
+        self.storage_data[instance_index]["normal_matrix"] = normal_matrix.to_numpy()
 
     def write_buffers(self):
         """

@@ -129,7 +129,7 @@ class WebGPUScene(WebGPUWidget):
         self.uniform_data = np.zeros(
             (),
             dtype=[
-                ("MVP", "float32", (16)),
+                ("MVP", "float32", (4, 4)),
                 ("eye", "float32", (3)),
                 ("circle_square", "int32", (1)),
             ],
@@ -357,7 +357,7 @@ class WebGPUScene(WebGPUWidget):
         update the uniform buffers for the line pipeline.
         """
         mvp_matrix = self.camera.get_vp()
-        self.uniform_data["MVP"] = mvp_matrix.to_numpy().flatten()
+        self.uniform_data["MVP"] = mvp_matrix.to_numpy()
         self.uniform_data["eye"] = np.array(
             [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z], dtype=np.float32
         )

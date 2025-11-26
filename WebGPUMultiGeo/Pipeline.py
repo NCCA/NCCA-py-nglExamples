@@ -2,6 +2,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import wgpu
+from MeshData import MeshData
 from ncca.ngl import (
     FirstPersonCamera,
     Mat4,
@@ -12,8 +13,6 @@ from ncca.ngl import (
     look_at,
     perspective,
 )
-
-from MeshData import MeshData
 
 _FLOAT_SIZE = np.dtype(np.float32).itemsize
 _TEXTURE_FORMAT = wgpu.TextureFormat.rgba8unorm
@@ -65,7 +64,9 @@ class Pipeline:
             except Exception:
                 pass  # some prims need to call the create functions instead
 
-        self.mesh_data.add_geometry("floor", PrimData.triangle_plane(10, 10, 20, 20, Vec3(0, 1, 0)))
+        self.mesh_data.add_geometry(
+            "floor", PrimData.triangle_plane(10, 10, 20, 20, Vec3(0, 1, 0))
+        )
         self.mesh_data.add_mesh("floor", "floor")
         # Add light geometry once
         light_geom = PrimData.sphere(0.1, 20).flatten()
@@ -108,9 +109,15 @@ class Pipeline:
                 ("light_diffuse", "float32", (4,)),
             ],
         )
-        self.light_uniform_data[0]["light_pos"] = np.array([0.0, 2.0, 2.0, 1.0], dtype=np.float32)
-        self.light_uniform_data[1]["light_pos"] = np.array([-2.0, 2.0, -2.0, 1.0], dtype=np.float32)
-        self.light_uniform_data[2]["light_pos"] = np.array([2.0, 2.0, -2.0, 1.0], dtype=np.float32)
+        self.light_uniform_data[0]["light_pos"] = np.array(
+            [0.0, 2.0, 2.0, 1.0], dtype=np.float32
+        )
+        self.light_uniform_data[1]["light_pos"] = np.array(
+            [-2.0, 2.0, -2.0, 1.0], dtype=np.float32
+        )
+        self.light_uniform_data[2]["light_pos"] = np.array(
+            [2.0, 2.0, -2.0, 1.0], dtype=np.float32
+        )
 
         self.light_uniform_buffer = self.device.create_buffer_with_data(
             data=self.light_uniform_data.tobytes(),
@@ -118,7 +125,9 @@ class Pipeline:
             label="light_uniform_data",
         )
 
-    def update_lights(self, one_state: bool, two_state: bool, three_state: bool) -> None:
+    def update_lights(
+        self, one_state: bool, two_state: bool, three_state: bool
+    ) -> None:
         """
         Updates the diffuse color of the lights based on their state.
 
@@ -138,7 +147,9 @@ class Pipeline:
             self.light_uniform_data[2]["light_diffuse"] = (
                 np.array([0.2, 0.2, 0.2, 1.0], dtype=np.float32) if three_state else off
             )
-            self.device.queue.write_buffer(self.light_uniform_buffer, 0, self.light_uniform_data.tobytes())
+            self.device.queue.write_buffer(
+                self.light_uniform_buffer, 0, self.light_uniform_data.tobytes()
+            )
 
     def _create_render_pipeline(self) -> None:
         """
@@ -153,8 +164,16 @@ class Pipeline:
                 "array_stride": 8 * _FLOAT_SIZE,
                 "attributes": [
                     {"shader_location": 0, "offset": 0, "format": "float32x3"},
-                    {"shader_location": 1, "offset": 3 * _FLOAT_SIZE, "format": "float32x3"},
-                    {"shader_location": 2, "offset": 6 * _FLOAT_SIZE, "format": "float32x2"},
+                    {
+                        "shader_location": 1,
+                        "offset": 3 * _FLOAT_SIZE,
+                        "format": "float32x3",
+                    },
+                    {
+                        "shader_location": 2,
+                        "offset": 6 * _FLOAT_SIZE,
+                        "format": "float32x2",
+                    },
                 ],
             }
         ]
@@ -258,20 +277,24 @@ class Pipeline:
         for name, transform, colour in scene_objects:
             self._update_mesh_storage_buffer(name, transform, colour)
 
-        self._begin_render_pass(size, texture_view, multisample_texture_view, depth_buffer_view)
+        self._begin_render_pass(
+            size, texture_view, multisample_texture_view, depth_buffer_view
+        )
 
         for name, _, _ in scene_objects:
             self._render_mesh(name)
 
         self._end_render_pass()
 
-    def _update_mesh_storage_buffer(self, name: str, model: Mat4, colour: tuple) -> None:
+    def _update_mesh_storage_buffer(
+        self, name: str, model: Mat4, colour: tuple
+    ) -> None:
         """
         (Internal) Update the storage buffer for a single mesh instance.
         """
         normal_matrix = model.copy()
         normal_matrix.inverse().transpose()
-        self.mesh_data.update_mesh_data(name, model.to_numpy(), normal_matrix.to_numpy(), colour)
+        self.mesh_data.update_mesh_data(name, model, normal_matrix, colour)
 
     def _begin_render_pass(
         self,
@@ -286,7 +309,9 @@ class Pipeline:
         self.command_encoder = self.device.create_command_encoder()
         self.mesh_data.write_buffers()
         if self.transforms_buffer and self.transforms_data is not None:
-            self.device.queue.write_buffer(self.transforms_buffer, 0, self.transforms_data.tobytes())
+            self.device.queue.write_buffer(
+                self.transforms_buffer, 0, self.transforms_data.tobytes()
+            )
 
         self.render_pass = self.command_encoder.begin_render_pass(
             color_attachments=[

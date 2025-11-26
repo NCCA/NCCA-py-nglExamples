@@ -11,7 +11,8 @@ struct SceneUniforms
     view : mat4x4<f32>,
     light_proj : mat4x4<f32>,
     light_view : mat4x4<f32>,
-    camera_pos : vec4<f32>
+    camera_pos : vec4<f32>,
+    shadow_map_size : vec4<f32>
 };
 
 struct ModelUniforms
@@ -87,26 +88,11 @@ struct FragmentOutput
     @location(0) colour : vec4<f32>
 };
 
-@fragment
-fn fragment_main(input : FragmentInput) -> FragmentOutput
+fn calculate_shadow_factor(shadow_uv: vec2<f32>, shadow_depth: f32) -> f32
 {
-    var output : FragmentOutput;
-    let num_lights = arrayLength(&light_uniforms);
-
-    // Perspective divide
-    let shadow_coords = input.shadow_pos.xyz / input.shadow_pos.w;
-    // transform from clip space to texture space
-    let shadow_uv = shadow_coords.xy * vec2<f32>(0.5, -0.5) + vec2<f32>(0.5, 0.5);
-    let shadow_depth = shadow_coords.z;
-    let light0 = light_uniforms[0];
-
-    let L0 = normalize(light0.light_pos.xyz - input.frag_pos);
-
-    // PCF for soft shadows
     var shadow_factor = 0.0;
     // The shadow map size should be passed in as a uniform, but for now we hardcode it
-    let shadow_map_size = 1024.0;
-    let texel_size = 1.0 / shadow_map_size;
+    let texel_size = 1.0 / scene.shadow_map_size.x;
     // Only sample if the fragment is within the shadow map's frustum
     if (shadow_uv.x > 0.0 && shadow_uv.x < 1.0 && shadow_uv.y > 0.0 && shadow_uv.y < 1.0 && shadow_depth <=1.0)
     {
@@ -124,7 +110,26 @@ fn fragment_main(input : FragmentInput) -> FragmentOutput
     {
         shadow_factor = 1.0;
     }
+    return shadow_factor;
+}
 
+
+@fragment
+fn fragment_main(input : FragmentInput) -> FragmentOutput
+{
+    var output : FragmentOutput;
+    let num_lights = arrayLength(&light_uniforms);
+
+    // Perspective divide
+    let shadow_coords = input.shadow_pos.xyz / input.shadow_pos.w;
+    // transform from clip space to texture space
+    let shadow_uv = shadow_coords.xy * vec2<f32>(0.5, -0.5) + vec2<f32>(0.5, 0.5);
+    let shadow_depth = shadow_coords.z;
+    let light0 = light_uniforms[0];
+
+    let L0 = normalize(light0.light_pos.xyz - input.frag_pos);
+
+    let shadow_factor = calculate_shadow_factor(shadow_uv, shadow_depth);
 
     // Start with a simple ambient light term
     var final_colour : vec3<f32> = input.colour.rgb * 0.01;

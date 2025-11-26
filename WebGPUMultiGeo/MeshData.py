@@ -50,7 +50,9 @@ class MeshData:
             prim_data (PrimData): The primitive data containing vertices and other attributes.
         """
         if mesh_name in self._raw_geometries:
-            print(f"Warning: Geometry with name '{mesh_name}' already exists and will be overwritten.")
+            print(
+                f"Warning: Geometry with name '{mesh_name}' already exists and will be overwritten."
+            )
         self._raw_geometries[mesh_name] = prim_data
 
     def add_mesh(self, name: str, mesh_name: str) -> None:
@@ -73,7 +75,9 @@ class MeshData:
             return
 
         if mesh_name not in self._raw_geometries:
-            raise ValueError(f"Geometry '{mesh_name}' not found. Add it first with add_geometry.")
+            raise ValueError(
+                f"Geometry '{mesh_name}' not found. Add it first with add_geometry."
+            )
 
         self._raw_meshes[name] = mesh_name
         self._instance_count = len(self._raw_meshes)
@@ -93,19 +97,24 @@ class MeshData:
         if not self._raw_geometries:
             return
 
-        vertex_dtype = np.dtype([
-            ("position", "float32", (3,)),
-            ("normal", "float32", (3,)),
-            ("texcoord", "float32", (2,)),
-        ])
-        storage_dtype = np.dtype([
-            ("model", "float32", (16)),
-            ("normal_matrix", "float32", (16)),
-            ("colour", "float32", (4)),
-        ])
+        vertex_dtype = np.dtype(
+            [
+                ("position", "float32", (3,)),
+                ("normal", "float32", (3,)),
+                ("texcoord", "float32", (2,)),
+            ]
+        )
+        storage_dtype = np.dtype(
+            [
+                ("model", "float32", (4, 4)),
+                ("normal_matrix", "float32", (4, 4)),
+                ("colour", "float32", (4)),
+            ]
+        )
 
         total_vertices = sum(
-            np.array(pd.data, copy=False).view(vertex_dtype).shape[0] for pd in self._raw_geometries.values()
+            np.array(pd.data, copy=False).view(vertex_dtype).shape[0]
+            for pd in self._raw_geometries.values()
         )
 
         self.vertex_data = np.empty(total_vertices, dtype=vertex_dtype)
@@ -113,13 +122,17 @@ class MeshData:
 
         current_vertex = 0
         for mesh_name, prim_data in sorted(self._raw_geometries.items()):
-            vertex_count = np.array(prim_data.data, copy=False).view(vertex_dtype).shape[0]
+            vertex_count = (
+                np.array(prim_data.data, copy=False).view(vertex_dtype).shape[0]
+            )
             self._geometry_info[mesh_name] = {
                 "first_vertex": current_vertex,
                 "vertex_count": vertex_count,
             }
             prim_vertices = np.array(prim_data.data, copy=False).view(vertex_dtype)
-            self.vertex_data[current_vertex : current_vertex + vertex_count] = prim_vertices
+            self.vertex_data[current_vertex : current_vertex + vertex_count] = (
+                prim_vertices
+            )
             current_vertex += vertex_count
 
         instance_index = 0
@@ -144,7 +157,9 @@ class MeshData:
                 label="consolidated_storage_buffer",
             )
 
-    def update_mesh_data(self, name: str, model: Mat4, normal_matrix: Mat4, colour: tuple) -> None:
+    def update_mesh_data(
+        self, name: str, model: Mat4, normal_matrix: Mat4, colour: tuple
+    ) -> None:
         """
         Updates the instance-specific data (transform, color) for a given mesh.
 
@@ -160,8 +175,8 @@ class MeshData:
         if name not in self._mesh_info or self.storage_data is None:
             return
         instance_index = self._mesh_info[name]["instance_index"]
-        self.storage_data[instance_index]["model"] = model.flatten()
-        self.storage_data[instance_index]["normal_matrix"] = normal_matrix.flatten()
+        self.storage_data[instance_index]["model"] = model.to_numpy()
+        self.storage_data[instance_index]["normal_matrix"] = normal_matrix.to_numpy()
         self.storage_data[instance_index]["colour"] = colour
 
     def write_buffers(self) -> None:
@@ -171,7 +186,9 @@ class MeshData:
         This should be called each frame after all mesh data has been updated.
         """
         if self.storage_data is not None and self.storage_buffer is not None:
-            self.device.queue.write_buffer(self.storage_buffer, 0, self.storage_data.tobytes())
+            self.device.queue.write_buffer(
+                self.storage_buffer, 0, self.storage_data.tobytes()
+            )
 
     def get_mesh_info(self, name: str) -> Optional[Dict[str, int]]:
         """

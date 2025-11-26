@@ -13,7 +13,7 @@ from ncca.ngl import (
 
 _FLOAT_SIZE = np.dtype(np.float32).itemsize
 _TEXTURE_FORMAT = wgpu.TextureFormat.rgba8unorm
-SHADOW_MAP_SIZE = 1024
+SHADOW_MAP_SIZE = 1024 * 2
 
 
 class Pipeline:
@@ -175,9 +175,13 @@ class Pipeline:
                 ("light_proj", "float32", (4, 4)),
                 ("light_view", "float32", (4, 4)),
                 ("camera_pos", "float32", (4)),
+                ("shadow_map_size", "float32", (4)),
             ]
         )
         self.scene_uniform_data = np.zeros((1), dtype=scene_dtype)
+        self.scene_uniform_data["shadow_map_size"] = np.array(
+            [SHADOW_MAP_SIZE, 0, 0, 0], dtype=np.float32
+        )
         self.scene_uniform_buffer = self.device.create_buffer(
             size=self.scene_uniform_data.nbytes,
             usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
@@ -410,9 +414,7 @@ class Pipeline:
     def _update_mesh_storage_buffer(self, name: str, model, colour) -> None:
         normal_matrix = model.copy()
         normal_matrix.inverse().transpose()
-        self.mesh_data.update_mesh_data(
-            name, model.to_numpy(), normal_matrix.to_numpy(), colour
-        )
+        self.mesh_data.update_mesh_data(name, model, normal_matrix, colour)
 
     def _render_mesh(self, pass_encoder, name: str) -> None:
         """

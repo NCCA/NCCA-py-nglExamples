@@ -142,13 +142,13 @@ class MainWindow(QOpenGLWindow):
         # Define the structured dtype for the transform struct
         transform_dtype = np.dtype(
             [
-                ("MVP", np.float32, (16)),  # Model-View-Projection matrix
+                ("MVP", np.float32, (4, 4)),  # Model-View-Projection matrix
                 (
                     "normal_matrix",
                     np.float32,
-                    (16),
+                    (4, 4),
                 ),  # Normal transformation matrix typically this is 3x3
-                ("M", np.float32, (16)),  # Model matrix
+                ("M", np.float32, (4, 4)),  # Model matrix
             ]
         )
 
@@ -160,9 +160,9 @@ class MainWindow(QOpenGLWindow):
         normal_matrix = self.view @ self.mouse_global_tx
         normal_matrix.inverse().transpose()
 
-        t[0]["MVP"] = MVP.to_numpy().flatten()
-        t[0]["normal_matrix"] = normal_matrix.to_numpy().flatten()
-        t[0]["M"] = M.to_numpy().flatten()
+        t[0]["MVP"] = MVP.to_numpy()
+        t[0]["normal_matrix"] = normal_matrix.to_numpy()
+        t[0]["M"] = M.to_numpy()
         ShaderLib.set_uniform_buffer("TransformUBO", data=t.data, size=t.data.nbytes)
 
     def paintGL(self) -> None:
