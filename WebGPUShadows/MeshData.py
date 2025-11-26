@@ -58,11 +58,9 @@ class MeshData:
         # This dtype MUST match the layout in the WGSL shader
         storage_dtype = np.dtype(
             [
-                ("MVP", "float32", (4, 4)),
-                ("model_view", "float32", (4, 4)),
+                ("model", "float32", (4, 4)),
                 ("normal_matrix", "float32", (4, 4)),
                 ("colour", "float32", (4)),
-                ("lightMVP", "float32", (4, 4)),
             ]
         )
 
@@ -109,20 +107,16 @@ class MeshData:
             label="consolidated_storage_buffer",
         )
 
-    def update_mesh_data(
-        self, name: str, mvp, model_view, normal_matrix, colour, light_mvp
-    ):
+    def update_mesh_data(self, name: str, model, normal_matrix, colour):
         """
         Updates the transformation/color data for a mesh in the host-side NumPy array.
         """
         if name not in self._mesh_info:
             return
         instance_index = self._mesh_info[name]["instance_index"]
-        self.storage_data[instance_index]["MVP"] = mvp
-        self.storage_data[instance_index]["model_view"] = model_view
-        self.storage_data[instance_index]["normal_matrix"] = normal_matrix
+        self.storage_data[instance_index]["model"] = model
         self.storage_data[instance_index]["colour"] = colour
-        self.storage_data[instance_index]["lightMVP"] = light_mvp
+        self.storage_data[instance_index]["normal_matrix"] = normal_matrix
 
     def write_buffers(self):
         """

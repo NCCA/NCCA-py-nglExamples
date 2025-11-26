@@ -1,7 +1,15 @@
 import numpy as np
 import wgpu
 from MeshData import MeshData
-from ncca.ngl import FirstPersonCamera, PrimData, Prims, Vec3, look_at, perspective
+from ncca.ngl import (
+    FirstPersonCamera,
+    PerspMode,
+    PrimData,
+    Prims,
+    Vec3,
+    look_at,
+    perspective,
+)
 
 _FLOAT_SIZE = np.dtype(np.float32).itemsize
 _TEXTURE_FORMAT = wgpu.TextureFormat.rgba8unorm
@@ -19,7 +27,8 @@ class Pipeline:
         self.view_buffer = None
         self.bind_group_0 = None
         self.bind_group_1 = None
-        self.vertex_uniforms = None
+        self.scene_uniform_buffer = None
+        self.scene_uniform_data = None
         self.light_uniforms = None
         self.eye = camera.eye
         self.view = camera.view
@@ -63,7 +72,7 @@ class Pipeline:
         light_pos = self.light_uniform_data[0]["light_pos"]
         self.light_eye = Vec3(light_pos[0], light_pos[1], light_pos[2])
         self.light_view = look_at(self.light_eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
-        self.light_project = perspective(60.0, 1.0, 0.1, 100.0)
+        self.light_project = perspective(60.0, 1.0, 0.1, 100.0, PerspMode.WebGPU)
         self._create_shadow_pipeline()
 
     def _create_shadow_pipeline(self):
@@ -100,14 +109,20 @@ class Pipeline:
                     "binding": 0,
                     "visibility": wgpu.ShaderStage.VERTEX,
                     "buffer": {"type": wgpu.BufferBindingType.read_only_storage},
-                }
+                },
+                {
+                    "binding": 1,
+                    "visibility": wgpu.ShaderStage.VERTEX,
+                    "buffer": {"type": wgpu.BufferBindingType.uniform},
+                },
             ]
         )
 
         self.shadow_bind_group = self.device.create_bind_group(
             layout=bind_group_layout,
             entries=[
-                {"binding": 0, "resource": {"buffer": self.mesh_data.storage_buffer}}
+                {"binding": 0, "resource": {"buffer": self.mesh_data.storage_buffer}},
+                {"binding": 1, "resource": {"buffer": self.scene_uniform_buffer}},
             ],
         )
 
@@ -123,7 +138,7 @@ class Pipeline:
             primitive={
                 "topology": wgpu.PrimitiveTopology.triangle_list,
                 "front_face": wgpu.FrontFace.ccw,
-                "cull_mode": wgpu.CullMode.none,
+                "cull_mode": wgpu.CullMode.back,
             },
             depth_stencil={
                 "format": wgpu.TextureFormat.depth24plus,
@@ -131,6 +146,7 @@ class Pipeline:
                 "depth_compare": wgpu.CompareFunction.less,
                 "depth_bias": 2,  # slope_scale * 2^R + bias, where R is the depth format's resolution
                 "depth_bias_slope_scale": 2.0,
+                "depth_bias_clamp": 0.0,
             },
             multisample={"count": 1},
         )
@@ -145,12 +161,27 @@ class Pipeline:
             [0.0, 2.0, 2.0, 1.0], dtype=np.float32
         )
         self.light_uniform_data["light_diffuse"] = np.array(
-            [20.0, 20.0, 20.0, 1.0], dtype=np.float32
+            [1.0, 1.0, 1.0, 1.0], dtype=np.float32
         )
         self.light_uniform_buffer = self.device.create_buffer_with_data(
             data=self.light_uniform_data.tobytes(),
             usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_DST,
             label="light_uniform_data",
+        )
+        scene_dtype = np.dtype(
+            [
+                ("proj", "float32", (4, 4)),
+                ("view", "float32", (4, 4)),
+                ("light_proj", "float32", (4, 4)),
+                ("light_view", "float32", (4, 4)),
+                ("camera_pos", "float32", (4)),
+            ]
+        )
+        self.scene_uniform_data = np.zeros((1), dtype=scene_dtype)
+        self.scene_uniform_buffer = self.device.create_buffer(
+            size=self.scene_uniform_data.nbytes,
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+            label="scene_uniform_buffer",
         )
 
     def update_lights(self, one_state):
@@ -248,6 +279,11 @@ class Pipeline:
                     "visibility": wgpu.ShaderStage.FRAGMENT,
                     "sampler": {"type": wgpu.SamplerBindingType.comparison},
                 },
+                {
+                    "binding": 4,
+                    "visibility": wgpu.ShaderStage.VERTEX | wgpu.ShaderStage.FRAGMENT,
+                    "buffer": {"type": wgpu.BufferBindingType.uniform},
+                },
             ],
         )
 
@@ -263,6 +299,7 @@ class Pipeline:
                 {"binding": 1, "resource": {"buffer": self.light_uniform_buffer}},
                 {"binding": 2, "resource": self.shadow_view},
                 {"binding": 3, "resource": self.shadow_sampler},
+                {"binding": 4, "resource": {"buffer": self.scene_uniform_buffer}},
             ],
         )
 
@@ -304,6 +341,18 @@ class Pipeline:
         # Update view and projection from camera each frame
         self.view = self.camera.view
         self.project = self.camera.projection
+        # Update scene uniform data
+        self.scene_uniform_data["proj"] = self.project.to_numpy()
+        self.scene_uniform_data["view"] = self.view.to_numpy()
+        self.scene_uniform_data["light_proj"] = self.light_project.to_numpy()
+        self.scene_uniform_data["light_view"] = self.light_view.to_numpy()
+        self.scene_uniform_data["camera_pos"] = np.array(
+            [self.camera.eye.x, self.camera.eye.y, self.camera.eye.z, 1.0]
+        )
+        self.device.queue.write_buffer(
+            self.scene_uniform_buffer, 0, self.scene_uniform_data
+        )
+
         # 1. Update CPU-side storage buffer with new data from scene objects
         for name, transform, colour in scene_objects:
             self._update_mesh_storage_buffer(name, transform, colour)
@@ -359,19 +408,10 @@ class Pipeline:
         self.device.queue.submit([command_encoder.finish()])
 
     def _update_mesh_storage_buffer(self, name: str, model, colour) -> None:
-        model_view = self.view @ model
-        MVP = self.project @ model_view
-        normal_matrix = model_view.copy()
+        normal_matrix = model.copy()
         normal_matrix.inverse().transpose()
-        light_MVP = self.light_project @ self.light_view @ model
-
         self.mesh_data.update_mesh_data(
-            name,
-            MVP.to_numpy(),
-            model_view.to_numpy(),
-            normal_matrix.to_numpy(),
-            colour,
-            light_MVP.to_numpy(),
+            name, model.to_numpy(), normal_matrix.to_numpy(), colour
         )
 
     def _render_mesh(self, pass_encoder, name: str) -> None:

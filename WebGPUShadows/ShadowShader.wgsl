@@ -1,12 +1,22 @@
-@group(0) @binding(0) var<storage, read> mesh_uniforms: array<VertexUniforms>;
+@group(0) @binding(0) var<storage, read> mesh_uniforms: array<ModelUniforms>;
+@group(0) @binding(1) var<uniform> scene : SceneUniforms;
 
-struct VertexUniforms
+
+struct SceneUniforms
 {
-    MVP : mat4x4<f32>,
-    model_view : mat4x4<f32>,
+    proj : mat4x4<f32>,
+    view : mat4x4<f32>,
+    light_proj : mat4x4<f32>,
+    light_view : mat4x4<f32>,
+    camera_pos : vec4<f32>
+};
+
+
+struct ModelUniforms
+{
+    model : mat4x4<f32>,
     normal_matrix : mat4x4<f32>,
-    colour : vec4<f32>,
-    lightMVP : mat4x4<f32>
+    colour : vec4<f32>
 };
 
 
@@ -28,7 +38,7 @@ fn vertex_main(input : VertexInput,@builtin(instance_index) instanceIdx: u32) ->
 {
     var output : VertexOutput;
     let uniforms = mesh_uniforms[instanceIdx];
-    output.position = uniforms.lightMVP * vec4<f32>(input.position, 1.0);
+    output.position = scene.light_proj * scene.light_view * uniforms.model * vec4<f32>(input.position, 1.0);
     return output;
 }
 

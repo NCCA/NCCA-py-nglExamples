@@ -1,16 +1,24 @@
-@group(0) @binding(0) var<storage, read> mesh_uniforms: array<VertexUniforms>;
+@group(0) @binding(0) var<storage, read> mesh_uniforms: array<ModelUniforms>;
 @group(0) @binding(1) var<storage, read> light_uniforms : array<LightUniforms>;
 @group(0) @binding(2) var shadow_map: texture_depth_2d;
 @group(0) @binding(3) var shadow_sampler: sampler_comparison;
+@group(0) @binding(4) var<uniform> scene : SceneUniforms;
 
 
-struct VertexUniforms
+struct SceneUniforms
 {
-    MVP : mat4x4<f32>,
-    model_view : mat4x4<f32>,
+    proj : mat4x4<f32>,
+    view : mat4x4<f32>,
+    light_proj : mat4x4<f32>,
+    light_view : mat4x4<f32>,
+    camera_pos : vec4<f32>
+};
+
+struct ModelUniforms
+{
+    model : mat4x4<f32>,
     normal_matrix : mat4x4<f32>,
-    colour : vec4<f32>,
-    lightMVP : mat4x4<f32>
+    colour : vec4<f32>
 };
 
 
@@ -52,13 +60,14 @@ fn vertex_main(input : VertexInput,@builtin(instance_index) instanceIdx: u32) ->
     var output : VertexOutput;
 
     let uniforms = mesh_uniforms[instanceIdx];
+    let model_view = scene.view * uniforms.model;
 
-    output.position = uniforms.MVP * vec4<f32>(input.position, 1.0);
+    output.position = scene.proj * model_view * vec4<f32>(input.position, 1.0);
     output.normal = extract_mat3x3(uniforms.normal_matrix) * input.normal;
     output.uv = input.uv;
-    output.frag_pos = (uniforms.model_view * vec4<f32>(input.position, 1.0)).xyz;
+    output.frag_pos = (model_view * vec4<f32>(input.position, 1.0)).xyz;
     output.colour = uniforms.colour;
-    output.shadow_pos = uniforms.lightMVP * vec4<f32>(input.position, 1.0);
+    output.shadow_pos = scene.light_proj * scene.light_view * uniforms.model * vec4<f32>(input.position, 1.0);
 
     return output;
 }
@@ -93,14 +102,27 @@ fn fragment_main(input : FragmentInput) -> FragmentOutput
 
     let L0 = normalize(light0.light_pos.xyz - input.frag_pos);
 
-    // Sample the shadow map
-    var shadow_factor = 1.0;
+    // PCF for soft shadows
+    var shadow_factor = 0.0;
+    // The shadow map size should be passed in as a uniform, but for now we hardcode it
+    let shadow_map_size = 1024.0;
+    let texel_size = 1.0 / shadow_map_size;
     // Only sample if the fragment is within the shadow map's frustum
-    if (shadow_uv.x >= 0.0 && shadow_uv.x <= 1.0 && shadow_uv.y >= 0.0 && shadow_uv.y <= 1.0 && shadow_depth <=1.0)
+    if (shadow_uv.x > 0.0 && shadow_uv.x < 1.0 && shadow_uv.y > 0.0 && shadow_uv.y < 1.0 && shadow_depth <=1.0)
     {
-        let bias= max(0.02 * (1.0 - dot(normalize(input.normal), L0)), 0.002);
-        // use a small bias to avoid shadow acne
-        shadow_factor = textureSampleCompare(shadow_map, shadow_sampler, shadow_uv, shadow_depth - bias);
+        for (var y = -1; y <= 1; y = y + 1)
+        {
+            for (var x = -1; x <= 1; x = x + 1)
+            {
+                let offset = vec2<f32>(f32(x) * texel_size, f32(y) * texel_size);
+                shadow_factor += textureSampleCompare(shadow_map, shadow_sampler, shadow_uv + offset, shadow_depth);
+            }
+        }
+        shadow_factor = shadow_factor / 9.0;
+    }
+    else // if outside of the frustum, it's not in shadow
+    {
+        shadow_factor = 1.0;
     }
 
 
@@ -112,7 +134,8 @@ fn fragment_main(input : FragmentInput) -> FragmentOutput
     let attenuation0 = 1.0 / (distance0 * distance0 + 1.0);
     let radiance0 = light0.light_diffuse.rgb * attenuation0;
     let diffuse0 = max(dot(normalize(input.normal), L0), 0.0);
-    final_colour += input.colour.rgb * radiance0 * diffuse0 * shadow_factor;
+    // make shadows less black by adding an ambient component to the shadow
+    final_colour += input.colour.rgb * radiance0 * diffuse0 * (shadow_factor * 0.7 + 0.3);
 
 
     for (var i: u32 = 1u; i < num_lights; i = i + 1u)
