@@ -32,14 +32,13 @@ class MainWindow(QMainWindow):
 
         self.load_ui()
         self.scene = WebGPUScene()
-        self.centralWidget().layout().addWidget(self.scene, 0, 0, 2, 1)
+        self.centralWidget().layout().addWidget(self.scene, 0, 0, 3, 1)
         self.resize(1024, 720)
         self._connect_slots()
 
     def _connect_slots(self) -> None:
         ...
         """Connect UI element signals to their corresponding slots."""
-        self.wireframe.toggled.connect(self.scene.set_wireframe)
         self.object_selection.currentTextChanged.connect(self.scene.set_model_name)
         self.position_x.valueChanged.connect(self._set_model_position)
         self.position_y.valueChanged.connect(self._set_model_position)
@@ -51,7 +50,9 @@ class MainWindow(QMainWindow):
         self.rotation_y.valueChanged.connect(self._set_model_rotation)
         self.rotation_z.valueChanged.connect(self._set_model_rotation)
         self.colour_button.clicked.connect(self._select_colour)
-
+        self.metallic.valueChanged.connect(self.scene.set_metallic)
+        self.roughness.valueChanged.connect(self.scene.set_roughness)
+        self.ao.valueChanged.connect(self.scene.set_ao)
         self.colour_update.connect(self.scene.set_colour)
 
     def _select_colour(self) -> None:

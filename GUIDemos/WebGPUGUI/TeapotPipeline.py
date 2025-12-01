@@ -109,7 +109,7 @@ class TeapotPipeline:
         self.material_uniforms["ao"] = 0.2
         self.material_buffer = self.device.create_buffer_with_data(
             data=self.material_uniforms.tobytes(),
-            usage=wgpu.BufferUsage.UNIFORM,
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
             label="material_uniform_buffer",
         )
 
@@ -213,6 +213,18 @@ class TeapotPipeline:
             buffer=self.transform_buffer,
             buffer_offset=0,
             data=self.transform_uniforms.tobytes(),
+        )
+
+    def update_material_buffer(self, albedo, metallic, roughness, ao):
+        self.material_uniforms["albedo"] = albedo.to_numpy()
+        self.material_uniforms["metallic"] = metallic
+        self.material_uniforms["roughness"] = roughness
+        self.material_uniforms["ao"] = ao
+
+        self.device.queue.write_buffer(
+            buffer=self.material_buffer,
+            buffer_offset=0,
+            data=self.material_uniforms.tobytes(),
         )
 
     def paint(self, texture_view, multi_sample_view, depth_buffer_view) -> None:

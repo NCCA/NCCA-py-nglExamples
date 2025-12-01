@@ -67,25 +67,19 @@ class WebGPUScene(WebGPUWidget):
         self.eye = Vec3(0.0, 2.0, 4.0)
         self.view = look_at(self.eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
         self.light_pos = Vec3(0.0, 2.0, 2.0)
-        self._wireframe: bool = False
         self._model_name = "teapot"
         self._model_scale = Vec3(1.0, 1.0, 1.0)
         self._model_rotation = Vec3(0.0, 0.0, 0.0)
         self._model_position = Vec3(0.0, 0.0, 0.0)
-        self._model_colour = Vec4(1.0, 1.0, 0.0, 1.0)
+        self._model_colour = Vec3(0.950, 0.71, 0.29)
+        self._metallic = 1.02
+        self._roughness = 0.38
+        self.ao = 0.2
         self.project = perspective(
             45.0, self.width() / self.height(), 0.1, 100.0, PerspMode.WebGPU
         )
         self._initialize_web_gpu()
         self.update()
-
-    @Slot(bool)
-    def set_wireframe(self, value: bool) -> None:
-        """
-        Set the wireframe mode for the model
-        """
-        self._wireframe = value
-        self.update()  # Tell the scene to repaint
 
     @Slot(float, float, float)
     def set_model_rotation(self, x: float, y: float, z: float) -> None:
@@ -125,6 +119,42 @@ class WebGPUScene(WebGPUWidget):
         Set the colour of the model
         """
         self._model_colour = Vec3(x, y, z)
+        self.pipeline.update_material_buffer(
+            self._model_colour, self._metallic, self._roughness, self.ao
+        )
+        self.update()  # Tell the scene to repaint
+
+    @Slot(float)
+    def set_metallic(self, m) -> None:
+        """
+        Set the metallic of the model
+        """
+        self._metallic = m
+        self.pipeline.update_material_buffer(
+            self._model_colour, self._metallic, self._roughness, self.ao
+        )
+        self.update()  # Tell the scene to repaint
+
+    @Slot(float)
+    def set_roughness(self, r) -> None:
+        """
+        Set the roughness of the model
+        """
+        self._roughness = r
+        self.pipeline.update_material_buffer(
+            self._model_colour, self._metallic, self._roughness, self.ao
+        )
+        self.update()  # Tell the scene to repaint
+
+    @Slot(float)
+    def set_ao(self, ao) -> None:
+        """
+        Set the ao of the model
+        """
+        self.ao = ao
+        self.pipeline.update_material_buffer(
+            self._model_colour, self._metallic, self._roughness, self.ao
+        )
         self.update()  # Tell the scene to repaint
 
     def _initialize_web_gpu(self) -> None:
