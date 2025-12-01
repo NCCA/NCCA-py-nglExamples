@@ -1,5 +1,3 @@
-#!/usr/bin/env -S uv run --script
-
 import numpy as np
 import wgpu
 from ncca.ngl import (
@@ -13,25 +11,33 @@ from ncca.ngl import (
     perspective,
 )
 from PySide6.QtCore import Qt, Slot
-from TeapotPipeline import TeapotPipeline
 from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 
 class WebGPUScene(WebGPUWidget):
     """
-    A concrete implementation of NumpyBufferWidget for a WebGPU scene.
-
-    This class implements the abstract methods to provide functionality for initializing,
-    painting, and resizing the WebGPU context.
+    A concrete implementation of WebGPUWidget for a teapot scene.
+    This class handles the WebGPU rendering pipeline, user input, and scene management.
     """
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Simple WebGPU ?")
+        self.setWindowTitle("WebGPU Teapot PBR")
         self.device = None
-        self.mouse_global_tx: Mat4 = Mat4()
-        self.model_position: Vec3 = Vec3()  # Position of the model in world space
+
+        # Scene and camera setup
+        self.model_transform = Transform()
+        self.eye = Vec3(0.0, 2.0, 4.0)
+        self.view = look_at(self.eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
+        self.project = perspective(
+            45.0, self.width() / self.height(), 0.1, 100.0, PerspMode.WebGPU
+        )
+
+        # --- Window and UI Attributes ---
+        self.window_width: int = 1024  # Window width
+        self.window_height: int = 720  # Window height
+
         # --- Mouse Control Attributes for Camera Manipulation ---
         self.rotate: bool = False  # Flag to check if the scene is being rotated
         self.translate: bool = (
@@ -53,162 +59,248 @@ class WebGPUScene(WebGPUWidget):
         )
         self.INCREMENT: float = 0.01  # Sensitivity for translation
         self.ZOOM: float = 0.1  # Sensitivity for zooming
-
+        self.model_position = Vec3(0, 0, 0)
+        # WebGPU resources
         self.pipeline = None
         self.vertex_buffer = None
-        self.msaa_sample_count = 4
+        self.teapot_size = 0
+        self.transform_buffer = None
+        self.material_buffer = None
+        self.light_buffer = None
+        self.view_buffer = None
+        self.bind_group_0 = None
+        self.bind_group_1 = None
 
-        self.texture_size = (1024, 1024)
-        self.rotation = 0.0
-        self.eye = Vec3(0.0, 2.0, 4.0)
-        self.view = look_at(self.eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
-        self.light_pos = Vec3(0.0, 2.0, 2.0)
-        self._model_scale = Vec3(1.0, 1.0, 1.0)
-        self._model_rotation = Vec3(0.0, 0.0, 0.0)
-        self._model_position = Vec3(0.0, 0.0, 0.0)
-        self._model_colour = Vec3(0.950, 0.71, 0.29)
-        self._metallic = 1.02
-        self._roughness = 0.38
-        self._light_colour = Vec3(1.0, 1.0, 1.0)
+        # Uniform data
+        self._material = {
+            "albedo": Vec3(0.950, 0.71, 0.29),
+            "metallic": 1.02,
+            "roughness": 0.38,
+            "ao": 0.2,
+        }
+        self._light_colour = Vec3(400.0, 400.0, 400.0)
         self._light_position = Vec3(0.0, 2.0, 2.0)
-        self.ao = 0.2
-        self.project = perspective(
-            45.0, self.width() / self.height(), 0.1, 100.0, PerspMode.WebGPU
-        )
+
         self._initialize_web_gpu()
         self.update()
 
     @Slot(float, float, float)
-    def set_model_rotation(self, x: float, y: float, z: float) -> None:
-        """
-        Set the rotation of the model
-        """
-        self._model_rotation = Vec3(x, y, z)
-        self.update()  # Tell the scene to repaint
+    def set_model_rotation(self, x: float, y: float, z: float):
+        self.model_transform.set_rotation(x, y, z)
+        self.update()
 
     @Slot(float, float, float)
-    def set_model_position(self, x: float, y: float, z: float) -> None:
-        """
-        Set the position of the model
-        """
-        self._model_position = Vec3(x, y, z)
-        self.update()  # Tell the scene to repaint
+    def set_model_position(self, x: float, y: float, z: float):
+        self.model_transform.set_position(x, y, z)
+        self.update()
 
     @Slot(float, float, float)
-    def set_model_scale(self, x: float, y: float, z: float) -> None:
-        """
-        Set the scale of the model
-        """
-        self._model_scale = Vec3(x, y, z)
-        self.update()  # Tell the scene to repaint
+    def set_model_scale(self, x: float, y: float, z: float):
+        self.model_transform.set_scale(x, y, z)
+        self.update()
 
     @Slot(float, float, float)
-    def set_colour(self, x: float, y: float, z: float) -> None:
-        """
-        Set the colour of the model
-        """
-        self._model_colour = Vec3(x, y, z)
-        self.pipeline.update_material_buffer(
-            self._model_colour, self._metallic, self._roughness, self.ao
-        )
-        self.update()  # Tell the scene to repaint
+    def set_colour(self, r: float, g: float, b: float):
+        self._material["albedo"].set(r, g, b)
+        self._update_material_buffer()
+        self.update()
 
     @Slot(float)
-    def set_metallic(self, m) -> None:
-        """
-        Set the metallic of the model
-        """
-        self._metallic = m
-        self.pipeline.update_material_buffer(
-            self._model_colour, self._metallic, self._roughness, self.ao
-        )
-        self.update()  # Tell the scene to repaint
+    def set_metallic(self, m: float):
+        self._material["metallic"] = m
+        self._update_material_buffer()
+        self.update()
 
     @Slot(float)
-    def set_roughness(self, r) -> None:
-        """
-        Set the roughness of the model
-        """
-        self._roughness = r
-        self.pipeline.update_material_buffer(
-            self._model_colour, self._metallic, self._roughness, self.ao
-        )
-        self.update()  # Tell the scene to repaint
+    def set_roughness(self, r: float):
+        self._material["roughness"] = r
+        self._update_material_buffer()
+        self.update()
 
     @Slot(float)
-    def set_ao(self, ao) -> None:
-        """
-        Set the ao of the model
-        """
-        self.ao = ao
-        self.pipeline.update_material_buffer(
-            self._model_colour, self._metallic, self._roughness, self.ao
-        )
-        self.update()  # Tell the scene to repaint
+    def set_ao(self, ao: float):
+        self._material["ao"] = ao
+        self._update_material_buffer()
+        self.update()
 
     def set_light(self, position: Vec3, colour: Vec3):
-        self.pipeline.update_light_buffer(position, colour)
-        self.update()  # Tell the scene to repaint
+        self._light_position = position
+        if colour is not None:
+            self._light_colour = colour
+        self._update_light_buffer()
+        self.update()
 
-    def _initialize_web_gpu(self) -> None:
-        """
-        Initialize the WebGPU context.
-
-        This method sets up the WebGPU context for the scene.
-        """
-        print("initializeWebGPU")
+    def _initialize_web_gpu(self):
         try:
             self.device = get_default_device()
             self._create_render_buffer()
-            self._init_buffers()
             self._create_render_pipeline()
-            self.startTimer(16)
+            self.start_update_timer(16)  # ~60 FPS
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
             exit(1)
 
-    def _init_buffers(self):
+    def _create_render_pipeline(self):
+        with open("PBRShader.wgsl", "r") as f:
+            shader_code = f.read()
+        shader_module = self.device.create_shader_module(code=shader_code)
+
+        self.pipeline = self.device.create_render_pipeline(
+            label="teapot_pipeline",
+            layout="auto",
+            vertex={
+                "module": shader_module,
+                "entry_point": "vertex_main",
+                "buffers": [
+                    {
+                        "array_stride": 8 * 4,
+                        "step_mode": "vertex",
+                        "attributes": [
+                            {"format": "float32x3", "offset": 0, "shader_location": 0},
+                            {"format": "float32x3", "offset": 12, "shader_location": 1},
+                            {"format": "float32x2", "offset": 24, "shader_location": 2},
+                        ],
+                    }
+                ],
+            },
+            fragment={
+                "module": shader_module,
+                "entry_point": "fragment_main",
+                "targets": [{"format": wgpu.TextureFormat.rgba8unorm}],
+            },
+            primitive={"topology": wgpu.PrimitiveTopology.triangle_list},
+            depth_stencil={
+                "format": wgpu.TextureFormat.depth24plus,
+                "depth_write_enabled": True,
+                "depth_compare": wgpu.CompareFunction.less,
+            },
+            multisample={
+                "count": self.msaa_sample_count,
+                "mask": 0xFFFFFFFF,
+                "alpha_to_coverage_enabled": False,
+            },
+        )
+
         teapot = PrimData.primitive(Prims.TEAPOT.value)
         self.teapot_size = teapot.size // 8
         self.vertex_buffer = self.device.create_buffer_with_data(
             data=teapot, usage=wgpu.BufferUsage.VERTEX
         )
 
-    def _create_render_pipeline(self) -> None:
-        """
-        Create a render pipeline.
-        """
-        width = self.ratio * self.width()
-        height = self.ratio * self.height()
-        self.pipeline = TeapotPipeline(
-            self.device,
-            self.eye,
-            self.light_pos,
-            self.view,
-            self.project,
-            width,
-            height,
+        self._create_uniform_buffers()
+        self._create_bind_groups()
+
+    def _create_uniform_buffers(self):
+        transform_dtype = np.dtype(
+            [
+                ("MVP", np.float32, (4, 4)),
+                ("normal_matrix", np.float32, (4, 4)),
+                ("M", np.float32, (4, 4)),
+            ]
+        )
+        self.transform_uniforms = np.zeros((), dtype=transform_dtype)
+        self.transform_buffer = self.device.create_buffer(
+            size=self.transform_uniforms.nbytes,
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+            label="transform_uniform_buffer",
         )
 
-    def paintWebGPU(self) -> None:
-        """
-        Paint the WebGPU content.
-
-        This method renders the WebGPU content for the scene.
-        """
-        self.update_uniform_buffers()
-
-        self.pipeline.paint(
-            self.colour_buffer_texture_view,
-            self.multisample_texture_view,
-            self.depth_buffer_view,
+        material_dtype = np.dtype(
+            {
+                "names": ["albedo", "metallic", "roughness", "ao"],
+                "formats": [(np.float32, 3), np.float32, np.float32, np.float32],
+                "offsets": [0, 12, 16, 20],
+                "itemsize": 32,
+            }
         )
-        self._update_colour_buffer()
+        self.material_uniforms = np.zeros((), dtype=material_dtype)
+        self.material_buffer = self.device.create_buffer(
+            size=self.material_uniforms.nbytes,
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+            label="material_uniform_buffer",
+        )
+        self._update_material_buffer()
 
-    def update_uniform_buffers(self) -> None:
-        """
-        update the uniform buffers.
-        """
+        light_dtype = np.dtype(
+            {
+                "names": ["lightPosition", "lightColour"],
+                "formats": [(np.float32, 3), (np.float32, 3)],
+                "offsets": [0, 16],
+                "itemsize": 32,
+            }
+        )
+        self.light_uniforms = np.zeros((), dtype=light_dtype)
+        self.light_buffer = self.device.create_buffer(
+            size=self.light_uniforms.nbytes,
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+            label="light_uniform_buffer",
+        )
+        self._update_light_buffer()
+
+        view_dtype = np.dtype(
+            {
+                "names": ["camPos", "exposure"],
+                "formats": [(np.float32, 3), np.float32],
+                "offsets": [0, 12],
+                "itemsize": 16,
+            }
+        )
+        self.view_uniforms = np.zeros((), dtype=view_dtype)
+        self.view_uniforms["exposure"] = 2.2
+        self.view_buffer = self.device.create_buffer(
+            size=self.view_uniforms.nbytes,
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+            label="view_uniform_buffer",
+        )
+
+    def _create_bind_groups(self):
+        bind_group_layout_0 = self.pipeline.get_bind_group_layout(0)
+        self.bind_group_0 = self.device.create_bind_group(
+            layout=bind_group_layout_0,
+            entries=[
+                {
+                    "binding": 0,
+                    "resource": {
+                        "buffer": self.transform_buffer,
+                        "offset": 0,
+                        "size": self.transform_buffer.size,
+                    },
+                }
+            ],
+        )
+
+        bind_group_layout_1 = self.pipeline.get_bind_group_layout(1)
+        self.bind_group_1 = self.device.create_bind_group(
+            layout=bind_group_layout_1,
+            entries=[
+                {
+                    "binding": 0,
+                    "resource": {
+                        "buffer": self.material_buffer,
+                        "offset": 0,
+                        "size": self.material_buffer.size,
+                    },
+                },
+                {
+                    "binding": 1,
+                    "resource": {
+                        "buffer": self.light_buffer,
+                        "offset": 0,
+                        "size": self.light_buffer.size,
+                    },
+                },
+                {
+                    "binding": 2,
+                    "resource": {
+                        "buffer": self.view_buffer,
+                        "offset": 0,
+                        "size": self.view_buffer.size,
+                    },
+                },
+            ],
+        )
+
+    def _update_uniforms(self):
         # Apply rotation based on user input
         rot_x = Mat4().rotate_x(self.spin_x_face)
         rot_y = Mat4().rotate_y(self.spin_y_face)
@@ -217,71 +309,88 @@ class WebGPUScene(WebGPUWidget):
         self.mouse_global_tx[3][0] = self.model_position.x
         self.mouse_global_tx[3][1] = self.model_position.y
         self.mouse_global_tx[3][2] = self.model_position.z
-
-        tx = Transform()
-        tx.set_position(
-            self._model_position.x, self._model_position.y, self._model_position.z
+        # Update transform UBO
+        model_view = (
+            self.view @ self.model_transform.get_matrix() @ self.mouse_global_tx
         )
-        tx.set_rotation(
-            self._model_rotation.x, self._model_rotation.y, self._model_rotation.z
+        self.transform_uniforms["M"] = model_view.to_numpy()
+        self.transform_uniforms["MVP"] = (self.project @ model_view).to_numpy()
+        normal_matrix = model_view.copy()
+        normal_matrix.inverse().transpose()
+        self.transform_uniforms["normal_matrix"] = normal_matrix.to_numpy()
+        self.device.queue.write_buffer(
+            self.transform_buffer, 0, self.transform_uniforms.tobytes()
         )
-        tx.set_scale(self._model_scale.x, self._model_scale.y, self._model_scale.z)
 
-        self.pipeline.update_uniform_buffers(self.mouse_global_tx, tx.get_matrix())
+        # Update view UBO
+        self.view_uniforms["camPos"] = self.eye.to_numpy()
+        self.device.queue.write_buffer(
+            self.view_buffer, 0, self.view_uniforms.tobytes()
+        )
 
-    def initialize_buffer(self) -> None:
-        """
-        Initialize the numpy buffer for rendering .
+    def _update_material_buffer(self):
+        self.material_uniforms["albedo"] = self._material["albedo"].to_numpy()
+        self.material_uniforms["metallic"] = self._material["metallic"]
+        self.material_uniforms["roughness"] = self._material["roughness"]
+        self.material_uniforms["ao"] = self._material["ao"]
+        self.device.queue.write_buffer(
+            self.material_buffer, 0, self.material_uniforms.tobytes()
+        )
 
-        """
-        print("initialize numpy buffer")
-        self.frame_buffer = np.zeros([self.height(), self.width(), 4], dtype=np.uint8)
+    def _update_light_buffer(self):
+        self.light_uniforms["lightPosition"] = self._light_position.to_numpy()
+        self.light_uniforms["lightColour"] = self._light_colour.to_numpy()
+        self.device.queue.write_buffer(
+            self.light_buffer, 0, self.light_uniforms.tobytes()
+        )
 
-    def resizeWebGPU(self, width, height) -> None:
-        """
-        Called whenever the window is resized.
-        It's crucial to update the viewport and projection matrix here.
+    def paintWebGPU(self):
+        self._update_uniforms()
+        command_encoder = self.device.create_command_encoder()
+        render_pass = command_encoder.begin_render_pass(
+            color_attachments=[
+                {
+                    "view": self.multisample_texture_view,
+                    "resolve_target": self.colour_buffer_texture_view,
+                    "load_op": wgpu.LoadOp.clear,
+                    "store_op": wgpu.StoreOp.store,
+                    "clear_value": (0.4, 0.4, 0.4, 1.0),
+                }
+            ],
+            depth_stencil_attachment={
+                "view": self.depth_buffer_view,
+                "depth_load_op": wgpu.LoadOp.clear,
+                "depth_store_op": wgpu.StoreOp.store,
+                "depth_clear_value": 1.0,
+            },
+        )
+        width = int(self.width() * self.ratio)
+        height = int(self.height() * self.ratio)
+        render_pass.set_viewport(0, 0, width, height, 0, 1)
+        render_pass.set_pipeline(self.pipeline)
+        render_pass.set_bind_group(0, self.bind_group_0, [], 0, 999999)
+        render_pass.set_bind_group(1, self.bind_group_1, [], 0, 999999)
+        render_pass.set_vertex_buffer(0, self.vertex_buffer)
+        render_pass.draw(self.teapot_size)
+        render_pass.end()
+        self.device.queue.submit([command_encoder.finish()])
+        self._update_colour_buffer()
 
-        Args:
-            event: The resize event object.
-        """
-        # Update the stored width and height, considering high-DPI displays
-        # Update projection matrix
+    def resizeWebGPU(self, width, height):
         self.project = perspective(
-            45.0, width / height if height > 0 else 1, 0.1, 350.0, PerspMode.WebGPU
+            45.0, width / height if height > 0 else 1, 0.1, 100.0, PerspMode.WebGPU
         )
-
-        # Recreate render buffers for the new window size
-        self._create_render_buffer()
-
-        # Resize the numpy buffer to match new window dimensions
-        if self.frame_buffer is not None:
-            self.frame_buffer = np.zeros([height, width, 4], dtype=np.uint8)
-
-            self.pipeline.width = width
-            self.pipeline.height = height
-
         self.update()
 
-    def keyPressEvent(self, event) -> None:
-        """
-        Handles keyboard press events.
-
-        Args:
-            event: The QKeyEvent object containing information about the key press.
-        """
-        key = event.key()
-
-        if key == Qt.Key_Escape:
-            self.close()  # Exit the application
-        elif key == Qt.Key_Space:
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
+        elif event.key() == Qt.Key_Space:
             # Reset camera rotation and position
             self.spin_x_face = 0
             self.spin_y_face = 0
             self.model_position.set(0, 0, 0)
-
-        self.update()
-        # Call the base class implementation for any unhandled events
+            self.update()
         super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:
