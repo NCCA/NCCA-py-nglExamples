@@ -3,13 +3,13 @@ import sys
 
 import numpy as np
 import wgpu
-from FloorPipeline import FloorPipeline
 from ncca.ngl import (
     Mat3,
     Mat4,
     PerspMode,
     PrimData,
     Prims,
+    Transform,
     Vec3,
     Vec4,
     look_at,
@@ -58,7 +58,7 @@ class WebGPUScene(WebGPUWidget):
         self.INCREMENT: float = 0.01  # Sensitivity for translation
         self.ZOOM: float = 0.1  # Sensitivity for zooming
 
-        self.pipelines = []
+        self.pipeline = None
         self.vertex_buffer = None
         self.msaa_sample_count = 4
 
@@ -67,12 +67,65 @@ class WebGPUScene(WebGPUWidget):
         self.eye = Vec3(0.0, 2.0, 4.0)
         self.view = look_at(self.eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
         self.light_pos = Vec3(0.0, 2.0, 2.0)
-
+        self._wireframe: bool = False
+        self._model_name = "teapot"
+        self._model_scale = Vec3(1.0, 1.0, 1.0)
+        self._model_rotation = Vec3(0.0, 0.0, 0.0)
+        self._model_position = Vec3(0.0, 0.0, 0.0)
+        self._model_colour = Vec4(1.0, 1.0, 0.0, 1.0)
         self.project = perspective(
             45.0, self.width() / self.height(), 0.1, 100.0, PerspMode.WebGPU
         )
         self._initialize_web_gpu()
         self.update()
+
+    @Slot(bool)
+    def set_wireframe(self, value: bool) -> None:
+        """
+        Set the wireframe mode for the model
+        """
+        self._wireframe = value
+        self.update()  # Tell the scene to repaint
+
+    @Slot(float, float, float)
+    def set_model_rotation(self, x: float, y: float, z: float) -> None:
+        """
+        Set the rotation of the model
+        """
+        self._model_rotation = Vec3(x, y, z)
+        self.update()  # Tell the scene to repaint
+
+    @Slot(float, float, float)
+    def set_model_position(self, x: float, y: float, z: float) -> None:
+        """
+        Set the position of the model
+        """
+        self._model_position = Vec3(x, y, z)
+        self.update()  # Tell the scene to repaint
+
+    @Slot(float, float, float)
+    def set_model_scale(self, x: float, y: float, z: float) -> None:
+        """
+        Set the scale of the model
+        """
+        self._model_scale = Vec3(x, y, z)
+        self.update()  # Tell the scene to repaint
+
+    @Slot(str)
+    def set_model_name(self, name: str) -> None:
+        """
+        Set the name of the model to draw
+        """
+        self._model_name = name
+        self.update()  # Tell the scene to repaint
+
+    @Slot(float, float, float)
+    def set_colour(self, x: float, y: float, z: float) -> None:
+        """
+        Set the colour of the model
+        """
+        self._model_colour = Vec3(x, y, z)
+        self.update()  # Tell the scene to repaint
 
     def _initialize_web_gpu(self) -> None:
         """
@@ -104,27 +157,14 @@ class WebGPUScene(WebGPUWidget):
         """
         width = self.ratio * self.width()
         height = self.ratio * self.height()
-        self.pipelines.append(
-            TeapotPipeline(
-                self.device,
-                self.eye,
-                self.light_pos,
-                self.view,
-                self.project,
-                width,
-                height,
-            )
-        )
-        self.pipelines.append(
-            FloorPipeline(
-                self.device,
-                self.eye,
-                self.light_pos,
-                self.view,
-                self.project,
-                width,
-                height,
-            )
+        self.pipeline = TeapotPipeline(
+            self.device,
+            self.eye,
+            self.light_pos,
+            self.view,
+            self.project,
+            width,
+            height,
         )
 
     def paintWebGPU(self) -> None:
@@ -134,12 +174,12 @@ class WebGPUScene(WebGPUWidget):
         This method renders the WebGPU content for the scene.
         """
         self.update_uniform_buffers()
-        for pipeline in self.pipelines:
-            pipeline.paint(
-                self.colour_buffer_texture_view,
-                self.multisample_texture_view,
-                self.depth_buffer_view,
-            )
+
+        self.pipeline.paint(
+            self.colour_buffer_texture_view,
+            self.multisample_texture_view,
+            self.depth_buffer_view,
+        )
         self._update_colour_buffer()
 
     def update_uniform_buffers(self) -> None:
@@ -154,8 +194,17 @@ class WebGPUScene(WebGPUWidget):
         self.mouse_global_tx[3][0] = self.model_position.x
         self.mouse_global_tx[3][1] = self.model_position.y
         self.mouse_global_tx[3][2] = self.model_position.z
-        for pipeline in self.pipelines:
-            pipeline.update_uniform_buffers(self.mouse_global_tx)
+
+        tx = Transform()
+        tx.set_position(
+            self._model_position.x, self._model_position.y, self._model_position.z
+        )
+        tx.set_rotation(
+            self._model_rotation.x, self._model_rotation.y, self._model_rotation.z
+        )
+        tx.set_scale(self._model_scale.x, self._model_scale.y, self._model_scale.z)
+
+        self.pipeline.update_uniform_buffers(self.mouse_global_tx, tx.get_matrix())
 
     def initialize_buffer(self) -> None:
         """
@@ -185,9 +234,9 @@ class WebGPUScene(WebGPUWidget):
         # Resize the numpy buffer to match new window dimensions
         if self.frame_buffer is not None:
             self.frame_buffer = np.zeros([height, width, 4], dtype=np.uint8)
-        for pipeline in self.pipelines:
-            pipeline.width = width
-            pipeline.height = height
+
+            self.pipeline.width = width
+            self.pipeline.height = height
 
         self.update()
 
@@ -287,19 +336,3 @@ class WebGPUScene(WebGPUWidget):
         elif num_pixels.x() < 0:
             self.model_position.z -= self.ZOOM
         self.update()
-
-
-def main():
-    """
-    Main function to run the application.
-    Parses command line arguments and initializes the WebGPUScene.
-    """
-    app = QApplication(sys.argv)
-    win = WebGPUScene()
-    win.resize(1024, 720)
-    win.show()
-    sys.exit(app.exec())
-
-
-if __name__ == "__main__":
-    main()
