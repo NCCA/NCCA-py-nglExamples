@@ -17,6 +17,9 @@ from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
 class PyNGLScene(QOpenGLWidget):
     def __init__(self, parent=None):
+        """
+        Initialise the NGL scene
+        """
         super().__init__(parent)
         # --- Window and UI Attributes ---
         self.window_width: int = 1024  # Window width
@@ -32,31 +35,49 @@ class PyNGLScene(QOpenGLWidget):
 
     @Slot(bool)
     def set_wireframe(self, value: bool) -> None:
+        """
+        Set the wireframe mode for the model
+        """
         self._wireframe = value
         self.update()  # Tell the scene to repaint
 
     @Slot(float, float, float)
     def set_model_rotation(self, x: float, y: float, z: float) -> None:
+        """
+        Set the rotation of the model
+        """
         self._model_rotation = Vec3(x, y, z)
         self.update()  # Tell the scene to repaint
 
     @Slot(float, float, float)
     def set_model_position(self, x: float, y: float, z: float) -> None:
+        """
+        Set the position of the model
+        """
         self._model_position = Vec3(x, y, z)
         self.update()  # Tell the scene to repaint
 
     @Slot(float, float, float)
     def set_model_scale(self, x: float, y: float, z: float) -> None:
+        """
+        Set the scale of the model
+        """
         self._model_scale = Vec3(x, y, z)
         self.update()  # Tell the scene to repaint
 
     @Slot(str)
     def set_model_name(self, name: str) -> None:
+        """
+        Set the name of the model to draw
+        """
         self._model_name = name
         self.update()  # Tell the scene to repaint
 
     @Slot(float, float, float)
     def set_colour(self, x: float, y: float, z: float) -> None:
+        """
+        Set the colour of the model
+        """
         self._model_colour = Vec4(x, y, z, 1.0)
         self.update()  # Tell the scene to repaint
 
@@ -83,7 +104,7 @@ class PyNGLScene(QOpenGLWidget):
         Primitives.load_default_primitives()
         Primitives.create(Prims.SPHERE, "sphere", 1.0, 32)
 
-    def load_matrices_to_shader(self, transform) -> None:
+    def load_matrices_to_shader(self, transform: Transform) -> None:
         """
         Load transformation matrices to the shader uniforms.
         """
