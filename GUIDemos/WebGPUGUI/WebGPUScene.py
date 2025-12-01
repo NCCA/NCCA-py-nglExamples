@@ -1,22 +1,18 @@
 #!/usr/bin/env -S uv run --script
-import sys
 
 import numpy as np
 import wgpu
 from ncca.ngl import (
-    Mat3,
     Mat4,
     PerspMode,
     PrimData,
     Prims,
     Transform,
     Vec3,
-    Vec4,
     look_at,
     perspective,
 )
 from PySide6.QtCore import Qt, Slot
-from PySide6.QtWidgets import QApplication
 from TeapotPipeline import TeapotPipeline
 from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
@@ -67,13 +63,14 @@ class WebGPUScene(WebGPUWidget):
         self.eye = Vec3(0.0, 2.0, 4.0)
         self.view = look_at(self.eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
         self.light_pos = Vec3(0.0, 2.0, 2.0)
-        self._model_name = "teapot"
         self._model_scale = Vec3(1.0, 1.0, 1.0)
         self._model_rotation = Vec3(0.0, 0.0, 0.0)
         self._model_position = Vec3(0.0, 0.0, 0.0)
         self._model_colour = Vec3(0.950, 0.71, 0.29)
         self._metallic = 1.02
         self._roughness = 0.38
+        self._light_colour = Vec3(1.0, 1.0, 1.0)
+        self._light_position = Vec3(0.0, 2.0, 2.0)
         self.ao = 0.2
         self.project = perspective(
             45.0, self.width() / self.height(), 0.1, 100.0, PerspMode.WebGPU
@@ -103,14 +100,6 @@ class WebGPUScene(WebGPUWidget):
         Set the scale of the model
         """
         self._model_scale = Vec3(x, y, z)
-        self.update()  # Tell the scene to repaint
-
-    @Slot(str)
-    def set_model_name(self, name: str) -> None:
-        """
-        Set the name of the model to draw
-        """
-        self._model_name = name
         self.update()  # Tell the scene to repaint
 
     @Slot(float, float, float)
@@ -155,6 +144,10 @@ class WebGPUScene(WebGPUWidget):
         self.pipeline.update_material_buffer(
             self._model_colour, self._metallic, self._roughness, self.ao
         )
+        self.update()  # Tell the scene to repaint
+
+    def set_light(self, position: Vec3, colour: Vec3):
+        self.pipeline.update_light_buffer(position, colour)
         self.update()  # Tell the scene to repaint
 
     def _initialize_web_gpu(self) -> None:

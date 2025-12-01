@@ -1,6 +1,6 @@
 import numpy as np
 import wgpu
-from ncca.ngl import Mat4, PrimData, Prims, Vec3
+from ncca.ngl import PrimData, Prims
 
 
 class TeapotPipeline:
@@ -116,7 +116,7 @@ class TeapotPipeline:
         # Light UBO
         light_dtype = np.dtype(
             {
-                "names": ["lightPosition", "lightColor"],
+                "names": ["lightPosition", "lightColour"],
                 "formats": [(np.float32, 3), (np.float32, 3)],
                 "offsets": [0, 16],
                 "itemsize": 32,
@@ -124,10 +124,10 @@ class TeapotPipeline:
         )
         self.light_uniforms = np.zeros((), dtype=light_dtype)
         self.light_uniforms["lightPosition"] = self.light_pos.to_numpy()
-        self.light_uniforms["lightColor"] = (400.0, 400.0, 400.0)
+        self.light_uniforms["lightColour"] = (400.0, 400.0, 400.0)
         self.light_buffer = self.device.create_buffer_with_data(
             data=self.light_uniforms.tobytes(),
-            usage=wgpu.BufferUsage.UNIFORM,
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
             label="light_uniform_buffer",
         )
 
@@ -225,6 +225,17 @@ class TeapotPipeline:
             buffer=self.material_buffer,
             buffer_offset=0,
             data=self.material_uniforms.tobytes(),
+        )
+
+    def update_light_buffer(self, light_position, light_colour):
+        if light_colour:
+            self.light_uniforms["lightColour"] = light_colour.to_numpy()
+        self.light_uniforms["lightPosition"] = light_position.to_numpy()
+
+        self.device.queue.write_buffer(
+            buffer=self.light_buffer,
+            buffer_offset=0,
+            data=self.light_uniforms.tobytes(),
         )
 
     def paint(self, texture_view, multi_sample_view, depth_buffer_view) -> None:

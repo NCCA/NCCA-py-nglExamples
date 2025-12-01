@@ -3,6 +3,7 @@
 #!/usr/bin/env -S uv run --script
 import sys
 
+from ncca.ngl import Vec3
 from PySide6.QtCore import QFile, Qt, Signal
 from PySide6.QtGui import QKeyEvent, QSurfaceFormat
 from PySide6.QtUiTools import QUiLoader
@@ -25,6 +26,7 @@ class MainWindow(QMainWindow):
 
     # signal to emit when the colour is changed
     colour_update = Signal(float, float, float)
+    light_colour_update = Signal(float, float, float)
 
     def __init__(self) -> None:
         """Initialize the MainWindow with UI setup and configuration loading."""
@@ -39,7 +41,6 @@ class MainWindow(QMainWindow):
     def _connect_slots(self) -> None:
         ...
         """Connect UI element signals to their corresponding slots."""
-        self.object_selection.currentTextChanged.connect(self.scene.set_model_name)
         self.position_x.valueChanged.connect(self._set_model_position)
         self.position_y.valueChanged.connect(self._set_model_position)
         self.position_z.valueChanged.connect(self._set_model_position)
@@ -54,12 +55,38 @@ class MainWindow(QMainWindow):
         self.roughness.valueChanged.connect(self.scene.set_roughness)
         self.ao.valueChanged.connect(self.scene.set_ao)
         self.colour_update.connect(self.scene.set_colour)
+        self.light_x.valueChanged.connect(self._set_light_position)
+        self.light_y.valueChanged.connect(self._set_light_position)
+        self.light_z.valueChanged.connect(self._set_light_position)
+        self.light_colour.clicked.connect(self._set_light_colour)
 
     def _select_colour(self) -> None:
         """Open a color dialog and emit the selected color."""
         colour = QColorDialog.getColor()
         if colour.isValid():
             self.colour_update.emit(colour.redF(), colour.greenF(), colour.blueF())
+
+    def _set_light_colour(self) -> None:
+        """Open a color dialog and emit the selected color."""
+        colour = QColorDialog.getColor()
+        if colour.isValid():
+            self._set_light_values(colour)
+
+    def _set_light_position(self) -> None:
+        """Set the light's position based on the UI's position sliders."""
+        self._set_light_values(None)
+
+    def _set_light_values(self, colour):
+        light_colour = None
+        if colour is not None:
+            scale = self.colour_scale.value()
+            light_colour = Vec3(
+                colour.redF() * scale, colour.greenF() * scale, colour.blueF() * scale
+            )
+        x = self.light_x.value()
+        y = self.light_y.value()
+        z = self.light_z.value()
+        self.scene.set_light(Vec3(x, y, z), light_colour)
 
     def _set_model_position(self) -> None:
         """Set the model's position based on the UI's position sliders."""
