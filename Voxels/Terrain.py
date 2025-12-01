@@ -2,13 +2,12 @@ import random
 
 import numpy as np
 import OpenGL.GL as gl
-from ncca.ngl import Vec3, Vec3Array
 
 
 class Terrain:
     def __init__(self, width: int, height: int, depth: int, num_textures: int):
-        self.voxel_positions = Vec3Array(width * height * depth)
-        self.is_active = np.zeros(width * height * depth, dtype=bool)
+        self.voxel_positions = np.zeros((width * height * depth, 3), dtype=np.float32)
+        self.is_active = np.zeros(width * height * depth, dtype=np.int32)
         self.texture_index = np.zeros(width * height * depth, dtype=np.int32)
         self.width = width
         self.height = height
@@ -33,9 +32,7 @@ class Terrain:
             for y in range(self.height):
                 for z in range(self.depth):
                     active = rand_tex() > self.num_textures // 2
-                    self._set_voxel(
-                        x, y, z, Vec3(x_pos, y_pos, z_pos), rand_tex(), active
-                    )
+                    self._set_voxel(x, y, z, (x_pos, y_pos, z_pos), rand_tex(), active)
 
                     z_pos += step
                 z_pos = start_z
@@ -49,7 +46,7 @@ class Terrain:
         self.texture_ids = gl.glGenTextures(3)
 
         # 1. Voxel positions buffer and texture
-        voxel_data = self.voxel_positions.to_numpy()
+        voxel_data = self.voxel_positions
         gl.glBindBuffer(gl.GL_TEXTURE_BUFFER, self.buffer_ids[0])
         gl.glBufferData(
             gl.GL_TEXTURE_BUFFER, voxel_data.nbytes, voxel_data, gl.GL_STATIC_DRAW
@@ -69,10 +66,13 @@ class Terrain:
         gl.glTexBuffer(gl.GL_TEXTURE_BUFFER, gl.GL_R32I, self.buffer_ids[1])
 
         # 3. is_active (visibility) buffer and texture
-        is_active_int = self.is_active.astype(np.uint32)
+        # is_active_int = self.is_active.astype(np.uint32)
         gl.glBindBuffer(gl.GL_TEXTURE_BUFFER, self.buffer_ids[2])
         gl.glBufferData(
-            gl.GL_TEXTURE_BUFFER, is_active_int.nbytes, is_active_int, gl.GL_STATIC_DRAW
+            gl.GL_TEXTURE_BUFFER,
+            self.is_active.nbytes,
+            self.is_active,
+            gl.GL_STATIC_DRAW,
         )
         gl.glBindTexture(gl.GL_TEXTURE_BUFFER, self.texture_ids[2])
         gl.glTexBuffer(gl.GL_TEXTURE_BUFFER, gl.GL_R32I, self.buffer_ids[2])
@@ -91,12 +91,15 @@ class Terrain:
         if index > len(self.texture_index):
             return
 
-        self.is_active[index] = False
+        self.is_active[index] = 0
         gl.glBindBuffer(gl.GL_TEXTURE_BUFFER, self.buffer_ids[2])
         # OpenGL doesn't have a boolean buffer type, so we convert the numpy bool array to uint32
-        is_active_int = self.is_active.astype(np.int32)
+        # is_active_int = self.is_active.astype(np.int32)
         gl.glBufferData(
-            gl.GL_TEXTURE_BUFFER, is_active_int.nbytes, is_active_int, gl.GL_STATIC_DRAW
+            gl.GL_TEXTURE_BUFFER,
+            self.is_active.nbytes,
+            self.is_active,
+            gl.GL_STATIC_DRAW,
         )
 
     def change_texture_id(self, index: int, value: int):
@@ -110,7 +113,7 @@ class Terrain:
         gl.glBindBuffer(gl.GL_TEXTURE_BUFFER, self.buffer_ids[1])
         gl.glTexBuffer(gl.GL_TEXTURE_BUFFER, gl.GL_R32I, self.buffer_ids[1])
 
-    def _set_voxel(self, x: int, y: int, z: int, pos: "Vec3", tex: int, active: bool):
+    def _set_voxel(self, x: int, y: int, z: int, pos: tuple, tex: int, active: bool):
         if x > self.width or y > self.height or z > self.depth:
             raise ValueError("Invalid voxel position")
         index = x + y * self.width + z * self.width * self.height
