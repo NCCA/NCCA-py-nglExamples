@@ -17,7 +17,7 @@ from wgpu.utils import get_default_device
 
 class WebGPUScene(WebGPUWidget):
     """
-    A concrete implementation of WebGPUWidget for a teapot scene.
+    An implementation of WebGPUWidget for a teapot scene.
     This class handles the WebGPU rendering pipeline, user input, and scene management.
     """
 

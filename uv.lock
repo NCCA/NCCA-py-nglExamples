@@ -786,7 +786,7 @@ wheels = [
 
 [[package]]
 name = "ncca-ngl"
-version = "0.2.7"
+version = "0.3.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "freetype-py" },
@@ -796,9 +796,9 @@ dependencies = [
     { name = "pyopengl" },
     { name = "pyside6" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5b/c8/846bec0662c35e5a915dd3eb1e60d05018d6ab08c0fe2d23467d4a1454b7/ncca_ngl-0.2.7.tar.gz", hash = "sha256:b7187498f1eae6a70ca74b3854c58b7e7d3c6d2e4b736bcfbcb3c21c78a5a0ad", size = 29962083, upload-time = "2025-11-24T17:08:50.664Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cb/94/619bd2fdf48bc68ace351a3a8479cb6b952884dce03c72343f57ce087871/ncca_ngl-0.3.3.tar.gz", hash = "sha256:05d71bc926a6acf3de4def0cb50fa4aefc3485a99f8fe6d14aeea30f3743b8ae", size = 29969330, upload-time = "2025-12-03T08:28:32.831Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5d/62/6c96cf1605bbe0483ee7b91967a2f46c39d56b3c5ffbcad6cb536032569f/ncca_ngl-0.2.7-py3-none-any.whl", hash = "sha256:4eeef49b287b736b0b89fd5128b0bfce8782e130ee0d967aa4e9fe811ee5df53", size = 29983026, upload-time = "2025-11-24T17:07:37.254Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/83/d46b7dbb8fa950b9b31caf6e41f11720f8ac59dcd3fb76d6a54e28726d52/ncca_ngl-0.3.3-py3-none-any.whl", hash = "sha256:604c240ca8e68ce06c7482021f64f5deddd5a81bd2ca54303deafc14876ec1c2", size = 29999065, upload-time = "2025-12-03T08:27:22.032Z" },
 ]
 
 [[package]]
