@@ -54,6 +54,7 @@ class MainWindow(QOpenGLWindow):
         self.window_height: int = 720  # Window height
         self.setTitle("2d Points")
         self.wind = np.array([0.0, 0.0], dtype=np.float32)
+        self.zoom = 1.0
 
     def initializeGL(self) -> None:
         """
@@ -141,6 +142,15 @@ class MainWindow(QOpenGLWindow):
         # The shader is rendering the points as circles so set the point size
         gl.glPointSize(10)
         ShaderLib.use("ColourShader")
+        proj = ortho(
+            -SIM_WIDTH / 2 * self.zoom,
+            SIM_WIDTH / 2 * self.zoom,
+            -SIM_HEIGHT / 2 * self.zoom,
+            SIM_HEIGHT / 2 * self.zoom,
+            0,
+            100,
+        )
+        ShaderLib.set_uniform("projection_matrix", proj)
         with self.vao as vao:
             data = VertexData(data=self.positions.flatten(), size=self.positions.nbytes)
             vao.set_data(data, index=0)
@@ -230,6 +240,7 @@ class MainWindow(QOpenGLWindow):
         if key == Qt.Key_Space:
             self.wind[0] = 0
             self.wind[1] = 0
+            self.zoom = 1.0
         if key == Qt.Key_Up:
             self.wind[1] += 0.1
         if key == Qt.Key_Down:
@@ -274,12 +285,13 @@ class MainWindow(QOpenGLWindow):
         Args:
             event: The QWheelEvent object.
         """
-        event.angleDelta()
-        # # Zoom in or out by adjusting the Z position of the model
-        # if num_pixels.x() > 0:
-        #     self.model_position.z += self.ZOOM
-        # elif num_pixels.x() < 0:
-        #     self.model_position.z -= self.ZOOM
+        num_pixels = event.angleDelta()
+        # Zoom in or out by adjusting the Z position of the model
+        if num_pixels.x() > 0:
+            self.zoom += 0.01
+        elif num_pixels.x() < 0:
+            self.zoom -= 0.01
+        self.zoom = max(0.05, min(10.0, self.zoom))
         self.update()
 
 
