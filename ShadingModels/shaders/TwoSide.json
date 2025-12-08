@@ -1,0 +1,47 @@
+{
+  "ShaderName": "TwoSide",
+  "VertexShader": "TwoSideVert.glsl",
+  "FragmentShader": "TwoSideFrag.glsl",
+  "Uniforms": [
+    {
+      "Name": "light.position",
+      "Type": "Vec3",
+      "Value": [0.0, 1.0, 0.0]
+    },
+    {
+      "Name": "light.La",
+      "Type": "Colour3",
+      "Value": [0.1, 0.1, 0.1]
+    },
+    {
+      "Name": "light.Ld",
+      "Type": "Colour3",
+      "Value": [1.0, 1.0, 1.0]
+    },
+    {
+      "Name": "light.Ls",
+      "Type": "Colour3",
+      "Value": [0.9, 0.9, 0.9]
+    },
+    {
+      "Name": "material.Ka",
+      "Type": "Colour3",
+      "Value": [0.1, 0.1, 0.1]
+    },
+    {
+      "Name": "material.Kd",
+      "Type": "Colour3",
+      "Value": [0.8, 0.0, 0.0]
+    },
+    {
+      "Name": "material.Ks",
+      "Type": "Colour3",
+      "Value": [1.0, 1.0, 1.0]
+    },
+    {
+      "Name": "material.shininess",
+      "Type": "Float",
+      "Value": [40.0]
+    }
+  ]
+}

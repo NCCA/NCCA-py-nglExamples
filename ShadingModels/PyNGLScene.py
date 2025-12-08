@@ -204,6 +204,7 @@ class PyNGLScene(QOpenGLWidget):
         self.project = perspective(45.0, self.width() / self.height(), 0.1, 100.0)
         Primitives.load_default_primitives()
         Primitives.create(Prims.SPHERE, "sphere", 1.0, 32)
+        Primitives.create(Prims.TRIANGLE_PLANE, "plane", 2, 2, 20, 20, Vec3(0, 1, 0))
 
         self.new_shader("shaders/Constant.json")
 
@@ -271,6 +272,8 @@ class PyNGLScene(QOpenGLWidget):
                 Primitives.draw("sphere")
             case "Cube":
                 Primitives.draw("cube")
+            case "Plane":
+                Primitives.draw("plane")
 
     def resizeGL(self, w: int, h: int) -> None:
         """
