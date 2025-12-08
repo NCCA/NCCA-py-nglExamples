@@ -1,0 +1,252 @@
+[36m14:21:57 - INFO - Running in full debug mode[0m
+[36m14:21:58 - INFO - Loading default primitives...[0m
+Loading shader data from shaders/Constant.json
+{'ShaderName': 'Constant', 'VertexShader': 'ConstantVertex.glsl', 'FragmentShader': 'ConstantFragment.glsl', 'Uniforms': [{'Name': 'MVP', 'Type': 'Mat4', 'value': [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]}, {'Name': 'Colour', 'Type': 'Vec3', 'Value': [1.0, 0.0, 0.0]}]}
+Loading shader from shaders/ConstantVertex.glsl and shaders/ConstantFragment.glsl
+[36m14:21:58 - INFO - Registered uniform: MVP (type: mat4, location: 0)[0m
+[36m14:21:58 - INFO - Registered uniform: Colour (type: vec3, location: 4)[0m
+[36m14:21:58 - INFO - FOUND UNIFORM BLOCKS 0[0m
+[36m14:21:58 - INFO - Shader program 'Constant' created[0m
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QOpenGLWidget::paintGL(): Value'
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QApplication::notify(): Error calling Python override of QOpenGLWidget::paintGL(): Value'
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QOpenGLWidget::paintGL(): Value'
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  [Previous line repeated 1 more time]
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QOpenGLWidget::paintGL(): Value'
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  [Previous line repeated 2 more times]
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QOpenGLWidget::paintGL(): Value'
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  [Previous line repeated 3 more times]
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QOpenGLWidget::paintGL(): Value'
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  [Previous line repeated 4 more times]
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QOpenGLWidget::paintGL(): Value'
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  [Previous line repeated 5 more times]
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QOpenGLWidget::paintGL(): Value'
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  [Previous line repeated 6 more times]
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QOpenGLWidget::paintGL(): Value'
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  [Previous line repeated 7 more times]
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QOpenGLWidget::paintGL(): Value'
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  [Previous line repeated 8 more times]
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QOpenGLWidget::paintGL(): Value'
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  [Previous line repeated 9 more times]
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QOpenGLWidget::paintGL(): Value'
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  [Previous line repeated 10 more times]
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QOpenGLWidget::paintGL(): Value'
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 164, in <module>
+    window.show()
+    ~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/./main.py", line 125, in notify
+    return super().notify(receiver, event)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  [Previous line repeated 10 more times]
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/PyNGLScene.py", line 133, in paintGL
+    self.shader.set_uniforms(mvp)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Volumes/teaching/Code/PyNGLDemos/ShadingModels/ShaderLoader.py", line 79, in set_uniforms
+    value = uniform["Value"]
+            ~~~~~~~^^^^^^^^^
+KeyError: 'Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QApplication::notify(): Error calling Python override of QOpenGLWidget::paintGL(): Value'

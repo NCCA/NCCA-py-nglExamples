@@ -1,0 +1,30 @@
+{
+  "VertexShader": "shaders/simple.vs",
+  "FragmentShader": "shaders/simple.fs",
+  "Uniforms": [
+    {
+      "name": "MVP",
+      "type": "Mat4"
+    },
+    {
+      "name": "lightPos",
+      "type": "Vec3"
+    },
+    {
+      "name": "lightColor",
+      "type": "Vec3"
+    },
+    {
+      "name": "surfaceColor",
+      "type": "Vec4"
+    },
+    {
+      "name": "shininess",
+      "type": "float"
+    },
+    {
+      "name": "uvOffset",
+      "type": "Vec2"
+    }
+  ]
+}
