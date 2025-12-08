@@ -1,12 +1,20 @@
-# Add these imports near the top of main.py
 import re
+from typing import List, Tuple
 
 from PySide6.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat
 
 
 # Simple GLSL syntax highlighter
 class GLSLHighlighter(QSyntaxHighlighter):
+    """A simple syntax highlighter for GLSL shader code."""
+
     def __init__(self, parent):
+        """
+        Initialize the GLSLHighlighter.
+
+        Args:
+            parent: The parent QObject, typically a QTextDocument.
+        """
         super().__init__(parent)
         # common GLSL keywords / types / builtins (extend as needed)
         keywords = [
@@ -58,8 +66,8 @@ class GLSLHighlighter(QSyntaxHighlighter):
             "gl_FragCoord",
         ]
 
-        # formatting helpers
-        def make_format(color, bold=False):
+        def make_format(color: str, bold: bool = False) -> QTextCharFormat:
+            """Create a QTextCharFormat with a given color and optional bold font."""
             fmt = QTextCharFormat()
             fmt.setForeground(QColor(color))
             if bold:
@@ -94,7 +102,15 @@ class GLSLHighlighter(QSyntaxHighlighter):
         self.comment_format = comment_fmt
 
     def highlightBlock(self, text):
-        # run rules
+        """
+        Apply syntax highlighting to a block of text.
+
+        This method is called by Qt whenever a block of text needs to be
+        re-highlighted.
+
+        Args:
+            text: The block of text to highlight.
+        """
         for pattern, fmt in self.rules:
             for m in pattern.finditer(text):
                 start, end = m.span()

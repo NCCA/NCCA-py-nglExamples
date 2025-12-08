@@ -1,130 +1,119 @@
 import json
 from pathlib import Path
+from typing import Any, Dict, List
 
 import OpenGL.GL as gl
-from ncca.ngl import (
-    Mat3,
-    Mat4,
-    ShaderLib,
-    Vec3,
-    Vec4,
-)
+from ncca.ngl import Mat3, Mat4, ShaderLib, Vec3, Vec4
 
 
 class ShaderLoader:
-    def __init__(self, json_file):
-        self.shader_data = {}
-        self.root_path = Path(json_file).parent
+    """A class to load and manage shaders from a JSON definition file."""
+
+    def __init__(self, json_file: str) -> None:
+        """
+        Initialize the ShaderLoader.
+
+        Args:
+            json_file: The path to the JSON file defining the shader.
+        """
+        self.shader_data: Dict[str, Any] = {}
+        self.root_path: Path = Path(json_file).parent
+        self.has_normal_matrix: bool = False
+        self.has_model_view: bool = False
         self.load_json(json_file)
 
     @property
-    def uniforms(self):
+    def uniforms(self) -> List[Dict[str, Any]]:
+        """
+        Get the list of uniforms defined in the shader data.
+
+        Returns:
+            A list of dictionaries, where each dictionary describes a uniform.
+        """
         return self.shader_data.get("Uniforms", [])
 
-    def load_json(self, json_file):
+    def load_json(self, json_file: str) -> None:
+        """
+        Load shader data from a JSON file and create the shader program.
+
+        Args:
+            json_file: The path to the JSON file.
+        """
         print(f"Loading shader data from {json_file}")
         with open(json_file, "r") as file:
             self.shader_data = json.load(file)
 
         vert_path = self.root_path / self.shader_data["VertexShader"]
         frag_path = self.root_path / self.shader_data["FragmentShader"]
-        ShaderLib.load_shader(self.shader_data["ShaderName"], vert_path, frag_path)
+        shader_name = self.shader_data["ShaderName"]
+        ShaderLib.load_shader(shader_name, str(vert_path), str(frag_path))
 
-        id = ShaderLib.get_program_id(self.shader_data["ShaderName"])
+        ShaderLib.use(shader_name)
+        program_id = ShaderLib.get_program_id(shader_name)
 
-        if gl.glGetUniformLocation(id, "normal_matrix") != -1:
-            self.has_normal_matrix = True
-        else:
-            self.has_normal_matrix = False
+        self.has_normal_matrix = (
+            gl.glGetUniformLocation(program_id, "normal_matrix") != -1
+        )
+        self.has_model_view = gl.glGetUniformLocation(program_id, "MV") != -1
 
-        if gl.glGetUniformLocation(id, "MV") != -1:
-            self.has_model_view = True
-        else:
-            self.has_model_view = False
+    def set_uniforms(self, MVP: Mat4, MV: Mat4, normal_matrix: Mat3) -> None:
+        """
+        Set the uniforms for the shader.
 
-    def set_uniforms(self, MVP: Mat4, MV: Mat4, normal_matrix: Mat3):
-        ShaderLib.use(self.shader_data["ShaderName"])
+        This includes standard matrices (MVP, MV, normal_matrix) and any custom
+        uniforms defined in the JSON file.
+
+        Args:
+            MVP: The Model-View-Projection matrix.
+            MV: The Model-View matrix.
+            normal_matrix: The normal matrix.
+        """
+        shader_name = self.shader_data["ShaderName"]
+        ShaderLib.use(shader_name)
 
         ShaderLib.set_uniform("MVP", MVP)
         if self.has_normal_matrix:
             ShaderLib.set_uniform("normal_matrix", normal_matrix)
         if self.has_model_view:
             ShaderLib.set_uniform("MV", MV)
-        try:
-            for key, val in self.shader_data.items():
-                if key == "Uniforms":
-                    for uniform in val:
-                        utype = uniform.get("Type", "")
-                        # Vec3 / Colour3
-                        if utype in ["Vec3", "Colour3"]:
-                            value = Vec3(
-                                float(uniform["Value"][0]),
-                                float(uniform["Value"][1]),
-                                float(uniform["Value"][2]),
-                            )
-                        # Vec4 / Colour4
-                        elif utype in ["Vec4", "Colour4"]:
-                            value = Vec4(
-                                float(uniform["Value"][0]),
-                                float(uniform["Value"][1]),
-                                float(uniform["Value"][2]),
-                                float(uniform["Value"][3]),
-                            )
-                        # Mat3
-                        elif utype == "Mat3":
-                            value = Mat3.from_list(
-                                [
-                                    float(uniform["Value"][0]),
-                                    float(uniform["Value"][1]),
-                                    float(uniform["Value"][2]),
-                                    float(uniform["Value"][3]),
-                                    float(uniform["Value"][4]),
-                                    float(uniform["Value"][5]),
-                                    float(uniform["Value"][6]),
-                                    float(uniform["Value"][7]),
-                                    float(uniform["Value"][8]),
-                                ],
-                            )
-                        # Mat4
-                        elif utype == "Mat4":
-                            value = Mat4.from_list(
-                                [
-                                    float(uniform["Value"][0]),
-                                    float(uniform["Value"][1]),
-                                    float(uniform["Value"][2]),
-                                    float(uniform["Value"][3]),
-                                    float(uniform["Value"][4]),
-                                    float(uniform["Value"][5]),
-                                    float(uniform["Value"][6]),
-                                    float(uniform["Value"][7]),
-                                    float(uniform["Value"][8]),
-                                    float(uniform["Value"][9]),
-                                    float(uniform["Value"][10]),
-                                    float(uniform["Value"][11]),
-                                    float(uniform["Value"][12]),
-                                    float(uniform["Value"][13]),
-                                    float(uniform["Value"][14]),
-                                    float(uniform["Value"][15]),
-                                ]
-                            )
-                        # Float (scalar) — accept [x] or x
-                        elif str(utype).lower() == "float":
-                            v = uniform["Value"]
-                            try:
-                                if isinstance(v, list) and len(v) > 0:
-                                    value = float(v[0])
-                                else:
-                                    value = float(v)
-                            except Exception:
-                                value = 0.0
-                        else:
-                            # leave other types as-is (could be ints, bools, textures etc.)
-                            value = uniform["Value"]
 
-                        try:
-                            ShaderLib.set_uniform(uniform["Name"], value)
-                        except Exception:
-                            # Fail silently for now (shader might not have that uniform)
-                            pass
+        uniform_name = "<unknown>"
+        try:
+            for uniform in self.uniforms:
+                uniform_name = uniform.get("Name", "<unknown>")
+                utype = uniform.get("Type", "")
+                uvalue = uniform["Value"]
+                value: Any = None
+
+                if utype in ["Vec3", "Colour3"]:
+                    value = Vec3(float(uvalue[0]), float(uvalue[1]), float(uvalue[2]))
+                elif utype in ["Vec4", "Colour4"]:
+                    value = Vec4(
+                        float(uvalue[0]),
+                        float(uvalue[1]),
+                        float(uvalue[2]),
+                        float(uvalue[3]),
+                    )
+                elif utype == "Mat3":
+                    value = Mat3.from_list([float(v) for v in uvalue])
+                elif utype == "Mat4":
+                    value = Mat4.from_list([float(v) for v in uvalue])
+                elif str(utype).lower() == "float":
+                    try:
+                        if isinstance(uvalue, list) and len(uvalue) > 0:
+                            value = float(uvalue[0])
+                        else:
+                            value = float(uvalue)
+                    except (ValueError, TypeError):
+                        value = 0.0
+                else:
+                    value = uvalue
+
+                if value is not None:
+                    try:
+                        ShaderLib.set_uniform(uniform_name, value)
+                    except Exception:
+                        # Fail silently if the uniform doesn't exist in the shader
+                        pass
         except Exception as e:
-            print(f"Error setting uniform {uniform.get('Name', '<unknown>')}: {e}")
+            print(f"Error processing uniform {uniform_name}: {e}")
