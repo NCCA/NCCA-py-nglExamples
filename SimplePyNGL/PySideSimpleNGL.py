@@ -177,7 +177,6 @@ class MainWindow(QOpenGLWindow):
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         self.load_matrices_to_shader()
         # Apply rotation based on user input
-        # Apply rotation based on user input
         rot_x = Mat4().rotate_x(self.spin_x_face)
         rot_y = Mat4().rotate_y(self.spin_y_face)
         self.mouse_global_tx = rot_y @ rot_x

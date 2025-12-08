@@ -17,55 +17,11 @@ class GLSLHighlighter(QSyntaxHighlighter):
         """
         super().__init__(parent)
         # common GLSL keywords / types / builtins (extend as needed)
-        keywords = [
-            "if",
-            "else",
-            "for",
-            "while",
-            "do",
-            "break",
-            "continue",
-            "return",
-            "struct",
-        ]
-        types = [
-            "void",
-            "float",
-            "int",
-            "bool",
-            "vec2",
-            "vec3",
-            "vec4",
-            "mat3",
-            "mat4",
-            "sampler2D",
-            "samplerCube",
-            "in",
-            "out",
-            "inout",
-            "uniform",
-            "attribute",
-            "varying",
-            "const",
-        ]
-        builtins = [
-            "sin",
-            "cos",
-            "tan",
-            "pow",
-            "exp",
-            "normalize",
-            "dot",
-            "cross",
-            "mix",
-            "texture",
-            "texture2D",
-            "textureCube",
-            "gl_Position",
-            "gl_FragColor",
-            "gl_FragCoord",
-        ]
-
+        # fmt: off
+        keywords = [ "if","else", "for", "while", "do", "break", "continue", "return",  "struct"]
+        types = ["void","float","int","bool","vec2","vec3","vec4","mat3","mat4","sampler2D","samplerCube","in","out","inout","uniform","attribute","varying","const"]
+        builtins = [ "sin", "cos", "tan", "pow", "exp", "normalize", "dot","cross", "mix","texture", "texture2D", "textureCube", "gl_Position", "gl_FragColor", "gl_FragCoord", "gl_FragDepth"]
+        # fmt: on
         def make_format(color: str, bold: bool = False) -> QTextCharFormat:
             """Create a QTextCharFormat with a given color and optional bold font."""
             fmt = QTextCharFormat()
