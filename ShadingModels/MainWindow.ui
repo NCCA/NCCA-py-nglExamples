@@ -6,14 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1375</width>
-    <height>795</height>
+    <width>1200</width>
+    <height>800</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>ngl Qt Demo</string>
+   <string>Shader Models</string>
   </property>
-  <layout class="QGridLayout" name="main_window_grid_layout">
+  <layout class="QGridLayout" name="main_window_grid_layout" columnstretch="6,2,1">
    <item row="3" column="1">
     <widget class="QGroupBox" name="transform_gb">
      <property name="title">

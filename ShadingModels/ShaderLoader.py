@@ -54,21 +54,24 @@ class ShaderLoader:
             for key, val in self.shader_data.items():
                 if key == "Uniforms":
                     for uniform in val:
-                        if uniform["Type"] in ["Vec3", "Colour3"]:
+                        utype = uniform.get("Type", "")
+                        # Vec3 / Colour3
+                        if utype in ["Vec3", "Colour3"]:
                             value = Vec3(
                                 float(uniform["Value"][0]),
                                 float(uniform["Value"][1]),
                                 float(uniform["Value"][2]),
                             )
-                        elif uniform["Type"] in ["Vec4", "Colour4"]:
+                        # Vec4 / Colour4
+                        elif utype in ["Vec4", "Colour4"]:
                             value = Vec4(
                                 float(uniform["Value"][0]),
                                 float(uniform["Value"][1]),
                                 float(uniform["Value"][2]),
                                 float(uniform["Value"][3]),
                             )
-                            print("vec4 ", value, type(value))
-                        elif uniform["Type"] == "Mat3":
+                        # Mat3
+                        elif utype == "Mat3":
                             value = Mat3.from_list(
                                 [
                                     float(uniform["Value"][0]),
@@ -82,7 +85,8 @@ class ShaderLoader:
                                     float(uniform["Value"][8]),
                                 ],
                             )
-                        elif uniform["Type"] == "Mat4":
+                        # Mat4
+                        elif utype == "Mat4":
                             value = Mat4.from_list(
                                 [
                                     float(uniform["Value"][0]),
@@ -103,12 +107,24 @@ class ShaderLoader:
                                     float(uniform["Value"][15]),
                                 ]
                             )
+                        # Float (scalar) — accept [x] or x
+                        elif str(utype).lower() == "float":
+                            v = uniform["Value"]
+                            try:
+                                if isinstance(v, list) and len(v) > 0:
+                                    value = float(v[0])
+                                else:
+                                    value = float(v)
+                            except Exception:
+                                value = 0.0
                         else:
+                            # leave other types as-is (could be ints, bools, textures etc.)
                             value = uniform["Value"]
 
                         try:
                             ShaderLib.set_uniform(uniform["Name"], value)
                         except Exception:
+                            # Fail silently for now (shader might not have that uniform)
                             pass
         except Exception as e:
-            print(f"Error setting uniform {uniform['Name']}: {e}")
+            print(f"Error setting uniform {uniform.get('Name', '<unknown>')}: {e}")

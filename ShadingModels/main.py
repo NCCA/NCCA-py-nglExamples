@@ -54,17 +54,13 @@ class MainWindow(QMainWindow):
     to the corresponding slots in the OpenGL scene to manipulate the 3D object.
 
     Attributes:
-        colour_update (Signal): A signal that emits RGB float values when a new color is selected.
         scene (PyNGLScene): The OpenGL widget where the 3D scene is rendered.
     """
-
-    # signal to emit when the colour is changed
-    # colour_update = Signal(float, float, float)
 
     def __init__(self) -> None:
         """Initialize the MainWindow with UI setup and configuration loading."""
         super().__init__()
-
+        self.setWindowTitle("Shading Models")
         self.load_ui()
         self.vert_editor = QPlainTextEdit(self)
         self.frag_editor = QPlainTextEdit(self)
@@ -140,8 +136,8 @@ class MainWindow(QMainWindow):
 
             spin = QDoubleSpinBox(self.uniforms_gb)
             spin.setObjectName(f"uniform_{name}")
-            spin.setRange(-1e9, 1e9)
-            spin.setDecimals(6)
+            spin.setRange(-100, 100)
+            spin.setDecimals(2)
             spin.setSingleStep(0.01)
             try:
                 spin.setValue(float(value))
@@ -162,38 +158,36 @@ class MainWindow(QMainWindow):
         file_dialog.setNameFilter("Json Files (*.json)")
         if file_dialog.exec():
             file_path = file_dialog.selectedFiles()[0]
+            self.generate_ui_layout(file_path)
 
-            # Clear existing widgets from the form layout
-            while self.uniform_layout.count():
-                item = self.uniform_layout.takeAt(0)
-                if item:
-                    widget = item.widget()
-                    if widget:
-                        widget.setParent(None)
-                        widget.deleteLater()
+    def generate_ui_layout(self, file_path):
+        # Clear existing widgets from the form layout
+        while self.uniform_layout.count():
+            item = self.uniform_layout.takeAt(0)
+            if item:
+                widget = item.widget()
+                if widget:
+                    widget.setParent(None)
+                    widget.deleteLater()
 
-            # Now load the new shader (the scene will emit uniform_found for each uniform)
-            self.scene.new_shader(file_path)
-            # populate the shader editors with the actual shader source
-            try:
-                base = Path(file_path).parent
-                vert_file = base / self.scene.shader.shader_data["VertexShader"]
-                frag_file = base / self.scene.shader.shader_data["FragmentShader"]
-                if vert_file.exists():
-                    self.vert_editor.setPlainText(vert_file.read_text())
-                else:
-                    self.vert_editor.setPlainText(
-                        f"Vertex shader not found: {vert_file}"
-                    )
-                if frag_file.exists():
-                    self.frag_editor.setPlainText(frag_file.read_text())
-                else:
-                    self.frag_editor.setPlainText(
-                        f"Fragment shader not found: {frag_file}"
-                    )
-            except Exception as e:
-                self.vert_editor.setPlainText(f"Error loading shader sources: {e}")
-                self.frag_editor.setPlainText(f"Error loading shader sources: {e}")
+        # Now load the new shader (the scene will emit uniform_found for each uniform)
+        self.scene.new_shader(file_path)
+        # populate the shader editors with the actual shader source
+        try:
+            base = Path(file_path).parent
+            vert_file = base / self.scene.shader.shader_data["VertexShader"]
+            frag_file = base / self.scene.shader.shader_data["FragmentShader"]
+            if vert_file.exists():
+                self.vert_editor.setPlainText(vert_file.read_text())
+            else:
+                self.vert_editor.setPlainText(f"Vertex shader not found: {vert_file}")
+            if frag_file.exists():
+                self.frag_editor.setPlainText(frag_file.read_text())
+            else:
+                self.frag_editor.setPlainText(f"Fragment shader not found: {frag_file}")
+        except Exception as e:
+            self.vert_editor.setPlainText(f"Error loading shader sources: {e}")
+            self.frag_editor.setPlainText(f"Error loading shader sources: {e}")
 
     def _connect_slots(self) -> None:
         """Connect UI element signals to their corresponding slots."""
@@ -301,5 +295,6 @@ if __name__ == "__main__":
     window.resize(1024, 720)
     # Show the window
     window.show()
+    window.generate_ui_layout("shaders/Constant.json")
     # Start the application's event loop
     sys.exit(app.exec())
