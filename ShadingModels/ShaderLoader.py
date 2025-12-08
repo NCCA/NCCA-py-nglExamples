@@ -28,7 +28,6 @@ class ShaderLoader:
 
         vert_path = self.root_path / self.shader_data["VertexShader"]
         frag_path = self.root_path / self.shader_data["FragmentShader"]
-        print(f"Loading shader from {vert_path} and {frag_path}")
         ShaderLib.load_shader(self.shader_data["ShaderName"], vert_path, frag_path)
 
         id = ShaderLib.get_program_id(self.shader_data["ShaderName"])
@@ -42,8 +41,6 @@ class ShaderLoader:
             self.has_model_view = True
         else:
             self.has_model_view = False
-
-        print(gl.glGetUniformLocation(id, "MV"))
 
     def set_uniforms(self, MVP: Mat4, MV: Mat4, normal_matrix: Mat3):
         ShaderLib.use(self.shader_data["ShaderName"])

@@ -20,6 +20,7 @@ from PySide6.QtGui import QFont, QKeyEvent, QSurfaceFormat
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
+    QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
     QMainWindow,
@@ -134,6 +135,22 @@ class MainWindow(QMainWindow):
             widget.colourChanged.connect(
                 lambda val, name=name: self.scene.set_uniform_value(name, val)
             )
+        elif data_type.lower() == "float":
+            # local import to avoid touching top-level imports
+
+            spin = QDoubleSpinBox(self.uniforms_gb)
+            spin.setObjectName(f"uniform_{name}")
+            spin.setRange(-1e9, 1e9)
+            spin.setDecimals(6)
+            spin.setSingleStep(0.01)
+            try:
+                spin.setValue(float(value))
+            except Exception:
+                spin.setValue(0.0)
+            spin.valueChanged.connect(
+                lambda val, name=name: self.scene.set_uniform_value(name, float(val))
+            )
+            widget = spin
         else:
             return
 
