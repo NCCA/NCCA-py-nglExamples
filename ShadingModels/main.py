@@ -15,7 +15,7 @@ from ncca.ngl.widgets import (
     Vec4Widget,
 )
 from PyNGLScene import PyNGLScene
-from PySide6.QtCore import QFile, Qt
+from PySide6.QtCore import QEvent, QFile, Qt
 from PySide6.QtGui import QFont, QKeyEvent, QSurfaceFormat
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QMainWindow,
     QPlainTextEdit,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -48,19 +49,16 @@ class Loader(QUiLoader):
 class MainWindow(QMainWindow):
     """
     The main window of the application, which hosts the OpenGL scene and UI controls.
-
-    This class loads the user interface from a .ui file, integrates the PyNGLScene
-    OpenGL widget, and connects UI signals (e.g., button clicks, slider changes)
-    to the corresponding slots in the OpenGL scene to manipulate the 3D object.
-
-    Attributes:
-        scene (PyNGLScene): The OpenGL widget where the 3D scene is rendered.
     """
 
     def __init__(self) -> None:
         """Initialize the MainWindow with UI setup and configuration loading."""
         super().__init__()
         self.setWindowTitle("Shading Models")
+
+        # track the current fullscreen widget (None when normal)
+        self._fullscreen_widget = None
+
         self.load_ui()
         self.vert_editor = QPlainTextEdit(self)
         self.frag_editor = QPlainTextEdit(self)
@@ -69,8 +67,10 @@ class MainWindow(QMainWindow):
             f = QFont()
             f.setFamily("Courier New")
             f.setStyleHint(QFont.Monospace)
-            f.setPointSize(10)
+            f.setPointSize(14)
             ed.setFont(f)
+            # install event filter to catch double-click on editors
+            ed.viewport().installEventFilter(self)
 
         # put editors inside the group boxes (add a layout if missing)
         for gb, ed in (
@@ -98,13 +98,116 @@ class MainWindow(QMainWindow):
         self.lookat_widget.set_name("Look At")
         self.transform_widget.set_name("Model Transform")
         self.scene = PyNGLScene()
+
+        # make scene expand by default
+        self.scene.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        # add scene to the central grid layout (same as before)
         self.centralWidget().layout().addWidget(self.scene, 0, 0, 6, 1)
+
+        # list of side widgets we want to hide when toggling fullscreen
+        self._side_widgets = [
+            getattr(self, nm)
+            for nm in (
+                "transform_gb",
+                "camera_gb",
+                "draw_gb",
+                "vertex_shader_gb",
+                "fragment_shader_gb",
+                "uniforms_gb",
+            )
+            if hasattr(self, nm)
+        ]
+
+        # connect scene double click to toggle
+        self.scene.double_clicked.connect(
+            lambda: self.toggle_fullscreen_widget(self.scene)
+        )
+
         self.uniform_layout = QFormLayout()
         self.uniforms_gb.setLayout(self.uniform_layout)
         self.load_shader.clicked.connect(self.load_shader_clicked)
         self.resize(1024, 720)
         self._connect_slots()
         self.scene.uniform_found.connect(self.add_uniform_widget)
+
+    def eventFilter(self, obj, event):
+        # catch double-click on editor viewports to toggle fullscreen for them
+        if event.type() == QEvent.MouseButtonDblClick:
+            if obj in (self.vert_editor.viewport(), self.frag_editor.viewport()):
+                # map viewport back to the editor widget
+                widget = (
+                    self.vert_editor
+                    if obj is self.vert_editor.viewport()
+                    else self.frag_editor
+                )
+                self.toggle_fullscreen_widget(widget)
+                return True
+        # also allow normal event processing for other events
+        return super().eventFilter(obj, event)
+
+    def toggle_fullscreen_widget(self, widget: QWidget):
+        """
+        Toggle `widget` between normal layout placement and widget-only fullscreen.
+        """
+        layout = self.centralWidget().layout()
+
+        if self._fullscreen_widget is None:
+            # go fullscreen for this widget
+            self._fullscreen_widget = widget
+
+            # hide the side widgets
+            for w in self._side_widgets:
+                w.setVisible(False)
+
+            # remove and re-add widget to span all columns (0..2) and full rows (0..5)
+            try:
+                layout.removeWidget(widget)
+            except Exception:
+                pass
+            layout.addWidget(widget, 0, 0, 6, 3)
+            widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            widget.update()
+        else:
+            # restore from fullscreen
+            if self._fullscreen_widget is not widget:
+                # restore current fullscreen, then set new fullscreen
+                self.toggle_fullscreen_widget(self._fullscreen_widget)
+                self.toggle_fullscreen_widget(widget)
+                return
+
+            # show side widgets again
+            for w in self._side_widgets:
+                w.setVisible(True)
+
+            # remove and re-add scene/editor back to original span (scene: colSpan 1)
+            try:
+                layout.removeWidget(widget)
+            except Exception:
+                pass
+
+            # If toggled widget is the scene, restore to its original span (0,0,6,1).
+            if widget is self.scene:
+                layout.addWidget(widget, 0, 0, 6, 1)
+            else:
+                # editors originally sit inside group boxes; put editors back into their group box layout
+                # (we removed them only from group layout earlier; to be safe just re-add to their group)
+                if widget is self.vert_editor:
+                    gb = self.vertex_shader_gb
+                elif widget is self.frag_editor:
+                    gb = self.fragment_shader_gb
+                else:
+                    gb = None
+                if gb is not None:
+                    glayout = gb.layout()
+                    if glayout is None:
+                        glayout = QVBoxLayout()
+                        gb.setLayout(glayout)
+                    glayout.addWidget(widget)
+
+            widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            self._fullscreen_widget = None
+            widget.update()
 
     def add_uniform_widget(self, name: str, data_type: str, value) -> None:
         if data_type == "Vec3":
@@ -132,8 +235,6 @@ class MainWindow(QMainWindow):
                 lambda val, name=name: self.scene.set_uniform_value(name, val)
             )
         elif data_type.lower() == "float":
-            # local import to avoid touching top-level imports
-
             spin = QDoubleSpinBox(self.uniforms_gb)
             spin.setObjectName(f"uniform_{name}")
             spin.setRange(-100, 100)
@@ -231,36 +332,11 @@ class MainWindow(QMainWindow):
     def keyPressEvent(self, event: QKeyEvent) -> None:
         """Handle key press events to close the window on Escape."""
         if event.key() == Qt.Key_Escape:
-            self.close()
-
-
-class DebugApplication(QApplication):
-    """
-    A custom QApplication subclass for improved debugging.
-
-    By default, Qt's event loop can suppress exceptions that occur within event handlers
-    (like paintGL or mouseMoveEvent), making it very difficult to debug as the application
-    may simply crash or freeze without any error message. This class overrides the `notify`
-    method to catch these exceptions, print a full traceback to the console, and then
-    re-raise the exception to halt the program, making the error immediately visible.
-    """
-
-    def __init__(self, argv):
-        super().__init__(argv)
-        logger.info("Running in full debug mode")
-
-    def notify(self, receiver, event):
-        """
-        Overrides the central event handler to catch and report exceptions.
-        """
-        try:
-            # Attempt to process the event as usual
-            return super().notify(receiver, event)
-        except Exception:
-            # If an exception occurs, print the full traceback
-            traceback.print_exc()
-            # Re-raise the exception to stop the application
-            raise
+            # if fullscreen widget is active, restore first; otherwise close
+            if self._fullscreen_widget is not None:
+                self.toggle_fullscreen_widget(self._fullscreen_widget)
+            else:
+                self.close()
 
 
 if __name__ == "__main__":
