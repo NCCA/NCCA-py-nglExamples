@@ -2,14 +2,31 @@
 
 import sys
 import traceback
+from pathlib import Path
 
+from GLSLHighlighter import GLSLHighlighter
 from ncca.ngl import Vec3, logger
-from ncca.ngl.widgets import LookAtWidget, RGBColourWidget, TransformWidget
+from ncca.ngl.widgets import (
+    LookAtWidget,
+    RGBAColourWidget,
+    RGBColourWidget,
+    TransformWidget,
+    Vec3Widget,
+    Vec4Widget,
+)
 from PyNGLScene import PyNGLScene
-from PySide6.QtCore import QFile, Qt, Signal
-from PySide6.QtGui import QKeyEvent, QSurfaceFormat
+from PySide6.QtCore import QFile, Qt
+from PySide6.QtGui import QFont, QKeyEvent, QSurfaceFormat
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtWidgets import QApplication, QColorDialog, QMainWindow, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QFormLayout,
+    QMainWindow,
+    QPlainTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class Loader(QUiLoader):
@@ -20,6 +37,10 @@ class Loader(QUiLoader):
             return TransformWidget(parent)
         elif class_name == "LookAtWidget":
             return LookAtWidget(parent)
+        elif class_name == "Vec3Widget":
+            return Vec3Widget(parent)
+        elif class_name == "Vec4Widget":
+            return Vec4Widget(parent)
         return super().createWidget(class_name, parent, name)
 
 
@@ -44,15 +65,118 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.load_ui()
+        self.vert_editor = QPlainTextEdit(self)
+        self.frag_editor = QPlainTextEdit(self)
+        for ed in (self.vert_editor, self.frag_editor):
+            ed.setReadOnly(True)
+            f = QFont()
+            f.setFamily("Courier New")
+            f.setStyleHint(QFont.Monospace)
+            f.setPointSize(10)
+            ed.setFont(f)
+
+        # put editors inside the group boxes (add a layout if missing)
+        for gb, ed in (
+            (self.vertex_shader_gb, self.vert_editor),
+            (self.fragment_shader_gb, self.frag_editor),
+        ):
+            layout = gb.layout()
+            if layout is None:
+                layout = QVBoxLayout()
+                gb.setLayout(layout)
+            # remove existing widgets in the group box layout, if you want a clean state
+            while layout.count():
+                item = layout.takeAt(0)
+                w = item.widget()
+                if w:
+                    w.setParent(None)
+                    w.deleteLater()
+            layout.addWidget(ed)
+
+        # create highlighters
+        self.vert_highlighter = GLSLHighlighter(self.vert_editor.document())
+        self.frag_highlighter = GLSLHighlighter(self.frag_editor.document())
         # Setup the custom promoted widgets
         self.lookat_widget.set_eye(Vec3(0.0, 1.0, 4.0))
         self.lookat_widget.set_name("Look At")
         self.transform_widget.set_name("Model Transform")
         self.scene = PyNGLScene()
         self.centralWidget().layout().addWidget(self.scene, 0, 0, 6, 1)
-
+        self.uniform_layout = QFormLayout()
+        self.uniforms_gb.setLayout(self.uniform_layout)
+        self.load_shader.clicked.connect(self.load_shader_clicked)
         self.resize(1024, 720)
         self._connect_slots()
+        self.scene.uniform_found.connect(self.add_uniform_widget)
+
+    def add_uniform_widget(self, name: str, data_type: str, value) -> None:
+        if data_type == "Vec3":
+            widget = Vec3Widget(parent=self.uniforms_gb, name=name, value=value)
+            widget.valueChanged.connect(
+                lambda val, name=name: self.scene.set_uniform_value(name, val)
+            )
+        elif data_type == "Colour3":
+            widget = RGBColourWidget(
+                self.uniforms_gb, name, value[0], value[1], value[2]
+            )
+            widget.colourChanged.connect(
+                lambda val, name=name: self.scene.set_uniform_value(name, val)
+            )
+        elif data_type == "Vec4":
+            widget = Vec4Widget(parent=self.uniforms_gb, name=name, value=value)
+            widget.valueChanged.connect(
+                lambda val, name=name: self.scene.set_uniform_value(name, val)
+            )
+        elif data_type == "Colour4":
+            widget = RGBAColourWidget(
+                self.uniforms_gb, name, value[0], value[1], value[2], value[3]
+            )
+            widget.colourChanged.connect(
+                lambda val, name=name: self.scene.set_uniform_value(name, val)
+            )
+        else:
+            return
+
+        self.uniform_layout.addRow(name, widget)
+
+    def load_shader_clicked(self):
+        file_dialog = QFileDialog(self)
+        file_dialog.setFileMode(QFileDialog.ExistingFile)
+        file_dialog.setNameFilter("Json Files (*.json)")
+        if file_dialog.exec():
+            file_path = file_dialog.selectedFiles()[0]
+
+            # Clear existing widgets from the form layout
+            while self.uniform_layout.count():
+                item = self.uniform_layout.takeAt(0)
+                if item:
+                    widget = item.widget()
+                    if widget:
+                        widget.setParent(None)
+                        widget.deleteLater()
+
+            # Now load the new shader (the scene will emit uniform_found for each uniform)
+            self.scene.new_shader(file_path)
+            # populate the shader editors with the actual shader source
+            try:
+                base = Path(file_path).parent
+                vert_file = base / self.scene.shader.shader_data["VertexShader"]
+                frag_file = base / self.scene.shader.shader_data["FragmentShader"]
+                if vert_file.exists():
+                    self.vert_editor.setPlainText(vert_file.read_text())
+                else:
+                    self.vert_editor.setPlainText(
+                        f"Vertex shader not found: {vert_file}"
+                    )
+                if frag_file.exists():
+                    self.frag_editor.setPlainText(frag_file.read_text())
+                else:
+                    self.frag_editor.setPlainText(
+                        f"Fragment shader not found: {frag_file}"
+                    )
+            except Exception as e:
+                self.vert_editor.setPlainText(f"Error loading shader sources: {e}")
+                self.frag_editor.setPlainText(f"Error loading shader sources: {e}")
 
     def _connect_slots(self) -> None:
         """Connect UI element signals to their corresponding slots."""

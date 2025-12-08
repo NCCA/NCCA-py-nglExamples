@@ -5,7 +5,7 @@
   "Uniforms": [
     {
       "Name": "Colour",
-      "Type": "Vec3",
+      "Type": "Colour3",
       "Value": [1.0, 0.0, 0.0]
     }
   ]

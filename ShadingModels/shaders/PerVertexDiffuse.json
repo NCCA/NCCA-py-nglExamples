@@ -1,0 +1,22 @@
+{
+  "ShaderName": "PerVertexDiffuse",
+  "VertexShader": "PerVertDiffuseVert.glsl",
+  "FragmentShader": "PerVertDiffuseFrag.glsl",
+  "Uniforms": [
+    {
+      "Name": "Kd",
+      "Type": "Colour3",
+      "Value": [1.0, 0.0, 0.0]
+    },
+    {
+      "Name": "lightPos",
+      "Type": "Vec3",
+      "Value": [0.0, 1.0, 0.0]
+    },
+    {
+      "Name": "Ld",
+      "Type": "Colour3",
+      "Value": [1.0, 1.0, 1.0]
+    }
+  ]
+}

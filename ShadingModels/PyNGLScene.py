@@ -1,23 +1,22 @@
 import OpenGL.GL as gl
 from ncca.ngl import (
-    DefaultShader,
     Mat3,
     Mat4,
     Primitives,
     Prims,
-    ShaderLib,
-    Transform,
     Vec3,
     Vec4,
     look_at,
     perspective,
 )
-from PySide6.QtCore import Slot
+from PySide6.QtCore import Signal, Slot
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from ShaderLoader import ShaderLoader
 
 
 class PyNGLScene(QOpenGLWidget):
+    uniform_found = Signal(str, str, object)
+
     def __init__(self, parent=None):
         """
         Initialise the NGL scene
@@ -29,7 +28,7 @@ class PyNGLScene(QOpenGLWidget):
 
         # --- Mouse Control Attributes for Camera Manipulation ---
         self._wireframe: bool = False
-        self._model_name = "teapot"
+        self._model_name = "Teapot"
         self._model_colour = Vec4(1.0, 1.0, 0.0, 1.0)
         self._model_transform = Mat4()
         self.fov = 45.0
@@ -86,6 +85,21 @@ class PyNGLScene(QOpenGLWidget):
         self._model_transform = transform
         self.update()  # Tell the scene to repaint
 
+    @Slot(str, object)
+    def set_uniform_value(self, name: str, value) -> None:
+        """
+        Set the value of a uniform.
+        """
+        if self.shader is not None:
+            for uniform in self.shader.uniforms:
+                if uniform["Name"] == name:
+                    if isinstance(value, (Vec3, Vec4)):
+                        uniform["Value"] = list(value)
+                    else:
+                        uniform["Value"] = value
+                    break
+        self.update()
+
     def initializeGL(self) -> None:
         """
         Called once when the OpenGL context is first created.
@@ -105,7 +119,26 @@ class PyNGLScene(QOpenGLWidget):
         Primitives.load_default_primitives()
         Primitives.create(Prims.SPHERE, "sphere", 1.0, 32)
 
-        self.shader = ShaderLoader("shaders/Constant.json")
+        self.new_shader("shaders/Constant.json")
+
+    def new_shader(self, path):
+        self.shader = ShaderLoader(path)
+        for uniform in self.shader.uniforms:
+            if uniform["Type"] in ["Vec3", "Vec4", "Colour3", "Colour4"]:
+                if uniform["Type"] == "Vec3" or uniform["Type"] == "Colour3":
+                    value = Vec3(
+                        float(uniform["Value"][0]),
+                        float(uniform["Value"][1]),
+                        float(uniform["Value"][2]),
+                    )
+                elif uniform["Type"] == "Vec4" or uniform["Type"] == "Colour4":
+                    value = Vec4(
+                        float(uniform["Value"][0]),
+                        float(uniform["Value"][1]),
+                        float(uniform["Value"][2]),
+                        float(uniform["Value"][3]),
+                    )
+                self.uniform_found.emit(uniform["Name"], uniform["Type"], value)
 
     def paintGL(self) -> None:
         """
@@ -120,16 +153,16 @@ class PyNGLScene(QOpenGLWidget):
         if self.shader is None:
             return
         MV = self.view @ self._model_transform
-        mvp = self.project @ MV
+        MVP = self.project @ MV
         normal_matrix = Mat3.from_mat4(MV)
         normal_matrix.inverse().transpose()
-        self.shader.set_uniforms(mvp)
+        self.shader.set_uniforms(MVP, MV, normal_matrix)
         if self._wireframe:
             gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
         else:
             gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
         match self._model_name:
-            case "teapot":
+            case "Teapot":
                 Primitives.draw("teapot")
             case "Sphere":
                 Primitives.draw("sphere")
