@@ -6,6 +6,7 @@ from ncca.ngl import (
     Mat4,
     Primitives,
     Prims,
+    Vec2,
     Vec3,
     Vec4,
     look_at,
@@ -19,7 +20,7 @@ from ShaderLoader import ShaderLoader
 class PyNGLScene(QOpenGLWidget):
     """A QOpenGLWidget for rendering a 3D scene using PyNGL."""
 
-    uniform_found = Signal(str, str, object)
+    uniform_found = Signal(str, str, object, object)
     double_clicked = Signal()  # emitted when the scene is double-clicked
 
     def __init__(self, parent=None) -> None:
@@ -232,7 +233,13 @@ class PyNGLScene(QOpenGLWidget):
                             float(uniform["Value"][2]),
                             float(uniform["Value"][3]),
                         )
-                    self.uniform_found.emit(uniform["Name"], uniform["Type"], value)
+                    shader_range = uniform.get("Range")
+                    if shader_range:
+                        shader_range = Vec2(shader_range[0], shader_range[1])
+
+                    self.uniform_found.emit(
+                        uniform["Name"], uniform["Type"], shader_range, value
+                    )
 
     def paintGL(self) -> None:
         """

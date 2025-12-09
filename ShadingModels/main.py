@@ -235,7 +235,9 @@ class MainWindow(QMainWindow):
             self._fullscreen_widget = None
             widget.update()
 
-    def add_uniform_widget(self, name: str, data_type: str, value: Any) -> None:
+    def add_uniform_widget(
+        self, name: str, data_type: str, range: Any, value: Any
+    ) -> None:
         """
         Add a widget to the UI for a uniform variable.
 
@@ -246,9 +248,13 @@ class MainWindow(QMainWindow):
         """
         if data_type == "Vec3":
             widget = Vec3Widget(parent=self.uniforms_gb, name=name, value=value)
+            print(type(range))
+            if range:
+                widget.set_range(range[0], range[1])
             widget.valueChanged.connect(
                 lambda val, name=name: self.scene.set_uniform_value(name, val)
             )
+
         elif data_type == "Colour3":
             widget = RGBColourWidget(
                 self.uniforms_gb, name, value[0], value[1], value[2]
@@ -256,6 +262,7 @@ class MainWindow(QMainWindow):
             widget.colourChanged.connect(
                 lambda val, name=name: self.scene.set_uniform_value(name, val)
             )
+
         elif data_type == "Vec4":
             widget = Vec4Widget(parent=self.uniforms_gb, name=name, value=value)
             widget.valueChanged.connect(
