@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Shader Models</string>
   </property>
-  <layout class="QGridLayout" name="main_window_grid_layout" columnstretch="6,2,1">
+  <layout class="QGridLayout" name="main_window_grid_layout" columnstretch="2,1,2">
    <item row="3" column="1">
     <widget class="QGroupBox" name="transform_gb">
      <property name="title">
@@ -204,7 +204,7 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>125</width>
+        <width>456</width>
         <height>347</height>
        </rect>
       </property>
