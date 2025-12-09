@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>MainWidget</class>
  <widget class="QWidget" name="MainWidget">
@@ -13,11 +13,7 @@
   <property name="windowTitle">
    <string>Shader Models</string>
   </property>
-  <layout
-            class="QGridLayout"
-            name="main_window_grid_layout"
-            columnstretch="6,2,1"
-        >
+  <layout class="QGridLayout" name="main_window_grid_layout" columnstretch="6,2,1">
    <item row="3" column="1">
     <widget class="QGroupBox" name="transform_gb">
      <property name="title">
@@ -25,7 +21,7 @@
      </property>
      <layout class="QGridLayout" name="gridLayout">
       <item row="1" column="0">
-       <widget class="TransformWidget" name="transform_widget" native="true" />
+       <widget class="TransformWidget" name="transform_widget" native="true"/>
       </item>
      </layout>
     </widget>
@@ -37,7 +33,7 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
-       <widget class="LookAtWidget" name="lookat_widget" native="true" />
+       <widget class="LookAtWidget" name="lookat_widget" native="true"/>
       </item>
       <item>
        <widget class="QGroupBox" name="groupBox">
@@ -199,10 +195,29 @@
     </widget>
    </item>
    <item row="2" column="2">
-    <widget class="QGroupBox" name="uniforms_gb">
-     <property name="title">
-      <string>Uniforms</string>
+    <widget class="QScrollArea" name="scrollArea">
+     <property name="widgetResizable">
+      <bool>true</bool>
      </property>
+     <widget class="QWidget" name="scrollAreaWidgetContents">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>125</width>
+        <height>347</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QGroupBox" name="uniforms_gb">
+         <property name="title">
+          <string>Uniforms</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
   </layout>
@@ -221,6 +236,6 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources />
- <connections />
+ <resources/>
+ <connections/>
 </ui>

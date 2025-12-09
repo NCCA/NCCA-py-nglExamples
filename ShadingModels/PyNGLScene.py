@@ -219,26 +219,36 @@ class PyNGLScene(QOpenGLWidget):
         self.shader = ShaderLoader(path)
         if self.shader is not None:
             for uniform in self.shader.uniforms:
-                if uniform["Type"] in ["Vec3", "Vec4", "Colour3", "Colour4"]:
-                    if uniform["Type"] == "Vec3" or uniform["Type"] == "Colour3":
-                        value = Vec3(
-                            float(uniform["Value"][0]),
-                            float(uniform["Value"][1]),
-                            float(uniform["Value"][2]),
-                        )
-                    elif uniform["Type"] == "Vec4" or uniform["Type"] == "Colour4":
-                        value = Vec4(
-                            float(uniform["Value"][0]),
-                            float(uniform["Value"][1]),
-                            float(uniform["Value"][2]),
-                            float(uniform["Value"][3]),
-                        )
-                    shader_range = uniform.get("Range")
-                    if shader_range:
-                        shader_range = Vec2(shader_range[0], shader_range[1])
+                uniform_type = uniform["Type"]
+                value = None
+                # Common logic for getting range, default to None if not present
+                shader_range = uniform.get("Range")
+                if shader_range:
+                    shader_range = Vec2(shader_range[0], shader_range[1])
 
+                if uniform_type in ["Vec3", "Colour3"]:
+                    value = Vec3(
+                        float(uniform["Value"][0]),
+                        float(uniform["Value"][1]),
+                        float(uniform["Value"][2]),
+                    )
+                elif uniform_type in ["Vec4", "Colour4"]:
+                    value = Vec4(
+                        float(uniform["Value"][0]),
+                        float(uniform["Value"][1]),
+                        float(uniform["Value"][2]),
+                        float(uniform["Value"][3]),
+                    )
+                elif uniform_type.lower() == "float":
+                    u_value = uniform["Value"]
+                    if isinstance(u_value, list):
+                        value = float(u_value[0])
+                    else:
+                        value = float(u_value)
+
+                if value is not None:
                     self.uniform_found.emit(
-                        uniform["Name"], uniform["Type"], shader_range, value
+                        uniform["Name"], uniform_type, shader_range, value
                     )
 
     def paintGL(self) -> None:

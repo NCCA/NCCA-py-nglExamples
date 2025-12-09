@@ -1,0 +1,32 @@
+{
+  "ShaderName": "Checker",
+  "VertexShader": "checker_vertex.glsl",
+  "FragmentShader": "checker_fragment.glsl",
+  "Uniforms": [
+    {
+      "Name": "lightPos",
+      "Type": "Vec3",
+      "Value": [0.0, 2.0, 0.0]
+    },
+    {
+      "Name": "lightDiffuse",
+      "Type": "Colour4",
+      "Value": [1.0, 1.0, 1.0, 1.0]
+    },
+    {
+      "Name": "colour1",
+      "Type": "Colour4",
+      "Value": [1.0, 0.0, 0.0, 1.0]
+    },
+    {
+      "Name": "colour2",
+      "Type": "Colour4",
+      "Value": [0.0, 1.0, 0.0, 1.0]
+    },
+    {
+      "Name": "checkSize",
+      "Type": "Float",
+      "Value": [10.0]
+    }
+  ]
+}

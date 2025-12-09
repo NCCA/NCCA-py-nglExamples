@@ -248,9 +248,9 @@ class MainWindow(QMainWindow):
         """
         if data_type == "Vec3":
             widget = Vec3Widget(parent=self.uniforms_gb, name=name, value=value)
-            print(type(range))
             if range:
-                widget.set_range(range[0], range[1])
+                widget.set_range(range.x, range.y)
+                widget.set_value(value)
             widget.valueChanged.connect(
                 lambda val, name=name: self.scene.set_uniform_value(name, val)
             )
@@ -278,7 +278,10 @@ class MainWindow(QMainWindow):
         elif data_type.lower() == "float":
             spin = QDoubleSpinBox(self.uniforms_gb)
             spin.setObjectName(f"uniform_{name}")
-            spin.setRange(-100, 100)
+            if range:
+                spin.setRange(range.x, range.y)
+            else:
+                spin.setRange(-100, 100)
             spin.setDecimals(2)
             spin.setSingleStep(0.01)
             try:

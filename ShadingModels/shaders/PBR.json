@@ -1,0 +1,80 @@
+{
+  "ShaderName": "PBR",
+  "VertexShader": "PBRVertex.glsl",
+  "FragmentShader": "PBRFragment.glsl",
+  "Uniforms": [
+    {
+      "Name": "camPos",
+      "Type": "Vec3",
+      "Value": [0.0, 1.0, 4.0]
+    },
+    {
+      "Name": "lightPositions[0]",
+      "Type": "Vec3",
+      "Value": [-10.0, 4.0, -10.0]
+    },
+    {
+      "Name": "lightColours[0]",
+      "Type": "Vec3",
+      "Value": [400.0, 400.0, 400.0],
+      "Range": [0.0, 1000.0]
+    },
+
+    {
+      "Name": "lightPositions[1]",
+      "Type": "Vec3",
+      "Value": [10.0, 4.0, -10.0]
+    },
+    {
+      "Name": "lightColours[1]",
+      "Type": "Vec3",
+      "Value": [400.0, 400.0, 400.0],
+      "Range": [0.0, 1000.0]
+    },
+
+    {
+      "Name": "lightPositions[2]",
+      "Type": "Vec3",
+      "Value": [-10.0, 4.0, 10.0]
+    },
+    {
+      "Name": "lightColours[2]",
+      "Type": "Vec3",
+      "Value": [400.0, 400.0, 400.0],
+      "Range": [0.0, 1000.0]
+    },
+
+    {
+      "Name": "lightPositions[3]",
+      "Type": "Vec3",
+      "Value": [10.0, 4.0, 10.0]
+    },
+    {
+      "Name": "lightColours[3]",
+      "Type": "Vec3",
+      "Value": [400.0, 400.0, 400.0],
+      "Range": [0.0, 1000.0]
+    },
+
+    {
+      "Name": "albedo",
+      "Type": "Colour3",
+      "Value": [1.0, 0.0, 0.0]
+    },
+    {
+      "Name": "metallic",
+      "Type": "float",
+      "Value": [1.0]
+    },
+    {
+      "Name": "roughness",
+      "Type": "float",
+      "Value": [0.5]
+    },
+    {
+      "Name": "ao",
+      "Type": "float",
+      "Value": [1.0]
+    }
+  ]
+}
