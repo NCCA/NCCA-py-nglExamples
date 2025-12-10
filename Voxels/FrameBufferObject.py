@@ -68,7 +68,10 @@ class FrameBufferObject:
 
     @classmethod
     def create(
-        cls, width: int, height: int, num_attachments: int = 8
+        cls,
+        width: int,
+        height: int,
+        num_attachments: int = 8,
     ) -> "FrameBufferObject":
         """
         Factory method to create a new FrameBufferObject instance.
@@ -87,12 +90,12 @@ class FrameBufferObject:
         """
         Destructor to clean up OpenGL resources.
         """
-        gl.glDeleteFramebuffers(1, self._id)
-        for t in self._attachments:
-            if t.id != 0:
-                gl.glDeleteTextures(1, t.id)
+        gl.glDeleteFramebuffers(1, [self._id])
+        textures_to_delete = [t.id for t in self._attachments if t.id != 0]
         if self._depth_buffer_id != 0:
-            gl.glDeleteTextures(1, self._depth_buffer_id)
+            textures_to_delete.append(self._depth_buffer_id)
+        if textures_to_delete:
+            gl.glDeleteTextures(len(textures_to_delete), textures_to_delete)
 
     def add_depth_buffer(
         self,
@@ -149,6 +152,12 @@ class FrameBufferObject:
             self._depth_buffer_id,
             0,
         )
+        if min_filter in [
+            GLTextureMinFilter.NEAREST_MIPMAP_NEAREST,
+            GLTextureMinFilter.LINEAR_MIPMAP_NEAREST,
+            GLTextureMinFilter.LINEAR_MIPMAP_LINEAR,
+        ]:
+            gl.glGenerateMipmap(gl.GL_TEXTURE_2D)
         return True
 
     def add_colour_attachment(
@@ -183,7 +192,7 @@ class FrameBufferObject:
             True if successful, False otherwise.
         """
         if not self._bound:
-            gl.NGLMessage.addError("Trying to add attachment to unbound Framebuffer")
+            logger.error("Trying to add attachment to unbound Framebuffer")
             return False
 
         tex_id = gl.glGenTextures(1)
@@ -213,6 +222,12 @@ class FrameBufferObject:
         gl.glFramebufferTexture2D(
             gl.GL_FRAMEBUFFER, attachment.value, gl.GL_TEXTURE_2D, tex_id, 0
         )
+        if min_filter in [
+            GLTextureMinFilter.NEAREST_MIPMAP_NEAREST,
+            GLTextureMinFilter.LINEAR_MIPMAP_NEAREST,
+            GLTextureMinFilter.LINEAR_MIPMAP_LINEAR,
+        ]:
+            gl.glGenerateMipmap(gl.GL_TEXTURE_2D)
 
         t = TextureAttachment(id=tex_id, name=name)
         index = attachment.value - gl.GL_COLOR_ATTACHMENT0
@@ -221,10 +236,22 @@ class FrameBufferObject:
 
     def bind(self, target: Target = Target.FRAMEBUFFER) -> None:
         """
-        Binds this FBO as the active one.
+        Binds this FBO as the active one and sets the draw buffers to all
+        currently configured color attachments.
         """
         gl.glBindFramebuffer(target.value, self._id)
         self._bound = True
+        # Automatically set draw buffers to all active attachments
+        active_attachments = []
+        for i, att in enumerate(self._attachments):
+            if att.id != 0:
+                active_attachments.append(gl.GL_COLOR_ATTACHMENT0 + i)
+        if active_attachments:
+            gl.glDrawBuffers(len(active_attachments), active_attachments)
+        else:
+            # This is needed for depth only rendering.
+            gl.glDrawBuffer(gl.GL_NONE)
+            gl.glReadBuffer(gl.GL_NONE)
 
     def unbind(self) -> None:
         """
@@ -310,7 +337,11 @@ class FrameBufferObject:
 
     @staticmethod
     def copy_frame_buffer_texture(
-        src_id: int, dst_id: int, width: int, height: int, mode=gl.GL_COLOR_BUFFER_BIT
+        src_id: int,
+        dst_id: int,
+        width: int,
+        height: int,
+        mode=gl.GL_COLOR_BUFFER_BIT,
     ) -> None:
         """
         Copies texture data from one texture to another using an FBO.
@@ -319,13 +350,17 @@ class FrameBufferObject:
             FrameBufferObject.s_copy_fbo = gl.glGenFramebuffers(1)
 
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, FrameBufferObject.s_copy_fbo)
+        # setup the read target
         gl.glFramebufferTexture2D(
-            gl.GL_READ_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D, src_id, 0
+            gl.GL_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D, src_id, 0
         )
+        gl.glReadBuffer(gl.GL_COLOR_ATTACHMENT0)
+        # setup the draw target
         gl.glFramebufferTexture2D(
-            gl.GL_DRAW_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT1, gl.GL_TEXTURE_2D, dst_id, 0
+            gl.GL_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT1, gl.GL_TEXTURE_2D, dst_id, 0
         )
         gl.glDrawBuffer(gl.GL_COLOR_ATTACHMENT1)
+
         gl.glBlitFramebuffer(
             0, 0, width, height, 0, 0, width, height, mode, gl.GL_NEAREST
         )

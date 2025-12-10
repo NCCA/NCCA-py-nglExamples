@@ -25,20 +25,12 @@ class Terrain:
         start_y = -self.height // 2
         start_z = -self.depth // 2
         step = 1
-        x_pos = start_x
-        y_pos = start_y
-        z_pos = start_z
         for x in range(self.width):
             for y in range(self.height):
                 for z in range(self.depth):
+                    pos = (start_x + x * step, start_y + y * step, start_z + z * step)
                     active = rand_tex() > self.num_textures // 2
-                    self._set_voxel(x, y, z, (x_pos, y_pos, z_pos), rand_tex(), active)
-
-                    z_pos += step
-                z_pos = start_z
-                x_pos += step
-            x_pos = start_x
-            y_pos += step
+                    self._set_voxel(x, y, z, pos, rand_tex(), active)
 
     def gen_texture_buffer(self) -> None:
         # Generate IDs for 3 buffers and 3 textures
@@ -114,9 +106,9 @@ class Terrain:
         gl.glTexBuffer(gl.GL_TEXTURE_BUFFER, gl.GL_R32I, self.buffer_ids[1])
 
     def _set_voxel(self, x: int, y: int, z: int, pos: tuple, tex: int, active: bool):
-        if x > self.width or y > self.height or z > self.depth:
+        if x >= self.width or y >= self.height or z >= self.depth:
             raise ValueError("Invalid voxel position")
-        index = x + y * self.width + z * self.width * self.height
+        index = (x * self.height * self.depth) + (y * self.depth) + z
         self.voxel_positions[index] = pos
         self.is_active[index] = active
         self.texture_index[index] = tex
