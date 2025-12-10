@@ -19,7 +19,7 @@ class Terrain:
 
     def _gen_voxels(self):
         def rand_tex():
-            return random.randint(0, self.num_textures)
+            return random.randint(0, self.num_textures - 1)
 
         start_x = -self.width // 2
         start_y = -self.height // 2
@@ -100,7 +100,7 @@ class Terrain:
 
         self.texture_index[index] += value
         self.texture_index[index] = np.clip(
-            self.texture_index[index], int(0), int(self.num_textures)
+            self.texture_index[index], int(0), int(self.num_textures - 1)
         )
         gl.glBindBuffer(gl.GL_TEXTURE_BUFFER, self.buffer_ids[1])
         gl.glTexBuffer(gl.GL_TEXTURE_BUFFER, gl.GL_R32I, self.buffer_ids[1])
