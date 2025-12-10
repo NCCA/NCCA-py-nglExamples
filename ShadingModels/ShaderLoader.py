@@ -1,9 +1,10 @@
 import json
+import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import OpenGL.GL as gl
-from ncca.ngl import Mat3, Mat4, ShaderLib, Vec3, Vec4
+from ncca.ngl import Mat3, Mat4, ShaderLib, Vec2, Vec3, Vec4
 
 
 class ShaderLoader:
@@ -20,17 +21,69 @@ class ShaderLoader:
         self.root_path: Path = Path(json_file).parent
         self.has_normal_matrix: bool = False
         self.has_model_view: bool = False
+        self.uniform_defs: Dict[str, Any] = {}
         self.load_json(json_file)
 
-    @property
-    def uniforms(self) -> List[Dict[str, Any]]:
-        """
-        Get the list of uniforms defined in the shader data.
+    def _parse_uniform_value(self, uniform: Dict[str, Any]) -> Any:
+        """Parse a uniform value from the raw JSON data."""
+        utype = uniform.get("Type", "")
+        uvalue = uniform.get("Value")
+        value: Any = None
 
-        Returns:
-            A list of dictionaries, where each dictionary describes a uniform.
+        if utype in ["Vec3", "Colour3"]:
+            value = Vec3(float(uvalue[0]), float(uvalue[1]), float(uvalue[2]))
+        elif utype in ["Vec4", "Colour4"]:
+            value = Vec4(
+                float(uvalue[0]),
+                float(uvalue[1]),
+                float(uvalue[2]),
+                float(uvalue[3]),
+            )
+        elif utype == "Mat3":
+            value = Mat3.from_list([float(v) for v in uvalue])
+        elif utype == "Mat4":
+            value = Mat4.from_list([float(v) for v in uvalue])
+        elif str(utype).lower() == "float":
+            try:
+                if isinstance(uvalue, list) and len(uvalue) > 0:
+                    value = float(uvalue[0])
+                else:
+                    value = float(uvalue)
+            except (ValueError, TypeError):
+                value = 0.0
+        else:
+            value = uvalue
+        return value
+
+    def _parse_and_cache_uniforms(self) -> None:
         """
-        return self.shader_data.get("Uniforms", [])
+        Parse uniforms from JSON and store them in self.uniform_defs.
+        """
+        for uniform_data in self.shader_data.get("Uniforms", []):
+            name = uniform_data.get("Name")
+            if not name:
+                continue
+
+            shader_range = uniform_data.get("Range")
+            if shader_range:
+                shader_range = Vec2(shader_range[0], shader_range[1])
+
+            self.uniform_defs[name] = {
+                "type": uniform_data.get("Type"),
+                "value": self._parse_uniform_value(uniform_data),
+                "range": shader_range,
+            }
+
+    def get_uniform_definitions(self) -> Dict[str, Any]:
+        """Returns the parsed uniform definitions."""
+        return self.uniform_defs
+
+    def set_uniform_value(self, name: str, value: Any) -> None:
+        """Update the cached value of a uniform."""
+        if name in self.uniform_defs:
+            self.uniform_defs[name]["value"] = value
+        else:
+            logging.warning(f"Attempted to set non-existent uniform '{name}'")
 
     def load_json(self, json_file: str) -> None:
         """
@@ -55,10 +108,11 @@ class ShaderLoader:
             gl.glGetUniformLocation(program_id, "normal_matrix") != -1
         )
         self.has_model_view = gl.glGetUniformLocation(program_id, "MV") != -1
+        self._parse_and_cache_uniforms()
 
-    def set_uniforms(self, MVP: Mat4, MV: Mat4, normal_matrix: Mat3) -> None:
+    def apply_uniforms(self, MVP: Mat4, MV: Mat4, normal_matrix: Mat3) -> None:
         """
-        Set the uniforms for the shader.
+        Set all uniforms for the shader before drawing.
 
         This includes standard matrices (MVP, MV, normal_matrix) and any custom
         uniforms defined in the JSON file.
@@ -77,43 +131,11 @@ class ShaderLoader:
         if self.has_model_view:
             ShaderLib.set_uniform("MV", MV)
 
-        uniform_name = "<unknown>"
-        try:
-            for uniform in self.uniforms:
-                uniform_name = uniform.get("Name", "<unknown>")
-                utype = uniform.get("Type", "")
-                uvalue = uniform["Value"]
-                value: Any = None
-
-                if utype in ["Vec3", "Colour3"]:
-                    value = Vec3(float(uvalue[0]), float(uvalue[1]), float(uvalue[2]))
-                elif utype in ["Vec4", "Colour4"]:
-                    value = Vec4(
-                        float(uvalue[0]),
-                        float(uvalue[1]),
-                        float(uvalue[2]),
-                        float(uvalue[3]),
-                    )
-                elif utype == "Mat3":
-                    value = Mat3.from_list([float(v) for v in uvalue])
-                elif utype == "Mat4":
-                    value = Mat4.from_list([float(v) for v in uvalue])
-                elif str(utype).lower() == "float":
-                    try:
-                        if isinstance(uvalue, list) and len(uvalue) > 0:
-                            value = float(uvalue[0])
-                        else:
-                            value = float(uvalue)
-                    except (ValueError, TypeError):
-                        value = 0.0
-                else:
-                    value = uvalue
-
-                if value is not None:
-                    try:
-                        ShaderLib.set_uniform(uniform_name, value)
-                    except Exception:
-                        # Fail silently if the uniform doesn't exist in the shader
-                        pass
-        except Exception as e:
-            print(f"Error processing uniform {uniform_name}: {e}")
+        for name, definition in self.uniform_defs.items():
+            try:
+                if definition["value"] is not None:
+                    ShaderLib.set_uniform(name, definition["value"])
+            except Exception:
+                logging.warning(
+                    f"Uniform '{name}' defined in JSON but not found in shader '{shader_name}'"
+                )

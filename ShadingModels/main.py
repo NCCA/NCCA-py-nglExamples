@@ -3,7 +3,7 @@
 import sys
 import traceback
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Dict
 
 from GLSLHighlighter import GLSLHighlighter
 from ncca.ngl import Vec3, logger
@@ -146,6 +146,13 @@ class MainWindow(QMainWindow):
         self.resize(1024, 720)
         self._connect_slots()
         self.scene.uniform_found.connect(self.add_uniform_widget)
+        self._widget_factory: Dict[str, Callable] = {
+            "vec3": self._create_vec3_widget,
+            "colour3": self._create_rgb_colour_widget,
+            "vec4": self._create_vec4_widget,
+            "colour4": self._create_rgba_colour_widget,
+            "float": self._create_float_widget,
+        }
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         """
@@ -158,6 +165,23 @@ class MainWindow(QMainWindow):
         Returns:
             True if the event was handled, False otherwise.
         """
+        if (
+            event.type() == QEvent.Type.Wheel
+            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
+        ):
+            if obj in (self.vert_editor.viewport(), self.frag_editor.viewport()):
+                editor = (
+                    self.vert_editor
+                    if obj is self.vert_editor.viewport()
+                    else self.frag_editor
+                )
+                font = editor.font()
+                if event.angleDelta().y() > 0:
+                    font.setPointSize(font.pointSize() + 1)
+                else:
+                    font.setPointSize(max(6, font.pointSize() - 1))
+                editor.setFont(font)
+                return True
         # catch double-click on editor viewports to toggle fullscreen for them
         if event.type() == QEvent.MouseButtonDblClick:
             if obj in (self.vert_editor.viewport(), self.frag_editor.viewport()):
@@ -235,67 +259,75 @@ class MainWindow(QMainWindow):
             self._fullscreen_widget = None
             widget.update()
 
+    def _create_vec3_widget(self, name: str, vrange: Any, value: Any) -> QWidget:
+        widget = Vec3Widget(parent=self.uniforms_gb, name=name, value=value)
+        if vrange:
+            widget.set_range(vrange.x, vrange.y)
+            widget.set_value(value)
+        widget.valueChanged.connect(
+            lambda val, name=name: self.scene.set_uniform_value(name, val)
+        )
+        return widget
+
+    def _create_rgb_colour_widget(self, name: str, vrange: Any, value: Any) -> QWidget:
+        widget = RGBColourWidget(self.uniforms_gb, name, value[0], value[1], value[2])
+        widget.colourChanged.connect(
+            lambda val, name=name: self.scene.set_uniform_value(name, val)
+        )
+        return widget
+
+    def _create_vec4_widget(self, name: str, vrange: Any, value: Any) -> QWidget:
+        widget = Vec4Widget(parent=self.uniforms_gb, name=name, value=value)
+        widget.valueChanged.connect(
+            lambda val, name=name: self.scene.set_uniform_value(name, val)
+        )
+        return widget
+
+    def _create_rgba_colour_widget(self, name: str, vrange: Any, value: Any) -> QWidget:
+        widget = RGBAColourWidget(
+            self.uniforms_gb, name, value[0], value[1], value[2], value[3]
+        )
+        widget.colourChanged.connect(
+            lambda val, name=name: self.scene.set_uniform_value(name, val)
+        )
+        return widget
+
+    def _create_float_widget(self, name: str, vrange: Any, value: Any) -> QWidget:
+        spin = QDoubleSpinBox(self.uniforms_gb)
+        spin.setObjectName(f"uniform_{name}")
+        if vrange:
+            spin.setRange(vrange.x, vrange.y)
+        else:
+            spin.setRange(-100, 100)
+        spin.setDecimals(2)
+        spin.setSingleStep(0.01)
+        try:
+            spin.setValue(float(value))
+        except Exception:
+            spin.setValue(0.0)
+        spin.valueChanged.connect(
+            lambda val, name=name: self.scene.set_uniform_value(name, float(val))
+        )
+        return spin
+
     def add_uniform_widget(
-        self, name: str, data_type: str, range: Any, value: Any
+        self, name: str, data_type: str, vrange: Any, value: Any
     ) -> None:
         """
-        Add a widget to the UI for a uniform variable.
+        Add a widget to the UI for a uniform variable using a factory pattern.
 
         Args:
             name: The name of the uniform.
             data_type: The type of the uniform.
+            vrange: The range of the uniform value.
             value: The value of the uniform.
         """
-        if data_type == "Vec3":
-            widget = Vec3Widget(parent=self.uniforms_gb, name=name, value=value)
-            if range:
-                widget.set_range(range.x, range.y)
-                widget.set_value(value)
-            widget.valueChanged.connect(
-                lambda val, name=name: self.scene.set_uniform_value(name, val)
-            )
-
-        elif data_type == "Colour3":
-            widget = RGBColourWidget(
-                self.uniforms_gb, name, value[0], value[1], value[2]
-            )
-            widget.colourChanged.connect(
-                lambda val, name=name: self.scene.set_uniform_value(name, val)
-            )
-
-        elif data_type == "Vec4":
-            widget = Vec4Widget(parent=self.uniforms_gb, name=name, value=value)
-            widget.valueChanged.connect(
-                lambda val, name=name: self.scene.set_uniform_value(name, val)
-            )
-        elif data_type == "Colour4":
-            widget = RGBAColourWidget(
-                self.uniforms_gb, name, value[0], value[1], value[2], value[3]
-            )
-            widget.colourChanged.connect(
-                lambda val, name=name: self.scene.set_uniform_value(name, val)
-            )
-        elif data_type.lower() == "float":
-            spin = QDoubleSpinBox(self.uniforms_gb)
-            spin.setObjectName(f"uniform_{name}")
-            if range:
-                spin.setRange(range.x, range.y)
-            else:
-                spin.setRange(-100, 100)
-            spin.setDecimals(2)
-            spin.setSingleStep(0.01)
-            try:
-                spin.setValue(float(value))
-            except Exception:
-                spin.setValue(0.0)
-            spin.valueChanged.connect(
-                lambda val, name=name: self.scene.set_uniform_value(name, float(val))
-            )
-            widget = spin
+        creator_func = self._widget_factory.get(data_type.lower())
+        if creator_func:
+            widget = creator_func(name, vrange, value)
+            self.uniform_layout.addRow(name, widget)
         else:
-            return
-
-        self.uniform_layout.addRow(name, widget)
+            logger.warning(f"No widget factory for uniform type '{data_type}'")
 
     def load_shader_clicked(self) -> None:
         """Open a file dialog to load a shader."""
@@ -346,7 +378,7 @@ class MainWindow(QMainWindow):
         self.wireframe.toggled.connect(self.scene.set_wireframe)
         self.object_selection.currentTextChanged.connect(self.scene.set_model_name)
         self.transform_widget.valueChanged.connect(self.scene.set_transform)
-        self.lookat_widget.valueChanged.connect(self.scene.set_camera)
+        self.lookat_widget.valueChanged.connect(self.scene.set_view_matrix)
         self.fov.valueChanged.connect(self.update_perspective)
         self.near.valueChanged.connect(self.update_perspective)
         self.far.valueChanged.connect(self.update_perspective)
@@ -380,9 +412,9 @@ class MainWindow(QMainWindow):
             print(f"Error loading UI file: {e}")
             raise
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:
+    def keyPressEvent(self, QKeyEvent) -> None:
         """Handle key press events to close the window on Escape."""
-        if event.key() == Qt.Key_Escape:
+        if QKeyEvent.key() == Qt.Key_Escape:
             # if fullscreen widget is active, restore first; otherwise close
             if self._fullscreen_widget is not None:
                 self.toggle_fullscreen_widget(self._fullscreen_widget)
