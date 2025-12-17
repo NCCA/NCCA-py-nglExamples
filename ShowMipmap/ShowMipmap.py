@@ -84,12 +84,6 @@ class MainWindow(QOpenGLWindow):
         """
         Create a 2D texture with explicit mip levels. Each mip level is filled
         with a distinct solid color so you can visually inspect which level is used.
-
-        Returns:
-            int: the generated texture id
-        Preconditions:
-            - A valid OpenGL context must be current.
-            - PyOpenGL and numpy are available.
         """
         mip_level = 0
 
