@@ -246,6 +246,13 @@ class MainWindow(QOpenGLWindow):
         self.mouse_global_tx[3][1] = self.model_position.y
         self.mouse_global_tx[3][2] = self.model_position.z
         ShaderLib.use(TEXTURE_SHADER)
+        # Now bind the textures to the correct slots
+        gl.glActiveTexture(gl.GL_TEXTURE0)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self.colour_id)
+        gl.glActiveTexture(gl.GL_TEXTURE1)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self.normal_id)
+        gl.glActiveTexture(gl.GL_TEXTURE2)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self.specular_id)
         self.loadMatricesToShader()
 
         with self.vao:
