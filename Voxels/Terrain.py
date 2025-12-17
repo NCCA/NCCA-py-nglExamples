@@ -38,11 +38,14 @@ class Terrain:
         self.texture_ids = gl.glGenTextures(3)
 
         # 1. Voxel positions buffer and texture
-        voxel_data = self.voxel_positions
         gl.glBindBuffer(gl.GL_TEXTURE_BUFFER, self.buffer_ids[0])
         gl.glBufferData(
-            gl.GL_TEXTURE_BUFFER, voxel_data.nbytes, voxel_data, gl.GL_STATIC_DRAW
+            gl.GL_TEXTURE_BUFFER,
+            self.voxel_positions.nbytes,
+            self.voxel_positions.flatten(),
+            gl.GL_STATIC_DRAW,
         )
+        print(f"Voxel Positions: {self.voxel_positions.flatten()}")
         gl.glBindTexture(gl.GL_TEXTURE_BUFFER, self.texture_ids[0])
         gl.glTexBuffer(gl.GL_TEXTURE_BUFFER, gl.GL_RGB32F, self.buffer_ids[0])
 
@@ -51,7 +54,7 @@ class Terrain:
         gl.glBufferData(
             gl.GL_TEXTURE_BUFFER,
             self.texture_index.nbytes,
-            self.texture_index,
+            self.texture_index.flatten(),
             gl.GL_STATIC_DRAW,
         )
         gl.glBindTexture(gl.GL_TEXTURE_BUFFER, self.texture_ids[1])
@@ -63,7 +66,7 @@ class Terrain:
         gl.glBufferData(
             gl.GL_TEXTURE_BUFFER,
             self.is_active.nbytes,
-            self.is_active,
+            self.is_active.flatten(),
             gl.GL_STATIC_DRAW,
         )
         gl.glBindTexture(gl.GL_TEXTURE_BUFFER, self.texture_ids[2])

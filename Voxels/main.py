@@ -124,7 +124,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             int(self.window_height * self.devicePixelRatio()),
         )
         with self.render_fbo:
-            self.render_fbo.bind()
+            # self.render_fbo.bind()
             self.render_fbo.add_colour_attachment(
                 "colour",
                 GLAttachment._0,
@@ -190,7 +190,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
             # Draw the points that will be turned into voxels by the geometry shader
             gl.glBindVertexArray(self.vao)
-            gl.glDrawArrays(gl.GL_POINTS, 0, len(self.terrain.voxel_positions))
+            gl.glDrawArrays(gl.GL_POINTS, 0, self.terrain.voxel_positions.size)
             gl.glBindVertexArray(0)
 
         # Now, copy the result from our FBO to the screen
