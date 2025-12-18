@@ -33,7 +33,7 @@ void main()
   normal = normalize(normal);
 
   // material/specular values (consider moving to uniforms or textures)
-  vec3 specularMaterial = vec3(0.01); // could be texture(spec, fs_in.uv).rgb;
+  vec3 specularMaterial = texture(spec, fs_in.uv).rgb;
   vec3 colour = texture(diffuseMap, fs_in.uv).rgb;
 
   vec3 ambient = vec3(0.0);
