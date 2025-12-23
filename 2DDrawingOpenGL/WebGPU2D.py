@@ -42,6 +42,7 @@ class WebGPUScene(WebGPUWidget):
         self.zoom = 1.0
         self.is_panning = False
         self.last_mouse_pos = None
+        self.point_size = 0.5
 
         self.gen_points()
         self._initialize_web_gpu()
@@ -140,7 +141,7 @@ class WebGPUScene(WebGPUWidget):
                 "buffers": [
                     {
                         "array_stride": 6 * 4,
-                        "step_mode": "vertex",
+                        "step_mode": "instance",
                         "attributes": [
                             {"format": "float32x3", "offset": 0, "shader_location": 0},
                             {"format": "float32x3", "offset": 12, "shader_location": 1},
@@ -153,7 +154,7 @@ class WebGPUScene(WebGPUWidget):
                 "entry_point": "fragment_main",
                 "targets": [{"format": wgpu.TextureFormat.rgba8unorm}],
             },
-            primitive={"topology": wgpu.PrimitiveTopology.point_list},
+            primitive={"topology": wgpu.PrimitiveTopology.triangle_strip},
             depth_stencil={
                 "format": wgpu.TextureFormat.depth24plus,
                 "depth_write_enabled": True,
@@ -165,7 +166,14 @@ class WebGPUScene(WebGPUWidget):
         )
 
         # Create a uniform buffer
-        self.uniform_data = np.zeros((), dtype=[("projection_matrix", "float32", (16))])
+        self.uniform_data = np.zeros(
+            (),
+            dtype=[
+                ("projection_matrix", "float32", (16,)),
+                ("size", "float32"),
+                ("padding", np.uint32, 3),  # 3 * 4 = 12 bytes padding
+            ],
+        )
 
         self.uniform_buffer = self.device.create_buffer_with_data(
             data=self.uniform_data.tobytes(),
@@ -237,7 +245,7 @@ class WebGPUScene(WebGPUWidget):
             render_pass.set_pipeline(self.pipeline)
             render_pass.set_bind_group(0, self.bind_group, [], 0, 999999)
             render_pass.set_vertex_buffer(0, self.vertex_buffer)
-            render_pass.draw(self.num_points)
+            render_pass.draw(4, self.num_points)
             render_pass.end()
             self.device.queue.submit([command_encoder.finish()])
             self._update_colour_buffer()
@@ -254,6 +262,7 @@ class WebGPUScene(WebGPUWidget):
         projection_matrix = (self.project @ model).to_numpy().astype(np.float32)
 
         self.uniform_data["projection_matrix"] = projection_matrix.flatten()
+        self.uniform_data["size"] = self.point_size
         self.device.queue.write_buffer(
             buffer=self.uniform_buffer,
             buffer_offset=0,
