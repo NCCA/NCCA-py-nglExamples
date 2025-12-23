@@ -5,8 +5,9 @@ import sys
 import numpy as np
 import wgpu
 import wgpu.utils
-from ncca.ngl import Mat4, Vec3, look_at, ortho
-from PySide6.QtCore import Qt
+from ncca.ngl import Mat4, PerspMode, Vec3, look_at, ortho
+from PySide6.QtCore import QElapsedTimer, Qt, QTimerEvent
+from PySide6.QtGui import QKeyEvent, QMouseEvent, QSurfaceFormat, QWheelEvent
 from PySide6.QtWidgets import QApplication
 from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
@@ -25,41 +26,73 @@ class WebGPUScene(WebGPUWidget):
 
     def __init__(self, num_points=10000):
         super().__init__()
+        self.window_width: int = 1024  # Window width
+        self.window_height: int = 720  # Window height
         self.setWindowTitle("WebGPU 2D Pan and Zoom")
         self.device = None
         self.pipeline = None
-        self.vertex_buffer = None
+        self.position_buffer = None
+        self.colour_buffer = None
         self.num_points = num_points
         self.msaa_sample_count = 4
-        self.project: Mat4 = ortho(
-            -SIM_WIDTH / 2, SIM_WIDTH / 2, -SIM_HEIGHT / 2, SIM_HEIGHT / 2, 0, 100
-        )
         self.ratio = self.devicePixelRatio()
         self.animate = True
-        self.project = Mat4()
         self.pan_x = 0.0
         self.pan_y = 0.0
         self.zoom = 1.0
         self.is_panning = False
         self.last_mouse_pos = None
-        self.point_size = 0.5
+        self.point_size = 1.5
+        self.wind = np.array([0.0, 0.0], dtype=np.float32)
+        self.timer = QElapsedTimer()
+        self.dt = 0.0
+        #  pan (world-space center) so we can zoom around mouse and pan the view.
+        self.pan = np.array([0.0, 0.0], dtype=np.float32)
+        # Track last mouse position (QPointF) for right-drag panning.
+        self._last_mouse_pos = None
 
-        self.gen_points()
+        self.gen_points(self.num_points)
         self._initialize_web_gpu()
         self.update()
 
-    def gen_points(self):
-        self.points = np.zeros((self.num_points, 7), dtype=np.float32)
+    def gen_points(self, num_points: int) -> None:
+        """
+        Generates random 2D points with associated positions, directions, and colours.
 
-        self.points[:, 0] = np.random.uniform(
-            -SIM_WIDTH / 2, SIM_WIDTH / 2, self.num_points
-        )  # x
-        self.points[:, 1] = np.random.uniform(
-            -SIM_HEIGHT / 2, SIM_HEIGHT / 2, self.num_points
-        )  # y
-        self.points[:, 2:5] = np.random.uniform(0.2, 1.0, (self.num_points, 3))  # color
-        self.points[:, 5] = np.random.uniform(-1, 1, self.num_points)  # vx
-        self.points[:, 6] = np.random.uniform(-1, 1, self.num_points)  # vy
+        This function initializes three numpy arrays:
+        - self.positions: A 2D array storing the (x, y) coordinates of each point.
+        - self.directions: A 2D array storing the (dx, dy) velocity vector for each point.
+        - self.colours: A 2D array storing the (r, g, b) colour of each point.
+
+        Args:
+            num_points: The number of points to generate.
+
+        """
+        # generate positions in 2D space the size of the simulation with 0,0 the center
+        self.positions = np.zeros((num_points, 2), dtype=np.float32)
+        self.positions[:, 0] = np.random.uniform(
+            -SIM_WIDTH / 2, SIM_WIDTH / 2, num_points
+        )
+        self.positions[:, 1] = np.random.uniform(
+            -SIM_HEIGHT / 2, SIM_HEIGHT / 2, num_points
+        )
+
+        # generate directions in 2D space with random velocities
+        self.directions = np.zeros((num_points, 2), dtype=np.float32)
+        self.directions[:, 0] = np.random.uniform(-1, 1, num_points)
+        self.directions[:, 1] = np.random.uniform(-1, 1, num_points)
+
+        # Normalize directions to unit length, so they only represent direction
+        self.directions /= np.linalg.norm(self.directions, axis=1, keepdims=True)
+
+        min_speed = 0.5
+        max_speed = 2.0
+        # Create a (num_points, 1) array of random speeds
+        speeds = np.random.uniform(min_speed, max_speed, (num_points, 1))
+        # Multiply the unit direction vectors by the speeds to get final velocity vectors
+        self.directions *= speeds
+
+        self.colours = np.random.random((num_points, 3)).astype(np.float32)
 
     def _initialize_web_gpu(self) -> None:
         """
@@ -73,19 +106,26 @@ class WebGPUScene(WebGPUWidget):
             self._init_buffers()
             self._create_render_buffer()
             self._create_render_pipeline()
-            self.startTimer(10)
+            self.startTimer(16)
+            self.timer.start()
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
 
     def _init_buffers(self):
-        vertex_data = np.zeros((self.num_points, 6), dtype=np.float32)
-        vertex_data[:, 0:2] = self.points[:, 0:2]
-        vertex_data[:, 2] = 0.0
-        vertex_data[:, 3:6] = self.points[:, 2:5]
-
-        self.vertex_buffer = self.device.create_buffer_with_data(
-            data=vertex_data.tobytes(),
+        # Create a buffer for the positions.
+        self.position_buffer = self.device.create_buffer_with_data(
+            data=self.positions.tobytes(),
             usage=wgpu.BufferUsage.VERTEX | wgpu.BufferUsage.COPY_DST,
+        )
+        # # Create a copy buffer to update the vertex buffer
+        self.position_buffer.copy_buffer = self.device.create_buffer(
+            size=self.positions.nbytes,
+            usage=wgpu.BufferUsage.MAP_WRITE | wgpu.BufferUsage.COPY_SRC,
+        )
+        # Create a buffer for the colours.
+        self.colour_buffer = self.device.create_buffer_with_data(
+            data=self.colours.tobytes(),
+            usage=wgpu.BufferUsage.VERTEX,
         )
 
     def _create_render_buffer(self):
@@ -140,13 +180,19 @@ class WebGPUScene(WebGPUWidget):
                 "entry_point": "vertex_main",
                 "buffers": [
                     {
-                        "array_stride": 6 * 4,
+                        "array_stride": 2 * 4,  # vec3 position
                         "step_mode": "instance",
                         "attributes": [
-                            {"format": "float32x3", "offset": 0, "shader_location": 0},
-                            {"format": "float32x3", "offset": 12, "shader_location": 1},
+                            {"format": "float32x2", "offset": 0, "shader_location": 0},
                         ],
-                    }
+                    },
+                    {
+                        "array_stride": 3 * 4,  # vec3 colour
+                        "step_mode": "instance",
+                        "attributes": [
+                            {"format": "float32x3", "offset": 0, "shader_location": 1},
+                        ],
+                    },
                 ],
             },
             fragment={
@@ -169,7 +215,7 @@ class WebGPUScene(WebGPUWidget):
         self.uniform_data = np.zeros(
             (),
             dtype=[
-                ("projection_matrix", "float32", (16,)),
+                ("projection_matrix", "float32", (4, 4)),
                 ("size", "float32"),
                 ("padding", np.uint32, 3),  # 3 * 4 = 12 bytes padding
             ],
@@ -202,8 +248,9 @@ class WebGPUScene(WebGPUWidget):
             width: The new width of the window.
             height: The new height of the window.
         """
-        aspect = width / height if height > 0 else 1
-        self.project = ortho(-10 * aspect, 10 * aspect, -10, 10, -100.0, 100.0)
+        self.window_width = int(width * self.ratio)
+        self.window_height = int(height * self.ratio)
+
         self.update()
 
     def paintWebGPU(self) -> None:
@@ -214,7 +261,7 @@ class WebGPUScene(WebGPUWidget):
         """
         self.render_text(
             10,
-            20,
+            25,
             f"WebGPU 2D Pan and Zoom :- {self.num_points}",
             size=20,
             colour=Qt.yellow,
@@ -244,7 +291,8 @@ class WebGPUScene(WebGPUWidget):
             )
             render_pass.set_pipeline(self.pipeline)
             render_pass.set_bind_group(0, self.bind_group, [], 0, 999999)
-            render_pass.set_vertex_buffer(0, self.vertex_buffer)
+            render_pass.set_vertex_buffer(0, self.position_buffer)
+            render_pass.set_vertex_buffer(1, self.colour_buffer)
             render_pass.draw(4, self.num_points)
             render_pass.end()
             self.device.queue.submit([command_encoder.finish()])
@@ -256,59 +304,186 @@ class WebGPUScene(WebGPUWidget):
         """
         update the uniform buffers for the line pipeline.
         """
-        model = Mat4.translate(self.pan_x, self.pan_y, 0) @ Mat4.scale(
-            self.zoom, self.zoom, 1.0
+        # Use pan when creating the orthographic projection so we can translate the view.
+        half_w = SIM_WIDTH / 2 * self.zoom
+        half_h = SIM_HEIGHT / 2 * self.zoom
+        proj = ortho(
+            self.pan[0] - half_w,
+            self.pan[0] + half_w,
+            self.pan[1] - half_h,
+            self.pan[1] + half_h,
+            0,
+            1,
+            PerspMode.WebGPU,
         )
-        projection_matrix = (self.project @ model).to_numpy().astype(np.float32)
 
-        self.uniform_data["projection_matrix"] = projection_matrix.flatten()
+        self.uniform_data["projection_matrix"] = proj.to_numpy()
         self.uniform_data["size"] = self.point_size
         self.device.queue.write_buffer(
             buffer=self.uniform_buffer,
             buffer_offset=0,
             data=self.uniform_data.tobytes(),
         )
+        self.device.queue.write_buffer(
+            buffer=self.position_buffer,
+            buffer_offset=0,
+            data=self.positions.tobytes(),
+        )
 
-    def keyPressEvent(self, event) -> None:
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        """
+        Handles keyboard press events.
+
+        Args:
+            event: The QKeyEvent object containing information about the key press.
+        """
         key = event.key()
         if key == Qt.Key_Escape:
-            self.close()
-        elif key in (Qt.Key_S, Qt.Key_Space):
+            self.close()  # Exit the application
+        elif key == Qt.Key_A:
             self.animate = not self.animate
-        elif key == Qt.Key_R:
-            self.pan_x = 0.0
-            self.pan_y = 0.0
-            self.zoom = 0.5
-        elif key == Qt.Key_B:
-            self.animate = not self.animate
+        elif key == Qt.Key_Space:
+            self.wind[0] = 0
+            self.wind[1] = 0
+            self.zoom = 1.0
+            # Reset pan as well when space is pressed
+            self.pan[:] = 0.0
+        elif key == Qt.Key_Up:
+            self.wind[1] += 0.1
+        elif key == Qt.Key_Down:
+            self.wind[1] -= 0.1
+        elif key == Qt.Key_Left:
+            self.wind[0] -= 0.1
+        elif key == Qt.Key_Right:
+            self.wind[0] += 0.1
+        # Trigger a redraw to apply changes
+        self.update()
+        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.is_panning = True
-            self.last_mouse_pos = event.position()
-        super().mousePressEvent(event)
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        """
+        Handles mouse movement events for camera control.
 
-    def mouseMoveEvent(self, event):
-        if event.buttons() & Qt.MouseButton.LeftButton:
-            if self.is_panning:
-                delta = event.position() - self.last_mouse_pos
-                self.pan_x += delta.x() / (self.width() / 20 * self.zoom)
-                self.pan_y -= delta.y() / (self.height() / 20 * self.zoom)
-                self.last_mouse_pos = event.position()
+        Args:
+            event: The QMouseEvent object containing the new mouse position.
+        """
+        # Rotate the scene if the left mouse button is pressed
+        if event.buttons() == Qt.LeftButton:
+            self.update()
+        # Translate (pan) the scene if the right mouse button is pressed
+        elif event.buttons() == Qt.RightButton:
+            # perform panning: compute pixel delta and convert to world delta
+            if self._last_mouse_pos is not None:
+                cur = event.position()
+                # pixel delta (consider device pixel ratio)
+                dx = (cur.x() - self._last_mouse_pos.x()) * self.ratio
+                dy = (cur.y() - self._last_mouse_pos.y()) * self.ratio
+
+                view_w = SIM_WIDTH * self.zoom
+                view_h = SIM_HEIGHT * self.zoom
+
+                # convert pixel delta to world units: moving mouse right should pan view left (so subtract)
+                self.pan[0] -= dx / max(1, self.window_width) * view_w
+                # for y: pixel y increases downwards; moving mouse down should pan view up, so add
+                self.pan[1] += dy / max(1, self.window_height) * view_h
+
+                self._last_mouse_pos = cur
                 self.update()
-        else:
-            self.is_panning = False
-        super().mouseMoveEvent(event)
 
-    def wheelEvent(self, event):
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        """
+        Handles mouse button press events to initiate rotation or translation.
+
+        Args:
+            event: The QMouseEvent object.
+        """
+        # store the mouse position for drag operations
+        try:
+            self._last_mouse_pos = event.position()
+        except Exception:
+            # fallback in case old PySide6 returns different type
+            self._last_mouse_pos = event.pos()
+        # Left button initiates rotation
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        """
+        Handles mouse wheel events for zooming.
+
+        Zoom is performed around the mouse cursor position. The algorithm:
+        1. Convert the mouse pixel position to world coordinates with the current zoom/pan.
+        2. Update the zoom factor.
+        3. Convert the same pixel position to world coordinates with the new zoom.
+        4. Adjust pan by the difference so the same world point remains under the cursor.
+        """
+        # angleDelta().y() is the vertical wheel movement (positive means up / zoom in).
         delta = event.angleDelta().y()
-        if delta > 0:
-            self.zoom *= 1.1
-        elif delta < 0:
-            self.zoom *= 0.9
+
+        # read mouse position in widget coordinates
+        try:
+            pos = event.position()
+            mouse_x = pos.x()
+            mouse_y = pos.y()
+        except Exception:
+            p = event.pos()
+            mouse_x = p.x()
+            mouse_y = p.y()
+
+        # convert to framebuffer pixels using device pixel ratio
+        pixel_x = mouse_x * self.ratio
+        pixel_y = mouse_y * self.ratio
+
+        # current view extents
+        half_w = SIM_WIDTH / 2 * self.zoom
+        half_h = SIM_HEIGHT / 2 * self.zoom
+        left = self.pan[0] - half_w
+        right = self.pan[0] + half_w
+        bottom = self.pan[1] - half_h
+        top = self.pan[1] + half_h
+
+        # map pixel to world (pixel origin is top-left)
+        world_x_before = left + (pixel_x / max(1, self.window_width)) * (right - left)
+        # pixel y=0 -> world = top, pixel y increases downward, so subtract fraction from top
+        world_y_before = top - (pixel_y / max(1, self.window_height)) * (top - bottom)
+
+        # update zoom factor: use a sensible scaling from wheel delta
+        # Typical angleDelta is 120 per notch; scale such that small increments are smooth
+        scale_factor = 1.0 + (delta / 1200.0)  # tweakable
+        new_zoom = (
+            self.zoom / scale_factor
+        )  # dividing so wheel up (positive delta) zooms in
+
+        # clamp
+        new_zoom = max(0.05, min(10.0, new_zoom))
+
+        # compute new view extents with new zoom
+        new_half_w = SIM_WIDTH / 2 * new_zoom
+        new_half_h = SIM_HEIGHT / 2 * new_zoom
+        new_left = self.pan[0] - new_half_w
+        new_right = self.pan[0] + new_half_w
+        new_bottom = self.pan[1] - new_half_h
+        new_top = self.pan[1] + new_half_h
+
+        # compute world coordinate at the same pixel after zoom (but before adjusting pan)
+        world_x_after = new_left + (pixel_x / max(1, self.window_width)) * (
+            new_right - new_left
+        )
+        world_y_after = new_top - (pixel_y / max(1, self.window_height)) * (
+            new_top - new_bottom
+        )
+
+        # adjust pan so that the world point under the cursor remains the same
+        # new_pan = pan + (world_before - world_after)
+        shift = np.array(
+            [world_x_before - world_x_after, world_y_before - world_y_after],
+            dtype=np.float32,
+        )
+        self.pan += shift
+
+        # finally set the zoom
+        self.zoom = new_zoom
+
         self.update()
-        super().wheelEvent(event)
 
     def initialize_buffer(self) -> None:
         """
@@ -320,31 +495,51 @@ class WebGPUScene(WebGPUWidget):
         height = int(self.height() * self.ratio)
         self.frame_buffer = np.zeros([height, width, 4], dtype=np.uint8)
 
-    def timerEvent(self, event) -> None:
-        if self.animate:
-            # Update velocities
-            self.points[:, 0] += self.points[:, 5]  # x += vx
-            self.points[:, 1] += self.points[:, 6]  # y += vy
+    def timerEvent(self, event: QTimerEvent) -> None:
+        """
+        This event is called at a regular interval (set by startTimer).
+        It's used to update the animation of the scene.
 
-            # Bounce off walls
-            self.points[:, 5] = np.where(
-                (self.points[:, 0] < -SIM_WIDTH / 2)
-                | (self.points[:, 0] > SIM_WIDTH / 2),
-                -self.points[:, 5],
-                self.points[:, 5],
-            )
-            self.points[:, 6] = np.where(
-                (self.points[:, 1] < -SIM_HEIGHT / 2)
-                | (self.points[:, 1] > SIM_HEIGHT / 2),
-                -self.points[:, 6],
-                self.points[:, 6],
-            )
-            vertex_data = np.zeros((self.num_points, 6), dtype=np.float32)
-            vertex_data[:, 0:2] = self.points[:, 0:2]
-            vertex_data[:, 3:6] = self.points[:, 2:5]
+        Here, it updates the positions of the points and makes them bounce
+        off the edges of the simulation area.
 
-            self.device.queue.write_buffer(self.vertex_buffer, 0, vertex_data.tobytes())
+        Args:
+            event: The QTimerEvent object, not used in this method but required by the API.
 
+
+        """
+        if not self.animate:
+            return
+        # Add the wind factor to the particle's own direction to get the final velocity
+        velocities = self.directions + self.wind
+        # Update positions using the final velocity
+        self.positions += velocities
+
+        # Define the boundaries of the simulation area
+        x_min = -SIM_WIDTH / 2
+        x_max = SIM_WIDTH / 2
+        y_min = -SIM_HEIGHT / 2
+        y_max = SIM_HEIGHT / 2
+
+        # Create boolean masks to find points that are out of bounds
+        hit_left = self.positions[:, 0] < x_min
+        hit_right = self.positions[:, 0] > x_max
+        hit_bottom = self.positions[:, 1] < y_min
+        hit_top = self.positions[:, 1] > y_max
+
+        # Reflect the particle's intrinsic direction for points that have hit a wall.
+        self.directions[hit_left | hit_right, 0] *= -1
+        self.directions[hit_bottom | hit_top, 1] *= -1
+
+        # Clamp positions to the boundaries to prevent particles from getting stuck.
+        # If a particle hit the left wall, its x position is set to the left boundary.
+        self.positions[hit_left, 0] = x_min
+        # If a particle hit the right wall, its x position is set to the right boundary.
+        self.positions[hit_right, 0] = x_max
+        # If a particle hit the bottom wall, its y position is set to the bottom boundary.
+        self.positions[hit_bottom, 1] = y_min
+        # If a particle hit the top wall, its y position is set to the top boundary.
+        self.positions[hit_top, 1] = y_max
         self.update()
 
 
@@ -358,7 +553,7 @@ def main():
         "-p",
         "--points",
         type=int,
-        default=10000,
+        default=1000,
         help="The number of points to generate.",
     )
     args = parser.parse_args()

@@ -6,7 +6,7 @@ struct Uniforms
 };
 
 struct VertexIn {
-    @location(0) position: vec3<f32>,
+    @location(0) position: vec2<f32>,
     @location(1) colour: vec3<f32>,
 };
 
@@ -28,7 +28,7 @@ fn vertex_main(input: VertexIn, @builtin(vertex_index) vertex_index: u32) -> Ver
     );
 
     let offset = quad_offsets[vertex_index];
-    let pos = vec4<f32>(input.position.xy + offset * uniforms.size, input.position.z, 1.0);
+    let pos = vec4<f32>(input.position.xy + offset * uniforms.size, 0.0, 1.0);
 
     output.position = uniforms.projection_matrix * pos;
     output.fragColour = input.colour;

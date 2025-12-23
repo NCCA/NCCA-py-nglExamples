@@ -56,7 +56,7 @@ class MainWindow(QOpenGLWindow):
         self.wind = np.array([0.0, 0.0], dtype=np.float32)
         self.zoom = 1.0
 
-        # New: pan (world-space center) so we can zoom around mouse and pan the view.
+        #  pan (world-space center) so we can zoom around mouse and pan the view.
         self.pan = np.array([0.0, 0.0], dtype=np.float32)
         # Track last mouse position (QPointF) for right-drag panning.
         self._last_mouse_pos = None
