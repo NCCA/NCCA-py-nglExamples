@@ -55,7 +55,7 @@ class MainWindow(QOpenGLWindow):
         self.setTitle("2d Points")
         self.wind = np.array([0.0, 0.0], dtype=np.float32)
         self.zoom = 1.0
-
+        self.animate = True
         #  pan (world-space center) so we can zoom around mouse and pan the view.
         self.pan = np.array([0.0, 0.0], dtype=np.float32)
         # Track last mouse position (QPointF) for right-drag panning.
@@ -189,6 +189,8 @@ class MainWindow(QOpenGLWindow):
 
 
         """
+        if not self.animate:
+            return
         # Add the wind factor to the particle's own direction to get the final velocity
         velocities = self.directions + self.wind
         # Update positions using the final velocity
@@ -246,19 +248,21 @@ class MainWindow(QOpenGLWindow):
         key = event.key()
         if key == Qt.Key_Escape:
             self.close()  # Exit the application
-        if key == Qt.Key_Space:
+        elif key == Qt.Key_A:
+            self.animate = not self.animate
+        elif key == Qt.Key_Space:
             self.wind[0] = 0
             self.wind[1] = 0
             self.zoom = 1.0
             # Reset pan as well when space is pressed
             self.pan[:] = 0.0
-        if key == Qt.Key_Up:
+        elif key == Qt.Key_Up:
             self.wind[1] += 0.1
-        if key == Qt.Key_Down:
+        elif key == Qt.Key_Down:
             self.wind[1] -= 0.1
-        if key == Qt.Key_Left:
+        elif key == Qt.Key_Left:
             self.wind[0] -= 0.1
-        if key == Qt.Key_Right:
+        elif key == Qt.Key_Right:
             self.wind[0] += 0.1
         # Trigger a redraw to apply changes
         self.update()

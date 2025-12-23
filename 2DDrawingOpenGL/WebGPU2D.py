@@ -42,7 +42,7 @@ class WebGPUScene(WebGPUWidget):
         self.zoom = 1.0
         self.is_panning = False
         self.last_mouse_pos = None
-        self.point_size = 1.5
+        self.point_size = 0.6
         self.wind = np.array([0.0, 0.0], dtype=np.float32)
         self.timer = QElapsedTimer()
         self.dt = 0.0
@@ -262,7 +262,7 @@ class WebGPUScene(WebGPUWidget):
         self.render_text(
             10,
             25,
-            f"WebGPU 2D Pan and Zoom :- {self.num_points}",
+            f"Wind Value use Arrow Keys to Change, Space Reset [{self.wind[0]:.02f}, {self.wind[1]:.02f}]",
             size=20,
             colour=Qt.yellow,
         )
@@ -275,7 +275,7 @@ class WebGPUScene(WebGPUWidget):
                         "resolve_target": self.colour_buffer_texture_view,
                         "load_op": wgpu.LoadOp.clear,
                         "store_op": wgpu.StoreOp.store,
-                        "clear_value": (0.3, 0.3, 0.3, 1.0),
+                        "clear_value": (0.4, 0.4, 0.4, 1.0),
                     }
                 ],
                 depth_stencil_attachment={
@@ -559,7 +559,7 @@ def main():
     args = parser.parse_args()
     app = QApplication(sys.argv)
     win = WebGPUScene(num_points=args.points)
-    win.resize(800, 600)
+    win.resize(1024, 720)
     win.show()
     sys.exit(app.exec())
 
