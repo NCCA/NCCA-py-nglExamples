@@ -4,7 +4,8 @@ import sys
 
 import numpy as np
 import wgpu
-from ncca.ngl import PerspMode, ortho
+from ncca.ngl import PerspMode, Vec2, ortho
+from point_pipeline import PointPipeline
 from PySide6.QtCore import QElapsedTimer, Qt, QTimerEvent
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
@@ -14,7 +15,7 @@ from wgpu.utils import get_default_device
 SIM_WIDTH = 500
 SIM_HEIGHT = 500
 GRID_CELL_SIZE = 50.0  # Size of each grid cell
-PARTICLE_RADIUS = 0.6  # Collision radius for particles
+PARTICLE_RADIUS = 0.9  # Collision radius for particles
 
 
 class WebGPUScene(WebGPUWidget):
@@ -31,7 +32,6 @@ class WebGPUScene(WebGPUWidget):
         self.window_height: int = 720  # Window height
         self.setWindowTitle("WebGPU 2D Pan and Zoom with Collisions")
         self.device = None
-        self.pipeline = None
         self.compute_pipeline = None
         self.line_pipeline = None
         self.grid_buffer = None
@@ -145,8 +145,8 @@ class WebGPUScene(WebGPUWidget):
             self.device = get_default_device()
             self._init_buffers()
             self._create_compute_pipeline()
-            self._create_render_buffer()
-            self._create_render_pipeline()
+            self.point_pipeline = PointPipeline(self.device, Vec2, stride=16)
+
             self._create_line_render_pipeline()
             self.startTimer(16)
             self.timer.start()
@@ -158,6 +158,22 @@ class WebGPUScene(WebGPUWidget):
         """
         Create a render pipeline for drawing lines.
         """
+        # Create a uniform buffer
+        self.uniform_data = np.zeros(
+            (),
+            dtype=[
+                ("projection_matrix", "float32", (4, 4)),
+                ("size", "float32"),
+                ("padding", np.uint32, 3),  # 3 * 4 = 12 bytes padding
+            ],
+        )
+
+        self.uniform_buffer = self.device.create_buffer_with_data(
+            data=self.uniform_data.tobytes(),
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+            label="line_pipeline_uniform_buffer",
+        )
+
         with open("LineShader.wgsl", "r") as f:
             shader_code = f.read()
             shader_module = self.device.create_shader_module(code=shader_code)
@@ -216,9 +232,13 @@ class WebGPUScene(WebGPUWidget):
             usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.VERTEX,
         )
 
+        # Pad colours for 16-byte alignment
+        padded_colours = np.zeros((self.num_points, 4), dtype=np.float32)
+        padded_colours[:, :3] = self.colours
+
         # Create a buffer for the colours
         self.colour_buffer = self.device.create_buffer_with_data(
-            data=self.colours.tobytes(),
+            data=padded_colours.tobytes(),
             usage=wgpu.BufferUsage.VERTEX,
         )
 
@@ -425,122 +445,6 @@ class WebGPUScene(WebGPUWidget):
             ],
         )
 
-    def _create_render_buffer(self):
-        # This is the texture that the multisampled texture will be resolved to
-        colour_buffer_texture = self.device.create_texture(
-            size=self.texture_size,
-            sample_count=1,
-            format=wgpu.TextureFormat.rgba8unorm,
-            usage=wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.COPY_SRC,
-        )
-        self.colour_buffer_texture = colour_buffer_texture
-        self.colour_buffer_texture_view = self.colour_buffer_texture.create_view()
-
-        # This is the multisampled texture that will be rendered to
-        self.multisample_texture = self.device.create_texture(
-            size=self.texture_size,
-            sample_count=self.msaa_sample_count,
-            format=wgpu.TextureFormat.rgba8unorm,
-            usage=wgpu.TextureUsage.RENDER_ATTACHMENT,
-        )
-        self.multisample_texture_view = self.multisample_texture.create_view()
-
-        # Now create a depth buffer
-        depth_texture = self.device.create_texture(
-            size=self.texture_size,
-            format=wgpu.TextureFormat.depth24plus,
-            usage=wgpu.TextureUsage.RENDER_ATTACHMENT,
-            sample_count=self.msaa_sample_count,
-        )
-        self.depth_buffer_view = depth_texture.create_view()
-
-        # Calculate aligned buffer size for texture copy
-        buffer_size = self._calculate_aligned_buffer_size()
-        self.readback_buffer = self.device.create_buffer(
-            size=buffer_size,
-            usage=wgpu.BufferUsage.COPY_DST | wgpu.BufferUsage.MAP_READ,
-        )
-
-    def _create_render_pipeline(self) -> None:
-        """
-        Create a render pipeline.
-        """
-        with open("PointShader.wgsl", "r") as f:
-            shader_code = f.read()
-            shader_module = self.device.create_shader_module(code=shader_code)
-
-        self.pipeline = self.device.create_render_pipeline(
-            label="particle_pipeline",
-            layout="auto",
-            vertex={
-                "module": shader_module,
-                "entry_point": "vertex_main",
-                "buffers": [
-                    {
-                        "array_stride": 4
-                        * 4,  # Full particle: vec2 pos + vec2 vel = 16 bytes
-                        "step_mode": "instance",
-                        "attributes": [
-                            {
-                                "format": "float32x2",
-                                "offset": 0,
-                                "shader_location": 0,
-                            },  # Only read pos
-                        ],
-                    },
-                    {
-                        "array_stride": 3 * 4,  # vec3 colour
-                        "step_mode": "instance",
-                        "attributes": [
-                            {"format": "float32x3", "offset": 0, "shader_location": 1},
-                        ],
-                    },
-                ],
-            },
-            fragment={
-                "module": shader_module,
-                "entry_point": "fragment_main",
-                "targets": [{"format": wgpu.TextureFormat.rgba8unorm}],
-            },
-            primitive={"topology": wgpu.PrimitiveTopology.triangle_strip},
-            depth_stencil={
-                "format": wgpu.TextureFormat.depth24plus,
-                "depth_write_enabled": True,
-                "depth_compare": wgpu.CompareFunction.less,
-            },
-            multisample={
-                "count": self.msaa_sample_count,
-            },
-        )
-
-        # Create a uniform buffer
-        self.uniform_data = np.zeros(
-            (),
-            dtype=[
-                ("projection_matrix", "float32", (4, 4)),
-                ("size", "float32"),
-                ("padding", np.uint32, 3),  # 3 * 4 = 12 bytes padding
-            ],
-        )
-
-        self.uniform_buffer = self.device.create_buffer_with_data(
-            data=self.uniform_data.tobytes(),
-            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
-            label="line_pipeline_uniform_buffer",
-        )
-
-        bind_group_layout = self.pipeline.get_bind_group_layout(0)
-        # Create the bind group
-        self.bind_group = self.device.create_bind_group(
-            layout=bind_group_layout,
-            entries=[
-                {
-                    "binding": 0,  # Matches @binding(0) in the shader
-                    "resource": {"buffer": self.uniform_buffer},
-                }
-            ],
-        )
-
     def resizeWebGPU(self, width, height) -> None:
         """
         Called whenever the window is resized.
@@ -646,11 +550,9 @@ class WebGPUScene(WebGPUWidget):
             render_pass.set_viewport(
                 0, 0, self.texture_size[0], self.texture_size[1], 0, 1
             )
-            render_pass.set_pipeline(self.pipeline)
-            render_pass.set_bind_group(0, self.bind_group, [], 0, 999999)
-            render_pass.set_vertex_buffer(0, self.particle_buffer)
-            render_pass.set_vertex_buffer(1, self.colour_buffer)
-            render_pass.draw(4, self.num_points)
+            self.point_pipeline.set_data(self.particle_buffer, self.colour_buffer)
+            self.point_pipeline.render(render_pass, self.num_points)
+
             if self.show_grid:
                 # Draw the grid
                 render_pass.set_pipeline(self.line_pipeline)
@@ -693,14 +595,7 @@ class WebGPUScene(WebGPUWidget):
             1,
             PerspMode.WebGPU,
         )
-
-        self.uniform_data["projection_matrix"] = proj.to_numpy()
-        self.uniform_data["size"] = self.point_size
-        self.device.queue.write_buffer(
-            buffer=self.uniform_buffer,
-            buffer_offset=0,
-            data=self.uniform_data.tobytes(),
-        )
+        self.point_pipeline.update_uniforms(proj.to_numpy(), self.point_size)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         """

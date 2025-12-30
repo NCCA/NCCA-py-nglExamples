@@ -183,6 +183,89 @@ fn detect_collisions(@builtin(global_invocation_id) global_id: vec3<u32>) {
     particles[index] = p;
 }
 
+
+
+fn wrap_boundaries(p_pos: vec2<f32>, half_width: f32, half_height: f32) -> vec2<f32> {
+    var pos = p_pos;
+
+    // Wrap X
+    if (pos.x < -half_width) {
+        pos.x += params.width;
+    } else if (pos.x > half_width) {
+        pos.x -= params.width;
+    }
+
+    // Wrap Y
+    if (pos.y < -half_height) {
+        pos.y += params.height;
+    } else if (pos.y > half_height) {
+        pos.y -= params.height;
+    }
+
+    return pos;
+}
+
+
+fn bounce_boundaries_damped(p_pos: vec2<f32>, p_vel: ptr<function, vec2<f32>>,
+                             half_width: f32, half_height: f32) -> vec2<f32> {
+    var pos = p_pos;
+    let damping = 0.8; // Lose 20% velocity on bounce
+
+    // Bounce X with damping
+    if (pos.x < -half_width) {
+        pos.x = -half_width;
+        (*p_vel).x = -(*p_vel).x * damping;
+    } else if (pos.x > half_width) {
+        pos.x = half_width;
+        (*p_vel).x = -(*p_vel).x * damping;
+    }
+
+    // Bounce Y with damping
+    if (pos.y < -half_height) {
+        pos.y = -half_height;
+        (*p_vel).y = -(*p_vel).y * damping;
+    } else if (pos.y > half_height) {
+        pos.y = half_height;
+        (*p_vel).y = -(*p_vel).y * damping;
+    }
+
+    return pos;
+}
+
+fn bounce_boundaries_offset(p_pos: vec2<f32>, p_vel: ptr<function, vec2<f32>>,
+                            half_width: f32, half_height: f32, index: u32) -> vec2<f32> {
+    var pos = p_pos;
+    let damping = 0.9;
+    // Use index for pseudo-random offset to prevent exact overlaps
+    let offset = 0.01 + f32(index % 100) * 0.0001;
+
+    // Bounce X
+    if (pos.x < -half_width) {
+        pos.x = -half_width + offset;
+        (*p_vel).x = -(*p_vel).x * damping;
+    } else if (pos.x > half_width) {
+        pos.x = half_width - offset;
+        (*p_vel).x = -(*p_vel).x * damping;
+    }
+
+    // Bounce Y
+    if (pos.y < -half_height) {
+        pos.y = -half_height + offset;
+        (*p_vel).y = -(*p_vel).y * damping;
+    } else if (pos.y > half_height) {
+        pos.y = half_height - offset;
+        (*p_vel).y = -(*p_vel).y * damping;
+    }
+
+    return pos;
+}
+
+fn apply_drag(vel: vec2<f32>) -> vec2<f32> {
+    let drag = 0.995; // 0.5% velocity loss per frame
+    return vel * drag;
+}
+
+
 // Phase 6: Update physics (movement and boundary collision)
 @compute @workgroup_size(64)
 fn update_physics(@builtin(global_invocation_id) global_id: vec3<u32>) {
@@ -191,6 +274,9 @@ fn update_physics(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
 
+    let half_width = params.width / 2.0;
+    let half_height = params.height / 2.0;
+
     var p = particles[index];
 
     // Apply wind and update position
@@ -198,25 +284,29 @@ fn update_physics(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let effective_velocity = p.vel + wind;
     p.pos += effective_velocity * params.dt;
 
-    // Boundary collision detection
-    let half_width = params.width / 2.0;
-    let half_height = params.height / 2.0;
 
-    if (p.pos.x < -half_width) {
-        p.pos.x = -half_width;
-        p.vel.x = -p.vel.x;
-    } else if (p.pos.x > half_width) {
-        p.pos.x = half_width;
-        p.vel.x = -p.vel.x;
-    }
+    //p.pos = bounce_boundaries_offset(p.pos, &p.vel, half_width, half_height, index);
+    //p.pos = bounce_boundaries_damped(p.pos, &p.vel, half_width, half_height);
+    p.pos = wrap_boundaries(p.pos, half_width, half_height);
 
-    if (p.pos.y < -half_height) {
-        p.pos.y = -half_height;
-        p.vel.y = -p.vel.y;
-    } else if (p.pos.y > half_height) {
-        p.pos.y = half_height;
-        p.vel.y = -p.vel.y;
-    }
+    // if (p.pos.x < -half_width) {
+    //         p.pos.x = -half_width;
+    //         p.vel.x = -p.vel.x;
+    //     } else if (p.pos.x > half_width) {
+    //         p.pos.x = half_width;
+    //         p.vel.x = -p.vel.x;
+    //     }
+
+    //     if (p.pos.y < -half_height) {
+    //         p.pos.y = -half_height;
+    //         p.vel.y = -p.vel.y;
+    //     } else if (p.pos.y > half_height) {
+    //         p.pos.y = half_height;
+    //         p.vel.y = -p.vel.y;
+    //     }
+
+    //     // Apply drag to prevent infinite bouncing
+    //     p.vel = apply_drag(p.vel);
 
     particles[index] = p;
 }
