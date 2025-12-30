@@ -25,7 +25,7 @@ class WebGPUScene(WebGPUWidget):
     painting, and resizing the WebGPU context.
     """
 
-    def __init__(self, num_points=10000):
+    def __init__(self, num_points=10000, distribution: str = "random"):
         super().__init__()
         self.window_width: int = 1024  # Window width
         self.window_height: int = 720  # Window height
@@ -41,7 +41,7 @@ class WebGPUScene(WebGPUWidget):
         self.num_points = num_points
         self.msaa_sample_count = 4
         self.ratio = self.devicePixelRatio()
-        self.animate = True
+        self.animate = False  # True
         self.pan_x = 0.0
         self.pan_y = 0.0
         self.zoom = 1.0
@@ -58,7 +58,7 @@ class WebGPUScene(WebGPUWidget):
         # Track last mouse position (QPointF) for right-drag panning.
         self._last_mouse_pos = None
 
-        self.gen_points(self.num_points)
+        self.gen_points(self.num_points, distribution)
         self._initialize_web_gpu()
         self.update()
 
@@ -79,14 +79,15 @@ class WebGPUScene(WebGPUWidget):
             grid_lines.append([SIM_WIDTH / 2, y])
         self.grid_lines = np.array(grid_lines, dtype=np.float32)
 
-    def gen_points(self, num_points: int) -> None:
+    def gen_points(self, num_points: int, distribution: str = "random") -> None:
         """
-        Generates random 2D points with associated positions, directions, and colours.
+        Generates 2D points with associated positions, directions, and colours.
 
         This function initializes particle data in a structured format suitable for compute shaders.
 
         Args:
             num_points: The number of points to generate.
+            distribution: The distribution of the points ('random' or 'equispaced').
         """
         # Create structured array matching the Particle struct in the compute shader
         self.particle_data = np.zeros(
@@ -97,13 +98,24 @@ class WebGPUScene(WebGPUWidget):
             ],
         )
 
-        # Generate positions in 2D space the size of the simulation with 0,0 the center
-        self.particle_data["pos"][:, 0] = np.random.uniform(
-            -SIM_WIDTH / 2, SIM_WIDTH / 2, num_points
-        )
-        self.particle_data["pos"][:, 1] = np.random.uniform(
-            -SIM_HEIGHT / 2, SIM_HEIGHT / 2, num_points
-        )
+        if distribution == "random":
+            # Generate positions in 2D space the size of the simulation with 0,0 the center
+            self.particle_data["pos"][:, 0] = np.random.uniform(
+                -SIM_WIDTH / 2, SIM_WIDTH / 2, num_points
+            )
+            self.particle_data["pos"][:, 1] = np.random.uniform(
+                -SIM_HEIGHT / 2, SIM_HEIGHT / 2, num_points
+            )
+        elif distribution == "equispaced":
+            # calculate number of points per row/col
+            num_per_side = int(np.ceil(np.sqrt(num_points)))
+            # create a grid of points
+            x = np.linspace(-SIM_WIDTH / 2, SIM_WIDTH / 2, num_per_side)
+            y = np.linspace(-SIM_HEIGHT / 2, SIM_HEIGHT / 2, num_per_side)
+            xv, yv = np.meshgrid(x, y)
+            # flatten and take the first num_points
+            positions = np.stack([xv.flatten(), yv.flatten()], axis=-1)
+            self.particle_data["pos"] = positions[:num_points].astype(np.float32)
 
         # Generate directions in 2D space with random velocities
         # Use angles to ensure uniform distribution and avoid zero-length vectors
@@ -882,9 +894,27 @@ def main():
         default=1000,
         help="The number of points to generate.",
     )
+    dist_group = parser.add_mutually_exclusive_group()
+    dist_group.add_argument(
+        "-r",
+        "--random",
+        action="store_const",
+        dest="distribution",
+        const="random",
+        help="Randomly distribute points (default).",
+    )
+    dist_group.add_argument(
+        "-e",
+        "--equispaced",
+        action="store_const",
+        dest="distribution",
+        const="equispaced",
+        help="Equispaced point distribution.",
+    )
+    parser.set_defaults(distribution="random")
     args = parser.parse_args()
     app = QApplication(sys.argv)
-    win = WebGPUScene(num_points=args.points)
+    win = WebGPUScene(num_points=args.points, distribution=args.distribution)
     win.resize(1024, 720)
     win.show()
     sys.exit(app.exec())
