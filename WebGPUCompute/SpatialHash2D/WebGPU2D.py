@@ -1,11 +1,12 @@
 #!/usr/bin/env -S uv run --active --script
 import argparse
 import sys
+import traceback
 
 import numpy as np
 import wgpu
 from line_pipeline import LinePipeline
-from ncca.ngl import PerspMode, Vec2, ortho
+from ncca.ngl import PerspMode, Vec2, logger, ortho
 from point_pipeline import PointPipeline
 from PySide6.QtCore import QElapsedTimer, Qt, QTimerEvent
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
@@ -15,7 +16,7 @@ from wgpu.utils import get_default_device
 
 SIM_WIDTH = 500
 SIM_HEIGHT = 500
-GRID_CELL_SIZE = 50.0  # Size of each grid cell
+GRID_CELL_SIZE = 15.0  # Size of each grid cell
 PARTICLE_RADIUS = 0.9  # Collision radius for particles
 
 
@@ -49,6 +50,7 @@ class WebGPUScene(WebGPUWidget):
         self.is_panning = False
         self.last_mouse_pos = None
         self.show_grid = True
+        self.show_numbers = True
         self.point_size = 0.6
         self.wind = np.array([0.0, 0.0], dtype=np.float32)
         self.timer = QElapsedTimer()
@@ -159,77 +161,6 @@ class WebGPUScene(WebGPUWidget):
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
 
-    # def _create_line_render_pipeline(self) -> None:
-    #     """
-    #     Create a render pipeline for drawing lines.
-    #     """
-    #     # Create a uniform buffer
-    #     self.uniform_data = np.zeros(
-    #         (),
-    #         dtype=[
-    #             ("projection_matrix", "float32", (4, 4)),
-    #             ("size", "float32"),
-    #             ("padding", np.uint32, 3),  # 3 * 4 = 12 bytes padding
-    #         ],
-    #     )
-
-    #     self.uniform_buffer = self.device.create_buffer_with_data(
-    #         data=self.uniform_data.tobytes(),
-    #         usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
-    #         label="line_pipeline_uniform_buffer",
-    #     )
-
-    #     with open("LineShader.wgsl", "r") as f:
-    #         shader_code = f.read()
-    #         shader_module = self.device.create_shader_module(code=shader_code)
-
-    #     self.line_pipeline = self.device.create_render_pipeline(
-    #         label="line_pipeline",
-    #         layout="auto",
-    #         vertex={
-    #             "module": shader_module,
-    #             "entry_point": "vertex_main",
-    #             "buffers": [
-    #                 {
-    #                     "array_stride": 2 * 4,  # vec2 pos
-    #                     "step_mode": "vertex",
-    #                     "attributes": [
-    #                         {
-    #                             "format": "float32x2",
-    #                             "offset": 0,
-    #                             "shader_location": 0,
-    #                         },
-    #                     ],
-    #                 },
-    #             ],
-    #         },
-    #         fragment={
-    #             "module": shader_module,
-    #             "entry_point": "fragment_main",
-    #             "targets": [{"format": wgpu.TextureFormat.rgba8unorm}],
-    #         },
-    #         primitive={"topology": wgpu.PrimitiveTopology.line_list},
-    #         depth_stencil={
-    #             "format": wgpu.TextureFormat.depth24plus,
-    #             "depth_write_enabled": True,
-    #             "depth_compare": wgpu.CompareFunction.less,
-    #         },
-    #         multisample={
-    #             "count": self.msaa_sample_count,
-    #         },
-    #     )
-    #     bind_group_layout = self.line_pipeline.get_bind_group_layout(0)
-    #     # Create the bind group
-    #     self.line_bind_group = self.device.create_bind_group(
-    #         layout=bind_group_layout,
-    #         entries=[
-    #             {
-    #                 "binding": 0,  # Matches @binding(0) in the shader
-    #                 "resource": {"buffer": self.uniform_buffer},
-    #             }
-    #         ],
-    #     )
-
     def _init_buffers(self):
         # Create a storage buffer for particles (used by compute shader and rendering)
         self.particle_buffer = self.device.create_buffer_with_data(
@@ -257,8 +188,17 @@ class WebGPUScene(WebGPUWidget):
             data=self.grid_lines.tobytes(),
             usage=wgpu.BufferUsage.VERTEX,
         )
-
         print(f"Grid: {self.grid_width}x{self.grid_height} = {self.total_cells} cells")
+
+        # Create a staging buffer for reading back cell particle counts
+        self.cell_particle_count_buffer = self.device.create_buffer(
+            size=self.total_cells * 4,  # u32 per cell
+            usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_SRC,  # Add COPY_SRC!
+        )
+        self.cell_count_staging_buffer = self.device.create_buffer(
+            size=self.total_cells * 4,  # u32 per cell
+            usage=wgpu.BufferUsage.MAP_READ | wgpu.BufferUsage.COPY_DST,
+        )
 
         # Create uniform buffer for simulation parameters
         self.sim_params = np.zeros(
@@ -288,22 +228,20 @@ class WebGPUScene(WebGPUWidget):
         self.sim_params_buffer = self.device.create_buffer_with_data(
             data=self.sim_params.tobytes(),
             usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+            label="Simulation Parameters Buffer",
         )
 
         # Create grid buffers for spatial hashing
         self.grid_indices_buffer = self.device.create_buffer(
             size=self.num_points * 4,  # u32 per particle
             usage=wgpu.BufferUsage.STORAGE,
+            label="Grid Indices Buffer",
         )
 
         self.grid_offsets_buffer = self.device.create_buffer(
             size=self.total_cells * 4,  # u32 per cell
             usage=wgpu.BufferUsage.STORAGE,
-        )
-
-        self.cell_particle_count_buffer = self.device.create_buffer(
-            size=self.total_cells * 4,  # u32 per cell
-            usage=wgpu.BufferUsage.STORAGE,
+            label="Grid Offsets Buffer",
         )
 
     def _create_compute_pipeline(self) -> None:
@@ -450,6 +388,41 @@ class WebGPUScene(WebGPUWidget):
             ],
         )
 
+    def read_cell_particle_counts(self) -> np.ndarray:
+        """
+        Synchronous wrapper for reading cell particle counts.
+        Uses wgpu synchronous API.
+
+        Returns:
+            numpy array of shape (grid_height, grid_width) containing particle counts per cell
+        """
+        # Create a command encoder for the copy operation
+        command_encoder = self.device.create_command_encoder()
+
+        # Copy from the GPU buffer to the staging buffer
+        command_encoder.copy_buffer_to_buffer(
+            source=self.cell_particle_count_buffer,
+            source_offset=0,
+            destination=self.cell_count_staging_buffer,
+            destination_offset=0,
+            size=self.total_cells * 4,
+        )
+        # Submit the copy command and wait for completion
+        self.device.queue.submit([command_encoder.finish()])
+
+        self.cell_count_staging_buffer.map_sync(mode=wgpu.MapMode.READ)
+        # Read the data
+        data = self.cell_count_staging_buffer.read_mapped()
+        # Convert to numpy array
+        counts = np.frombuffer(data, dtype=np.uint32).copy()
+
+        # Unmap the buffer
+        self.cell_count_staging_buffer.unmap()
+
+        # Reshape to 2D grid
+        counts_2d = counts.reshape(self.grid_height, self.grid_width)
+        return counts_2d
+
     def resizeWebGPU(self, width, height) -> None:
         """
         Called whenever the window is resized.
@@ -464,22 +437,7 @@ class WebGPUScene(WebGPUWidget):
 
         self.update()
 
-    def paintWebGPU(self) -> None:
-        """
-        Paint the WebGPU content.
-
-        This method renders the WebGPU content for the scene.
-        """
-        current_time = self.timer.elapsed() / 1000.0
-        self.dt = current_time - self.last_time
-        self.last_time = current_time
-        self.render_text(
-            10,
-            25,
-            f" Points {self.num_points}  Wind [{self.wind[0]:.02f}, {self.wind[1]:.02f}] dt: {self.dt:.4f} FPS: {1.0 / self.dt if self.dt > 0 else 0:.2f}",
-            size=20,
-            colour=Qt.yellow,
-        )
+    def _compute_pass(self):
         try:
             command_encoder = self.device.create_command_encoder()
 
@@ -532,8 +490,59 @@ class WebGPUScene(WebGPUWidget):
                 compute_pass.set_bind_group(0, self.compute_bind_group, [], 0, 999999)
                 compute_pass.dispatch_workgroups(particle_workgroups, 1, 1)
                 compute_pass.end()
+            self.device.queue.submit([command_encoder.finish()])
+        except Exception as e:
+            print(f"Failed to paint WebGPU content: {e}")
 
-            # Render pass
+    def _read_back_pass(self):
+        # After all compute passes are complete, read back the data
+        cell_counts = self.read_cell_particle_counts()
+
+        # Print statistics
+        total_particles = np.sum(cell_counts)
+        max_in_cell = np.max(cell_counts)
+        avg_per_cell = np.mean(cell_counts)
+        non_empty_cells = np.count_nonzero(cell_counts)
+        print("Frame Stats:")
+        print(f"  Total particles counted: {total_particles}")
+        print(f"  Max particles in a cell: {max_in_cell}")
+        print(f"  Avg particles per cell: {avg_per_cell:.2f}")
+        print(f"  Non-empty cells: {non_empty_cells}/{self.total_cells}")
+        print("-" * 50)
+
+        def sim_to_qt(x, y):
+            # # widget size in device pixels (account for HiDPI)
+            # if hasattr(self, "devicePixelRatioF"):
+            #     dpr = self.devicePixelRatioF() or 1.0
+            # else:
+            #     dpr = 1.0
+            pixel_w = self.width()
+            pixel_h = self.height()
+
+            # map from simulation range (-SIM_WIDTH/2..SIM_WIDTH/2) to (0..pixel_w)
+            qt_x = (x + SIM_WIDTH / 2.0) * (pixel_w / SIM_WIDTH)
+            # flip Y: simulation y=+SIM_HEIGHT/2 -> top of widget (small y in Qt)
+            qt_y = (SIM_HEIGHT / 2.0 - y) * (pixel_h / SIM_HEIGHT)
+
+            return qt_x, qt_y
+
+        for row in range(self.grid_height):
+            for col in range(self.grid_width):
+                x = -SIM_WIDTH / 2 + col * GRID_CELL_SIZE
+                y = -SIM_HEIGHT / 2 + row * GRID_CELL_SIZE
+                qt_x, qt_y = sim_to_qt(x, y)
+                self.render_text(
+                    qt_x,
+                    qt_y,
+                    f"{cell_counts[row, col]}",
+                    size=10,
+                    colour=Qt.yellow,
+                )
+
+    def _render_pass(self):
+        try:
+            # Create a new command encoder for the render pass
+            command_encoder = self.device.create_command_encoder()
             render_pass = command_encoder.begin_render_pass(
                 color_attachments=[
                     {
@@ -562,17 +571,32 @@ class WebGPUScene(WebGPUWidget):
                 self.line_pipeline.set_data(self.grid_buffer)
                 self.line_pipeline.render(render_pass, len(self.grid_lines))
 
-            # Draw the grid
-            # render_pass.set_pipeline(self.line_pipeline)
-            # render_pass.set_bind_group(0, self.line_bind_group, [], 0, 999999)
-            # render_pass.set_vertex_buffer(0, self.grid_buffer)
-            # render_pass.draw(len(self.grid_lines), 1)
-
             render_pass.end()
             self.device.queue.submit([command_encoder.finish()])
             self._update_colour_buffer()
         except Exception as e:
             print(f"Failed to paint WebGPU content: {e}")
+
+    def paintWebGPU(self) -> None:
+        """
+        Paint the WebGPU content.
+
+        This method renders the WebGPU content for the scene.
+        """
+        current_time = self.timer.elapsed() / 1000.0
+        self.dt = current_time - self.last_time
+        self.last_time = current_time
+        self.render_text(
+            10,
+            25,
+            f" Points {self.num_points}  Wind [{self.wind[0]:.02f}, {self.wind[1]:.02f}] dt: {self.dt:.4f} FPS: {1.0 / self.dt if self.dt > 0 else 0:.2f}",
+            size=20,
+            colour=Qt.yellow,
+        )
+        self._compute_pass()
+        if self.show_numbers:
+            self._read_back_pass()
+        self._render_pass()
 
     def update_simulation_params(self) -> None:
         """
@@ -620,6 +644,8 @@ class WebGPUScene(WebGPUWidget):
             self.animate = not self.animate
         elif key == Qt.Key_G:
             self.show_grid = not self.show_grid
+        elif key == Qt.Key_N:
+            self.show_numbers = not self.show_numbers
         elif key == Qt.Key_Space:
             self.wind[0] = 0
             self.wind[1] = 0
@@ -783,6 +809,35 @@ class WebGPUScene(WebGPUWidget):
             self.update()
 
 
+class DebugApplication(QApplication):
+    """
+    A custom QApplication subclass for improved debugging.
+
+    By default, Qt's event loop can suppress exceptions that occur within event handlers
+    (like paintGL or mouseMoveEvent), making it very difficult to debug as the application
+    may simply crash or freeze without any error message. This class overrides the `notify`
+    method to catch these exceptions, print a full traceback to the console, and then
+    re-raise the exception to halt the program, making the error immediately visible.
+    """
+
+    def __init__(self, argv):
+        super().__init__(argv)
+        logger.info("Running in full debug mode")
+
+    def notify(self, receiver, event):
+        """
+        Overrides the central event handler to catch and report exceptions.
+        """
+        try:
+            # Attempt to process the event as usual
+            return super().notify(receiver, event)
+        except Exception:
+            # If an exception occurs, print the full traceback
+            traceback.print_exc()
+            # Re-raise the exception to stop the application
+            raise
+
+
 def main():
     """
     Main function to run the application.
@@ -815,9 +870,18 @@ def main():
         const="equispaced",
         help="Equispaced point distribution.",
     )
+    parser.add_argument(
+        "-d", "--debug", action="store_true", help="Run in full debug mode"
+    )
     parser.set_defaults(distribution="random")
     args = parser.parse_args()
-    app = QApplication(sys.argv)
+
+    if args.debug:
+        print("Running in debug mode")
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
     win = WebGPUScene(num_points=args.points, distribution=args.distribution)
     win.resize(1024, 720)
     win.show()
