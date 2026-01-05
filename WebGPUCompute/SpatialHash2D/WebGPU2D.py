@@ -145,8 +145,9 @@ class WebGPUScene(WebGPUWidget):
             self.device = get_default_device()
             self._init_buffers()
             self._create_compute_pipeline()
-            self.point_pipeline = PointPipeline(self.device, Vec2, stride=16)
+            # stride must be 16 as pos and dir in buffer are both Vec2
 
+            self.point_pipeline = PointPipeline(self.device, "Vec2", stride=16)
             self._create_line_render_pipeline()
             self.startTimer(16)
             self.timer.start()

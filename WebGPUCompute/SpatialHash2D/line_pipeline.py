@@ -1,82 +1,44 @@
 """
-Generic point rendering pipeline for WebGPU.
-Handles point rendering with customizable size, color, and projection.
+Generic line rendering pipeline for WebGPU.
+Handles line rendering with customizable width, color, and projection.
 """
 
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import numpy as np
 import wgpu
-from ncca.ngl import Vec3
 from webgpu_constants import NGLToWebGPU
 
-_POINT_SHADER = """
-@group(0) @binding(0) var<uniform> uniforms : Uniforms;
-struct Uniforms
-{
-    MVP : mat4x4<f32>,
-    size: f32,
-};
+_LINE_SHADER = """
+// LineShader.wgsl
+struct Uniforms {
+    MVP: mat4x4<f32>,
+    line_width: f32,
+}
 
-struct VertexIn {
-    @location(0) position: vec2<f32>,
-    @location(1) colour: vec3<f32>,
-};
-
-// We now need to pass uv to the fragment shader
-struct VertexOut {
-    @builtin(position) position: vec4<f32>,
-    @location(0) fragColour: vec3<f32>,
-    @location(1) uv: vec2<f32>,
-};
+@binding(0) @group(0) var<uniform> uniforms: Uniforms;
 
 @vertex
-fn vertex_main(input: VertexIn, @builtin(vertex_index) vertex_index: u32) -> VertexOut {
-    var output: VertexOut;
-    let quad_offsets = array<vec2<f32>, 4>(
-        vec2<f32>(-1.0, -1.0), // bottom-left
-        vec2<f32>(1.0, -1.0),  // bottom-right
-        vec2<f32>(-1.0, 1.0),   // top-left
-        vec2<f32>(1.0, 1.0)    // top-right
-    );
-
-    let offset = quad_offsets[vertex_index];
-    let pos = vec4<f32>(input.position.xy + offset * uniforms.size, 0.0, 1.0);
-
-    output.position = uniforms.MVP * pos;
-    output.fragColour = input.colour;
-    // convert offset from -1 -> 1 to 0 -> 1 for uv
-    output.uv = offset * 0.5 + 0.5;
-
-    return output;
+fn vertex_main(@location(0) pos: vec2<f32>) -> @builtin(position) vec4<f32> {
+    return uniforms.MVP * vec4<f32>(pos, 0.0, 1.0);
 }
 
 @fragment
-fn fragment_main(fragData: VertexOut) -> @location(0) vec4<f32>
-{
-    let center = vec2<f32>(0.5, 0.5); // Center of the quad in UV space
-    let dist = distance(fragData.uv, center); // Distance from center
-    let radius = 0.5; // Circle radius (quad is 1.0 in UV space)
-
-    if (dist > radius)
-    {
-        discard; // Remove pixels outside the circle
-    }
-
-    return vec4<f32>(fragData.fragColour, 1.0); // Simple color output
+fn fragment_main() -> @location(0) vec4<f32> {
+    return vec4<f32>(1.0, 1.0, 1.0, 1.0); // Grey color for grid lines
 }
 """
 
 
-class PointPipeline:
+class LinePipeline:
     """
-    A reusable pipeline for rendering points in WebGPU.
+    A reusable pipeline for rendering lines in WebGPU.
 
     Features:
-    - Instanced rendering of points as quads
-    - Per-point colors
-    - Configurable point size
-    - Model, View Projection matrix support pass a projection only for 2D
+    - Line strips or line segments
+    - Per-vertex or per-line colors
+    - Configurable line width
+    - Projection matrix support
     - MSAA support
     """
 
@@ -88,9 +50,10 @@ class PointPipeline:
         depth_format: wgpu.TextureFormat = wgpu.TextureFormat.depth24plus,
         msaa_sample_count: int = 4,
         stride: int = 0,
+        topology: wgpu.PrimitiveTopology = wgpu.PrimitiveTopology.line_strip,
     ):
         """
-        Initialize the point rendering pipeline.
+        Initialize the line rendering pipeline.
 
         Args:
             device: WebGPU device
@@ -98,21 +61,23 @@ class PointPipeline:
             depth_format: Depth attachment format
             msaa_sample_count: Number of MSAA samples
             shader_path: Path to the WGSL shader file
-            stride: The stride of the vertex buffer. If 0, it is inferred from data_type.
+            topology: Line topology (line_strip or line_list)
         """
         self.device = device
         self.texture_format = texture_format
         self.depth_format = depth_format
         self.msaa_sample_count = msaa_sample_count
+        self.topology = topology
+
         self._data_type = data_type
+
         if stride != 0:
             self._stride = stride
         else:
             self._stride = NGLToWebGPU.stride_from_type(self._data_type)
-        print(self._stride)
-        print(NGLToWebGPU.vertex_format(self._data_type))
+
         # Buffers
-        self.position_buffer: Optional[wgpu.GPUBuffer] = None
+        self.vertex_buffer: Optional[wgpu.GPUBuffer] = None
         self.color_buffer: Optional[wgpu.GPUBuffer] = None
         self.uniform_buffer: Optional[wgpu.GPUBuffer] = None
         self.bind_group: Optional[wgpu.GPUBindGroup] = None
@@ -122,11 +87,11 @@ class PointPipeline:
             (),
             dtype=[
                 ("MVP", "float32", (4, 4)),
-                ("size", "float32"),
+                ("line_width", "float32"),
                 ("padding", np.uint32, 3),
             ],
         )
-        self.uniform_data["size"] = 1.0  # Default point size
+        self.uniform_data["line_width"] = 1.0  # Default line width
 
         # Create the pipeline
         self._create_pipeline()
@@ -134,19 +99,19 @@ class PointPipeline:
     def _create_pipeline(self) -> None:
         """Create the render pipeline and buffers."""
         # Load shader
-        shader_module = self.device.create_shader_module(code=_POINT_SHADER)
+        shader_module = self.device.create_shader_module(code=_LINE_SHADER)
 
         # Create render pipeline
         self.pipeline = self.device.create_render_pipeline(
-            label="point_pipeline",
+            label="line_pipeline",
             layout="auto",
             vertex={
                 "module": shader_module,
                 "entry_point": "vertex_main",
                 "buffers": [
                     {
-                        "array_stride": self._stride,
-                        "step_mode": "instance",
+                        "array_stride": self.stride,  # vec2 position
+                        "step_mode": "vertex",
                         "attributes": [
                             {
                                 "format": NGLToWebGPU.vertex_format(self._data_type),
@@ -156,8 +121,10 @@ class PointPipeline:
                         ],
                     },
                     {
-                        "array_stride": NGLToWebGPU.stride_from_type("Vec3"),
-                        "step_mode": "instance",
+                        "array_stride": NGLToWebGPU.stride_from_type(
+                            "Vec3"
+                        ),  # vec3 color
+                        "step_mode": "vertex",
                         "attributes": [
                             {
                                 "format": NGLToWebGPU.vertex_format("Vec3"),
@@ -173,7 +140,14 @@ class PointPipeline:
                 "entry_point": "fragment_main",
                 "targets": [{"format": self.texture_format}],
             },
-            primitive={"topology": wgpu.PrimitiveTopology.triangle_strip},
+            primitive={
+                "topology": self.topology,
+                "strip_index_format": (
+                    wgpu.IndexFormat.uint32
+                    if self.topology == wgpu.PrimitiveTopology.line_strip
+                    else None
+                ),
+            },
             depth_stencil={
                 "format": self.depth_format,
                 "depth_write_enabled": True,
@@ -186,7 +160,7 @@ class PointPipeline:
         self.uniform_buffer = self.device.create_buffer_with_data(
             data=self.uniform_data.tobytes(),
             usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
-            label="point_pipeline_uniform_buffer",
+            label="line_pipeline_uniform_buffer",
         )
 
         # Create bind group
@@ -218,18 +192,18 @@ class PointPipeline:
         if isinstance(positions, wgpu.GPUBuffer):
             # If a buffer is passed, we just use it.
             # Note: The old buffer is not destroyed, it is up to the caller to manage it.
-            self.position_buffer = positions
+            self.vertex_buffer = positions
             self.num_points = positions.size // self._stride
         else:  # numpy array
             self.num_points = len(positions)
             data_bytes = positions.astype(np.float32).tobytes()
             # Ensure buffer exists and is large enough
-            if self.position_buffer is None or self.position_buffer.size < len(
+            if self.vertex_buffer is None or self.position_buffer.size < len(
                 data_bytes
             ):
-                if self.position_buffer:
-                    self.position_buffer.destroy()
-                self.position_buffer = self.device.create_buffer_with_data(
+                if self.vertex_buffer:
+                    self.vertex_buffer.destroy()
+                self.vertex_buffer = self.device.create_buffer_with_data(
                     data=data_bytes,
                     usage=wgpu.BufferUsage.VERTEX | wgpu.BufferUsage.COPY_DST,
                 )
@@ -262,50 +236,50 @@ class PointPipeline:
                 self.device.queue.write_buffer(self.color_buffer, 0, colors_bytes)
 
     def update_uniforms(
-        self, mvp: Optional[np.ndarray] = None, point_size: Optional[float] = None
+        self, mvp: Optional[np.ndarray] = None, line_width: Optional[float] = None
     ) -> None:
         """
         Update uniform buffer values.
 
         Args:
-            mvp: 4x4 mode view projection matrix (can just be projection if 2D)
-            point_size: Size of points in world units
+            MVP: 4x4 projection matrix
+            line_width: Width of lines
         """
         if mvp is not None:
             self.uniform_data["MVP"] = mvp
 
-        if point_size is not None:
-            self.uniform_data["size"] = point_size
+        if line_width is not None:
+            self.uniform_data["line_width"] = line_width
 
         self.device.queue.write_buffer(
             self.uniform_buffer, 0, self.uniform_data.tobytes()
         )
 
     def render(
-        self, render_pass: wgpu.GPURenderPassEncoder, num_points: Optional[int] = None
+        self, render_pass: wgpu.GPURenderPassEncoder, num_vertices: Optional[int] = None
     ) -> None:
         """
-        Render the points.
+        Render the lines.
 
         Args:
             render_pass: Active render pass encoder
-            num_points: Number of points to render (defaults to all)
+            num_vertices: Number of vertices to render (defaults to all)
         """
-        if self.position_buffer is None or self.color_buffer is None:
+        if self.vertex_buffer is None or self.color_buffer is None:
             return
 
-        count = num_points if num_points is not None else self.num_points
+        count = num_vertices if num_vertices is not None else self.num_vertices
 
         render_pass.set_pipeline(self.pipeline)
         render_pass.set_bind_group(0, self.bind_group, [], 0, 999999)
-        render_pass.set_vertex_buffer(0, self.position_buffer)
+        render_pass.set_vertex_buffer(0, self.vertex_buffer)
         render_pass.set_vertex_buffer(1, self.color_buffer)
-        render_pass.draw(4, count)  # 4 vertices per quad, instanced
+        render_pass.draw(count)
 
     def cleanup(self) -> None:
         """Release resources."""
-        if self.position_buffer:
-            self.position_buffer.destroy()
+        if self.vertex_buffer:
+            self.vertex_buffer.destroy()
         if self.color_buffer:
             self.color_buffer.destroy()
         if self.uniform_buffer:

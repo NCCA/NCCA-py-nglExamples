@@ -8,23 +8,23 @@ FLOAT_SIZE = np.dtype(np.float32).itemsize
 
 class NGLToWebGPU:
     _strides = {
-        Vec2: 2 * FLOAT_SIZE,
-        Vec3: 3 * FLOAT_SIZE,
-        Vec4: 4 * FLOAT_SIZE,
-        Mat2: 4 * FLOAT_SIZE,
-        Mat3: 12 * FLOAT_SIZE,
-        Mat4: 16 * FLOAT_SIZE,
+        "vec2": 2 * FLOAT_SIZE,
+        "vec3": 3 * FLOAT_SIZE,
+        "vec4": 4 * FLOAT_SIZE,
+        "mat2": 4 * FLOAT_SIZE,
+        "mat3": 12 * FLOAT_SIZE,
+        "mat4": 16 * FLOAT_SIZE,
     }
     _vertex_format = {
-        Vec2: "float32x2",
-        Vec3: "float32x3",
-        Vec4: "float32x4",
+        "vec2": "float32x2",
+        "vec3": "float32x3",
+        "vec4": "float32x4",
     }
 
     @staticmethod
-    def stride_from_type(type):
-        return NGLToWebGPU._strides[type]
+    def stride_from_type(type: str):
+        return NGLToWebGPU._strides[type.lower()]
 
     @staticmethod
-    def vertex_format(type):
-        return NGLToWebGPU._vertex_format[type]
+    def vertex_format(type: str):
+        return NGLToWebGPU._vertex_format[type.lower()]
