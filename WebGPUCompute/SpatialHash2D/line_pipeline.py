@@ -3,7 +3,7 @@ Generic line rendering pipeline for WebGPU.
 Handles line rendering with customizable width, color, and projection.
 """
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import wgpu
@@ -110,7 +110,7 @@ class LinePipeline:
                 "entry_point": "vertex_main",
                 "buffers": [
                     {
-                        "array_stride": self.stride,  # vec2 position
+                        "array_stride": self._stride,  # vec2 position
                         "step_mode": "vertex",
                         "attributes": [
                             {

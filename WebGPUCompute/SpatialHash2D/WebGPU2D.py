@@ -4,6 +4,7 @@ import sys
 
 import numpy as np
 import wgpu
+from line_pipeline import LinePipeline
 from ncca.ngl import PerspMode, Vec2, ortho
 from point_pipeline import PointPipeline
 from PySide6.QtCore import QElapsedTimer, Qt, QTimerEvent
@@ -148,83 +149,86 @@ class WebGPUScene(WebGPUWidget):
             # stride must be 16 as pos and dir in buffer are both Vec2
 
             self.point_pipeline = PointPipeline(self.device, "Vec2", stride=16)
-            self._create_line_render_pipeline()
+            self.line_pipeline = LinePipeline(
+                self.device, "Vec2", topology=wgpu.PrimitiveTopology.line_list
+            )
+            # self._create_line_render_pipeline()
             self.startTimer(16)
             self.timer.start()
             self.last_time = self.timer.elapsed() / 1000.0
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
 
-    def _create_line_render_pipeline(self) -> None:
-        """
-        Create a render pipeline for drawing lines.
-        """
-        # Create a uniform buffer
-        self.uniform_data = np.zeros(
-            (),
-            dtype=[
-                ("projection_matrix", "float32", (4, 4)),
-                ("size", "float32"),
-                ("padding", np.uint32, 3),  # 3 * 4 = 12 bytes padding
-            ],
-        )
+    # def _create_line_render_pipeline(self) -> None:
+    #     """
+    #     Create a render pipeline for drawing lines.
+    #     """
+    #     # Create a uniform buffer
+    #     self.uniform_data = np.zeros(
+    #         (),
+    #         dtype=[
+    #             ("projection_matrix", "float32", (4, 4)),
+    #             ("size", "float32"),
+    #             ("padding", np.uint32, 3),  # 3 * 4 = 12 bytes padding
+    #         ],
+    #     )
 
-        self.uniform_buffer = self.device.create_buffer_with_data(
-            data=self.uniform_data.tobytes(),
-            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
-            label="line_pipeline_uniform_buffer",
-        )
+    #     self.uniform_buffer = self.device.create_buffer_with_data(
+    #         data=self.uniform_data.tobytes(),
+    #         usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+    #         label="line_pipeline_uniform_buffer",
+    #     )
 
-        with open("LineShader.wgsl", "r") as f:
-            shader_code = f.read()
-            shader_module = self.device.create_shader_module(code=shader_code)
+    #     with open("LineShader.wgsl", "r") as f:
+    #         shader_code = f.read()
+    #         shader_module = self.device.create_shader_module(code=shader_code)
 
-        self.line_pipeline = self.device.create_render_pipeline(
-            label="line_pipeline",
-            layout="auto",
-            vertex={
-                "module": shader_module,
-                "entry_point": "vertex_main",
-                "buffers": [
-                    {
-                        "array_stride": 2 * 4,  # vec2 pos
-                        "step_mode": "vertex",
-                        "attributes": [
-                            {
-                                "format": "float32x2",
-                                "offset": 0,
-                                "shader_location": 0,
-                            },
-                        ],
-                    },
-                ],
-            },
-            fragment={
-                "module": shader_module,
-                "entry_point": "fragment_main",
-                "targets": [{"format": wgpu.TextureFormat.rgba8unorm}],
-            },
-            primitive={"topology": wgpu.PrimitiveTopology.line_list},
-            depth_stencil={
-                "format": wgpu.TextureFormat.depth24plus,
-                "depth_write_enabled": True,
-                "depth_compare": wgpu.CompareFunction.less,
-            },
-            multisample={
-                "count": self.msaa_sample_count,
-            },
-        )
-        bind_group_layout = self.line_pipeline.get_bind_group_layout(0)
-        # Create the bind group
-        self.line_bind_group = self.device.create_bind_group(
-            layout=bind_group_layout,
-            entries=[
-                {
-                    "binding": 0,  # Matches @binding(0) in the shader
-                    "resource": {"buffer": self.uniform_buffer},
-                }
-            ],
-        )
+    #     self.line_pipeline = self.device.create_render_pipeline(
+    #         label="line_pipeline",
+    #         layout="auto",
+    #         vertex={
+    #             "module": shader_module,
+    #             "entry_point": "vertex_main",
+    #             "buffers": [
+    #                 {
+    #                     "array_stride": 2 * 4,  # vec2 pos
+    #                     "step_mode": "vertex",
+    #                     "attributes": [
+    #                         {
+    #                             "format": "float32x2",
+    #                             "offset": 0,
+    #                             "shader_location": 0,
+    #                         },
+    #                     ],
+    #                 },
+    #             ],
+    #         },
+    #         fragment={
+    #             "module": shader_module,
+    #             "entry_point": "fragment_main",
+    #             "targets": [{"format": wgpu.TextureFormat.rgba8unorm}],
+    #         },
+    #         primitive={"topology": wgpu.PrimitiveTopology.line_list},
+    #         depth_stencil={
+    #             "format": wgpu.TextureFormat.depth24plus,
+    #             "depth_write_enabled": True,
+    #             "depth_compare": wgpu.CompareFunction.less,
+    #         },
+    #         multisample={
+    #             "count": self.msaa_sample_count,
+    #         },
+    #     )
+    #     bind_group_layout = self.line_pipeline.get_bind_group_layout(0)
+    #     # Create the bind group
+    #     self.line_bind_group = self.device.create_bind_group(
+    #         layout=bind_group_layout,
+    #         entries=[
+    #             {
+    #                 "binding": 0,  # Matches @binding(0) in the shader
+    #                 "resource": {"buffer": self.uniform_buffer},
+    #             }
+    #         ],
+    #     )
 
     def _init_buffers(self):
         # Create a storage buffer for particles (used by compute shader and rendering)
@@ -555,11 +559,14 @@ class WebGPUScene(WebGPUWidget):
             self.point_pipeline.render(render_pass, self.num_points)
 
             if self.show_grid:
-                # Draw the grid
-                render_pass.set_pipeline(self.line_pipeline)
-                render_pass.set_bind_group(0, self.line_bind_group, [], 0, 999999)
-                render_pass.set_vertex_buffer(0, self.grid_buffer)
-                render_pass.draw(len(self.grid_lines), 1)
+                self.line_pipeline.set_data(self.grid_buffer)
+                self.line_pipeline.render(render_pass, len(self.grid_lines))
+
+            # Draw the grid
+            # render_pass.set_pipeline(self.line_pipeline)
+            # render_pass.set_bind_group(0, self.line_bind_group, [], 0, 999999)
+            # render_pass.set_vertex_buffer(0, self.grid_buffer)
+            # render_pass.draw(len(self.grid_lines), 1)
 
             render_pass.end()
             self.device.queue.submit([command_encoder.finish()])
@@ -597,6 +604,7 @@ class WebGPUScene(WebGPUWidget):
             PerspMode.WebGPU,
         )
         self.point_pipeline.update_uniforms(proj.to_numpy(), self.point_size)
+        self.line_pipeline.update_uniforms(proj.to_numpy(), self.point_size)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         """
