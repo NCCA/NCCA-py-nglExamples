@@ -16,7 +16,7 @@ from wgpu.utils import get_default_device
 
 SIM_WIDTH = 500
 SIM_HEIGHT = 500
-GRID_CELL_SIZE = 15.0  # Size of each grid cell
+GRID_CELL_SIZE = 50.0  # Size of each grid cell
 PARTICLE_RADIUS = 0.9  # Collision radius for particles
 
 
@@ -32,7 +32,7 @@ class WebGPUScene(WebGPUWidget):
         super().__init__()
         self.window_width: int = 1024  # Window width
         self.window_height: int = 720  # Window height
-        self.setWindowTitle("WebGPU 2D Pan and Zoom with Collisions")
+        self.setWindowTitle("WebGPU Compute Collisions with Spatial Hashing")
         self.device = None
         self.compute_pipeline = None
         self.line_pipeline = None
@@ -405,7 +405,7 @@ class WebGPUScene(WebGPUWidget):
             source_offset=0,
             destination=self.cell_count_staging_buffer,
             destination_offset=0,
-            size=self.total_cells * 4,
+            size=self.total_cells * 4,  # size of uint32
         )
         # Submit the copy command and wait for completion
         self.device.queue.submit([command_encoder.finish()])

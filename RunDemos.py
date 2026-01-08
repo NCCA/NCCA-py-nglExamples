@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
 
+import ncca.ngl
 from PySide6.QtCore import QFile, Qt
 from PySide6.QtGui import QKeyEvent, QPixmap
 from PySide6.QtUiTools import QUiLoader
@@ -53,7 +54,7 @@ class DemoRunner(QMainWindow):
         from the .ui file, and populates the demo list.
         """
         super().__init__()
-        self.setWindowTitle("PyNGL Demos")
+        self.setWindowTitle(f"PyNGL Version : {ncca.ngl.__version__} Demos")
 
         # These will be populated by methods called below
         self.executables: list[Demo] = []
