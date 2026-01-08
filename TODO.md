@@ -1,5 +1,9 @@
 # TODO
 
+Check out the mouse controls on some of the demos
+
+
+
 update all WebGPU demos to new structure.
 Create templates for basic WebGPU and OpenGL demos (via button on RunDemos)
 
