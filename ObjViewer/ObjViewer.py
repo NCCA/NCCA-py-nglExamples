@@ -110,9 +110,10 @@ class MainWindow(QOpenGLWindow):
         rot_y = Mat4().rotate_y(self.spin_y_face)
         self.mouse_global_tx = rot_y @ rot_x
         # Update model position
-        self.mouse_global_tx[3][0] = self.model_position.x
-        self.mouse_global_tx[3][1] = self.model_position.y
-        self.mouse_global_tx[3][2] = self.model_position.z
+        self.mouse_global_tx[3, 0] = self.model_position.x
+        self.mouse_global_tx[3, 1] = self.model_position.y
+        self.mouse_global_tx[3, 2] = self.model_position.z
+
         self.loadMatricesToShader()
         # Draw geometry
         self.mesh.draw()
@@ -291,17 +292,3 @@ if __name__ == "__main__":
     window.resize(1024, 720)
     window.show()
     sys.exit(app.exec())
-"""
-std::string oname("models/Helix.obj");
-  std::string tname("textures/helix_base.tif");
-  if(argc ==2)
-  {
-    oname=argv[1];
-    tname="textures/ratGrid.png";
-  }
-  else if(argc == 3)
-  {
-    oname=argv[1];
-    tname=argv[2];
-  }
-  """

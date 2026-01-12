@@ -4,13 +4,12 @@ import sys
 import numpy as np
 import wgpu
 import wgpu.utils
+from ncca.ngl import Mat3, Mat4, PerspMode, PrimData, Prims, Vec3, look_at, perspective
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 from TeapotPipeline import TeapotPipeline
 from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
-
-from ncca.ngl import Mat3, Mat4, PerspMode, PrimData, Prims, Vec3, look_at, perspective
 
 
 class WebGPUScene(WebGPUWidget):
@@ -28,13 +27,23 @@ class WebGPUScene(WebGPUWidget):
         self.model_position: Vec3 = Vec3()  # Position of the model in world space
         # --- Mouse Control Attributes for Camera Manipulation ---
         self.rotate: bool = False  # Flag to check if the scene is being rotated
-        self.translate: bool = False  # Flag to check if the scene is being translated (panned)
+        self.translate: bool = (
+            False  # Flag to check if the scene is being translated (panned)
+        )
         self.spin_x_face: int = 0  # Accumulated rotation around the X-axis
         self.spin_y_face: int = 0  # Accumulated rotation around the Y-axis
-        self.original_x_rotation: int = 0  # Initial X position of the mouse when a rotation starts
-        self.original_y_rotation: int = 0  # Initial Y position of the mouse when a rotation starts
-        self.original_x_pos: int = 0  # Initial X position of the mouse when a translation starts
-        self.original_y_pos: int = 0  # Initial Y position of the mouse when a translation starts
+        self.original_x_rotation: int = (
+            0  # Initial X position of the mouse when a rotation starts
+        )
+        self.original_y_rotation: int = (
+            0  # Initial Y position of the mouse when a rotation starts
+        )
+        self.original_x_pos: int = (
+            0  # Initial X position of the mouse when a translation starts
+        )
+        self.original_y_pos: int = (
+            0  # Initial Y position of the mouse when a translation starts
+        )
         self.INCREMENT: float = 0.01  # Sensitivity for translation
         self.ZOOM: float = 0.1  # Sensitivity for zooming
         self.first_pass_pipeline = None
@@ -45,7 +54,9 @@ class WebGPUScene(WebGPUWidget):
         self.view = look_at(self.eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
         self.light_pos = Vec3(0.0, 2.0, 2.0)
 
-        self.project = perspective(45.0, self.width() / self.height(), 0.1, 100.0, PerspMode.WebGPU)
+        self.project = perspective(
+            45.0, self.width() / self.height(), 0.1, 100.0, PerspMode.WebGPU
+        )
         self._initialize_web_gpu()
         self.update()
 
@@ -65,8 +76,7 @@ class WebGPUScene(WebGPUWidget):
             print(f"Failed to initialize WebGPU: {e}")
         self.startTimer(16)
 
-    def _init_buffers(self):
-        ...
+    def _init_buffers(self): ...
 
     def _create_render_pipeline(self) -> None:
         """
@@ -122,11 +132,13 @@ class WebGPUScene(WebGPUWidget):
         rot_y = Mat4().rotate_y(self.spin_y_face)
         self.mouse_global_tx = rot_y @ rot_x
         # Update model position
-        self.mouse_global_tx[3][0] = self.model_position.x
-        self.mouse_global_tx[3][1] = self.model_position.y
-        self.mouse_global_tx[3][2] = self.model_position.z
+        self.mouse_global_tx[3, 0] = self.model_position.x
+        self.mouse_global_tx[3, 1] = self.model_position.y
+        self.mouse_global_tx[3, 2] = self.model_position.z
 
-        self.first_pass_pipeline.update_uniform_buffers(Mat4.rotate_y(self.rotation) @ Mat4.rotate_x(self.rotation))
+        self.first_pass_pipeline.update_uniform_buffers(
+            Mat4.rotate_y(self.rotation) @ Mat4.rotate_x(self.rotation)
+        )
 
     def timerEvent(self, event):
         self.rotation += 1.0

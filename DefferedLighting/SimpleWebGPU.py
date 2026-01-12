@@ -212,9 +212,9 @@ class WebGPUScene(QWidget):
         rot_y = Mat4().rotate_y(self.spin_y_face)
         self.mouse_global_tx = rot_y @ rot_x
         # Update model position
-        self.mouse_global_tx[3][0] = self.model_position.x
-        self.mouse_global_tx[3][1] = self.model_position.y
-        self.mouse_global_tx[3][2] = self.model_position.z
+        self.mouse_global_tx[3, 0] = self.model_position.x
+        self.mouse_global_tx[3, 1] = self.model_position.y
+        self.mouse_global_tx[3, 2] = self.model_position.z
         self.pipelines[0].update_uniform_buffers(self.mouse_global_tx)
         self.pipelines[1].update_uniform_buffers(self.mouse_global_tx)
 
