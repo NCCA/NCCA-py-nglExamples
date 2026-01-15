@@ -5,13 +5,11 @@ import traceback
 
 import numpy as np
 import wgpu
-from line_pipeline import LinePipeline
 from ncca.ngl import PerspMode, Vec2, logger, ortho
-from point_pipeline import PointPipeline
+from ncca.ngl.webgpu import PipelineFactory, PipelineType, WebGPUWidget
 from PySide6.QtCore import QElapsedTimer, Qt, QTimerEvent
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 SIM_WIDTH = 500
@@ -43,7 +41,7 @@ class WebGPUScene(WebGPUWidget):
         self.num_points = num_points
         self.msaa_sample_count = 4
         self.ratio = self.devicePixelRatio()
-        self.animate = False  # True
+        self.animate = False
         self.pan_x = 0.0
         self.pan_y = 0.0
         self.zoom = 1.0
@@ -51,7 +49,7 @@ class WebGPUScene(WebGPUWidget):
         self.last_mouse_pos = None
         self.show_grid = True
         self.show_numbers = True
-        self.point_size = 0.6
+        self.point_size = 1.0
         self.wind = np.array([0.0, 0.0], dtype=np.float32)
         self.timer = QElapsedTimer()
         self.dt = 0.0
@@ -146,20 +144,32 @@ class WebGPUScene(WebGPUWidget):
         print("initializeWebGPU")
         try:
             self.device = get_default_device()
+            print(f"WebGPU device created: {self.device}")
             self._init_buffers()
             self._create_compute_pipeline()
             # stride must be 16 as pos and dir in buffer are both Vec2
 
-            self.point_pipeline = PointPipeline(self.device, "Vec2", stride=16)
-            self.line_pipeline = LinePipeline(
-                self.device, "Vec2", topology=wgpu.PrimitiveTopology.line_list
+            self.point_pipeline = PipelineFactory.create_pipeline(
+                self.device,
+                PipelineType.MULTI_COLOURED_POINTS,
+                data_type="Vec2",
+                stride=16,
             )
-            # self._create_line_render_pipeline()
+            self.line_pipeline = PipelineFactory.create_pipeline(
+                self.device,
+                PipelineType.SINGLE_COLOUR_LINES,
+                data_type="Vec2",
+                topology=wgpu.PrimitiveTopology.line_list,
+            )
             self.startTimer(16)
             self.timer.start()
             self.last_time = self.timer.elapsed() / 1000.0
+            print("WebGPU initialization complete")
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
+            import traceback
+
+            traceback.print_exc()
 
     def _init_buffers(self):
         # Create a storage buffer for particles (used by compute shader and rendering)
@@ -503,12 +513,12 @@ class WebGPUScene(WebGPUWidget):
         max_in_cell = np.max(cell_counts)
         avg_per_cell = np.mean(cell_counts)
         non_empty_cells = np.count_nonzero(cell_counts)
-        print("Frame Stats:")
-        print(f"  Total particles counted: {total_particles}")
-        print(f"  Max particles in a cell: {max_in_cell}")
-        print(f"  Avg particles per cell: {avg_per_cell:.2f}")
-        print(f"  Non-empty cells: {non_empty_cells}/{self.total_cells}")
-        print("-" * 50)
+        # print("Frame Stats:")
+        # print(f"  Total particles counted: {total_particles}")
+        # print(f"  Max particles in a cell: {max_in_cell}")
+        # print(f"  Avg particles per cell: {avg_per_cell:.2f}")
+        # print(f"  Non-empty cells: {non_empty_cells}/{self.total_cells}")
+        # print("-" * 50)
 
         def sim_to_qt(x, y):
             # # widget size in device pixels (account for HiDPI)
@@ -564,12 +574,18 @@ class WebGPUScene(WebGPUWidget):
             render_pass.set_viewport(
                 0, 0, self.texture_size[0], self.texture_size[1], 0, 1
             )
-            self.point_pipeline.set_data(self.particle_buffer, self.colour_buffer)
-            self.point_pipeline.render(render_pass, self.num_points)
+            self.point_pipeline.set_data(
+                positions=self.particle_buffer, colours=self.colour_buffer
+            )
+            self.point_pipeline.render(
+                render_pass=render_pass
+            )  # num_points=self.num_points)
 
             if self.show_grid:
-                self.line_pipeline.set_data(self.grid_buffer)
-                self.line_pipeline.render(render_pass, len(self.grid_lines))
+                self.line_pipeline.set_data(positions=self.grid_buffer)
+                self.line_pipeline.render(
+                    render_pass=render_pass
+                )  # , num_lines=len(self.grid_lines))
 
             render_pass.end()
             self.device.queue.submit([command_encoder.finish()])
@@ -627,8 +643,10 @@ class WebGPUScene(WebGPUWidget):
             1,
             PerspMode.WebGPU,
         )
-        self.point_pipeline.update_uniforms(proj.to_numpy(), self.point_size)
-        self.line_pipeline.update_uniforms(proj.to_numpy(), self.point_size)
+        self.point_pipeline.update_uniforms(
+            mvp=proj.to_numpy(), point_size=self.point_size
+        )
+        self.line_pipeline.update_uniforms(mvp=proj.to_numpy())
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         """
