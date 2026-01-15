@@ -12,9 +12,9 @@ from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
 from wgpu.utils import get_default_device
 
-SIM_WIDTH = 500
-SIM_HEIGHT = 500
-GRID_CELL_SIZE = 50.0  # Size of each grid cell
+SIM_WIDTH = 800
+SIM_HEIGHT = 800
+GRID_CELL_SIZE = 20.0  # Size of each grid cell
 PARTICLE_RADIUS = 1.0  # Collision radius for particles
 
 
