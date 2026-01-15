@@ -14,7 +14,7 @@ from wgpu.utils import get_default_device
 
 SIM_WIDTH = 800
 SIM_HEIGHT = 800
-GRID_CELL_SIZE = 20.0  # Size of each grid cell
+GRID_CELL_SIZE = 50.0  # Size of each grid cell
 PARTICLE_RADIUS = 1.0  # Collision radius for particles
 
 
@@ -687,6 +687,12 @@ class WebGPUScene(WebGPUWidget):
         self.sim_params["dt"] = self.dt
         self.sim_params["wind_x"] = self.wind[0]
         self.sim_params["wind_y"] = self.wind[1]
+        self.sim_params["width"] = SIM_WIDTH
+        self.sim_params["height"] = SIM_HEIGHT
+        self.sim_params["grid_width"] = self.grid_width
+        self.sim_params["grid_height"] = self.grid_height
+        self.sim_params["cell_size"] = GRID_CELL_SIZE
+        self.sim_params["particle_radius"] = PARTICLE_RADIUS
         self.device.queue.write_buffer(
             buffer=self.sim_params_buffer,
             buffer_offset=0,

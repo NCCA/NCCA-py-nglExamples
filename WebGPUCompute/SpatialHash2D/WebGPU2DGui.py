@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from WebGPU2D import WebGPUScene
+from WebGPU2D import GRID_CELL_SIZE, PARTICLE_RADIUS, SIM_HEIGHT, SIM_WIDTH, WebGPUScene
 
 
 class WebGPUControlPanel(QWidget):
@@ -61,27 +61,47 @@ class WebGPUControlPanel(QWidget):
         self.distribution_combo.currentTextChanged.connect(self.on_distribution_changed)
         sim_layout.addWidget(self.distribution_combo, 1, 1)
 
+        # SIM_WIDTH
+        sim_layout.addWidget(QLabel("Sim Width:"), 2, 0)
+        self.sim_width_spinbox = QDoubleSpinBox()
+        self.sim_width_spinbox.setRange(100.0, 2000.0)
+        self.sim_width_spinbox.setSingleStep(50.0)
+        self.sim_width_spinbox.setValue(SIM_WIDTH)
+        self.sim_width_spinbox.setSuffix(" px")
+        self.sim_width_spinbox.valueChanged.connect(self.on_sim_width_changed)
+        sim_layout.addWidget(self.sim_width_spinbox, 2, 1)
+
+        # SIM_HEIGHT
+        sim_layout.addWidget(QLabel("Sim Height:"), 3, 0)
+        self.sim_height_spinbox = QDoubleSpinBox()
+        self.sim_height_spinbox.setRange(100.0, 2000.0)
+        self.sim_height_spinbox.setSingleStep(50.0)
+        self.sim_height_spinbox.setValue(SIM_HEIGHT)
+        self.sim_height_spinbox.setSuffix(" px")
+        self.sim_height_spinbox.valueChanged.connect(self.on_sim_height_changed)
+        sim_layout.addWidget(self.sim_height_spinbox, 3, 1)
+
         # Grid cell size
-        sim_layout.addWidget(QLabel("Grid Cell Size:"), 2, 0)
+        sim_layout.addWidget(QLabel("Grid Cell Size:"), 4, 0)
         self.grid_size_spinbox = QDoubleSpinBox()
         self.grid_size_spinbox.setRange(5.0, 250.0)
         self.grid_size_spinbox.setSingleStep(1.0)
-        self.grid_size_spinbox.setValue(50.0)
+        self.grid_size_spinbox.setValue(GRID_CELL_SIZE)
         self.grid_size_spinbox.setSuffix(" px")
         self.grid_size_spinbox.valueChanged.connect(self.on_grid_size_changed)
-        sim_layout.addWidget(self.grid_size_spinbox, 2, 1)
+        sim_layout.addWidget(self.grid_size_spinbox, 4, 1)
 
         # Particle radius
-        sim_layout.addWidget(QLabel("Particle Radius:"), 3, 0)
+        sim_layout.addWidget(QLabel("Particle Radius:"), 5, 0)
         self.particle_radius_spinbox = QDoubleSpinBox()
         self.particle_radius_spinbox.setRange(0.1, 15.0)
         self.particle_radius_spinbox.setSingleStep(0.1)
-        self.particle_radius_spinbox.setValue(1.0)
+        self.particle_radius_spinbox.setValue(PARTICLE_RADIUS)
         self.particle_radius_spinbox.setSuffix(" px")
         self.particle_radius_spinbox.valueChanged.connect(
             self.on_particle_radius_changed
         )
-        sim_layout.addWidget(self.particle_radius_spinbox, 3, 1)
+        sim_layout.addWidget(self.particle_radius_spinbox, 5, 1)
 
         sim_group.setLayout(sim_layout)
         layout.addWidget(sim_group)
@@ -93,7 +113,7 @@ class WebGPUControlPanel(QWidget):
         # Wind X
         physics_layout.addWidget(QLabel("Wind X:"), 0, 0)
         self.wind_x_slider = QSlider(Qt.Horizontal)
-        self.wind_x_slider.setRange(-100, 100)
+        self.wind_x_slider.setRange(-500, 500)
         self.wind_x_slider.setValue(int(self.webgpu_widget.wind[0] * 100))
         self.wind_x_slider.valueChanged.connect(self.on_wind_x_changed)
         physics_layout.addWidget(self.wind_x_slider, 0, 1)
@@ -103,7 +123,7 @@ class WebGPUControlPanel(QWidget):
         # Wind Y
         physics_layout.addWidget(QLabel("Wind Y:"), 1, 0)
         self.wind_y_slider = QSlider(Qt.Horizontal)
-        self.wind_y_slider.setRange(-100, 100)
+        self.wind_y_slider.setRange(-500, 500)
         self.wind_y_slider.setValue(int(self.webgpu_widget.wind[1] * 100))
         self.wind_y_slider.valueChanged.connect(self.on_wind_y_changed)
         physics_layout.addWidget(self.wind_y_slider, 1, 1)
@@ -213,6 +233,8 @@ class WebGPUControlPanel(QWidget):
 
     def on_particle_count_changed(self, value):
         self.webgpu_widget.num_points = value
+        self.webgpu_widget.gen_points(value, self.distribution_combo.currentText())
+        self.webgpu_widget._init_buffers()
         self.reset_simulation.emit()
 
     def on_distribution_changed(self, value):
@@ -221,12 +243,45 @@ class WebGPUControlPanel(QWidget):
         self.webgpu_widget._init_buffers()
         self.reset_simulation.emit()
 
+    def on_sim_width_changed(self, value):
+        # Update the global constant and reset simulation
+        import WebGPU2D
+
+        WebGPU2D.SIM_WIDTH = value
+        self.webgpu_widget.gen_points(
+            self.webgpu_widget.num_points, self.distribution_combo.currentText()
+        )
+        self.webgpu_widget._init_buffers()
+        self.reset_simulation.emit()
+
+    def on_sim_height_changed(self, value):
+        # Update the global constant and reset simulation
+        import WebGPU2D
+
+        WebGPU2D.SIM_HEIGHT = value
+        self.webgpu_widget.gen_points(
+            self.webgpu_widget.num_points, self.distribution_combo.currentText()
+        )
+        self.webgpu_widget._init_buffers()
+        self.reset_simulation.emit()
+
     def on_grid_size_changed(self, value):
-        # Note: This would require recreating buffers, so emit reset
+        # Update the global constant and reset simulation
+        import WebGPU2D
+
+        WebGPU2D.GRID_CELL_SIZE = value
+        self.webgpu_widget.gen_points(
+            self.webgpu_widget.num_points, self.distribution_combo.currentText()
+        )
+        self.webgpu_widget._init_buffers()
         self.reset_simulation.emit()
 
     def on_particle_radius_changed(self, value):
-        # Note: This would require updating sim params, so emit parameter change
+        # Update the global constant and simulation parameters
+        import WebGPU2D
+
+        WebGPU2D.PARTICLE_RADIUS = value
+        self.webgpu_widget.update_simulation_params()
         self.parameter_changed.emit()
 
     def on_wind_x_changed(self, value):
@@ -285,8 +340,10 @@ class WebGPUControlPanel(QWidget):
         self.reset_view()
         self.particle_spinbox.setValue(1000)
         self.distribution_combo.setCurrentText("random")
-        self.grid_size_spinbox.setValue(20.0)
-        self.particle_radius_spinbox.setValue(1.0)
+        self.sim_width_spinbox.setValue(SIM_WIDTH)
+        self.sim_height_spinbox.setValue(SIM_HEIGHT)
+        self.grid_size_spinbox.setValue(GRID_CELL_SIZE)
+        self.particle_radius_spinbox.setValue(PARTICLE_RADIUS)
         self.animate_checkbox.setChecked(False)
         self.show_grid_checkbox.setChecked(True)
         self.show_numbers_checkbox.setChecked(True)
