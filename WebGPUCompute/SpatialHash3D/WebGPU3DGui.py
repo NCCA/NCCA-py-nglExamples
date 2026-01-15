@@ -15,7 +15,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
-    QProgressBar,
     QPushButton,
     QSlider,
     QSpinBox,
@@ -24,11 +23,18 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from WebGPU2D import GRID_CELL_SIZE, PARTICLE_RADIUS, SIM_HEIGHT, SIM_WIDTH, WebGPUScene
+from WebGPU3D import (
+    GRID_CELL_SIZE,
+    PARTICLE_RADIUS,
+    SIM_DEPTH,
+    SIM_HEIGHT,
+    SIM_WIDTH,
+    WebGPUScene3D,
+)
 
 
-class WebGPUControlPanel(QWidget):
-    """Control panel for WebGPU2D simulation parameters."""
+class WebGPUControlPanel3D(QWidget):
+    """Control panel for WebGPU3D simulation parameters."""
 
     parameter_changed = Signal()
     reset_simulation = Signal()
@@ -81,18 +87,28 @@ class WebGPUControlPanel(QWidget):
         self.sim_height_spinbox.valueChanged.connect(self.on_sim_height_changed)
         sim_layout.addWidget(self.sim_height_spinbox, 3, 1)
 
+        # SIM_DEPTH
+        sim_layout.addWidget(QLabel("Sim Depth:"), 4, 0)
+        self.sim_depth_spinbox = QDoubleSpinBox()
+        self.sim_depth_spinbox.setRange(100.0, 2000.0)
+        self.sim_depth_spinbox.setSingleStep(50.0)
+        self.sim_depth_spinbox.setValue(SIM_DEPTH)
+        self.sim_depth_spinbox.setSuffix(" px")
+        self.sim_depth_spinbox.valueChanged.connect(self.on_sim_depth_changed)
+        sim_layout.addWidget(self.sim_depth_spinbox, 4, 1)
+
         # Grid cell size
-        sim_layout.addWidget(QLabel("Grid Cell Size:"), 4, 0)
+        sim_layout.addWidget(QLabel("Grid Cell Size:"), 5, 0)
         self.grid_size_spinbox = QDoubleSpinBox()
         self.grid_size_spinbox.setRange(5.0, 250.0)
         self.grid_size_spinbox.setSingleStep(1.0)
         self.grid_size_spinbox.setValue(GRID_CELL_SIZE)
         self.grid_size_spinbox.setSuffix(" px")
         self.grid_size_spinbox.valueChanged.connect(self.on_grid_size_changed)
-        sim_layout.addWidget(self.grid_size_spinbox, 4, 1)
+        sim_layout.addWidget(self.grid_size_spinbox, 5, 1)
 
         # Particle radius
-        sim_layout.addWidget(QLabel("Particle Radius:"), 5, 0)
+        sim_layout.addWidget(QLabel("Particle Radius:"), 6, 0)
         self.particle_radius_spinbox = QDoubleSpinBox()
         self.particle_radius_spinbox.setRange(0.1, 15.0)
         self.particle_radius_spinbox.setSingleStep(0.1)
@@ -101,7 +117,7 @@ class WebGPUControlPanel(QWidget):
         self.particle_radius_spinbox.valueChanged.connect(
             self.on_particle_radius_changed
         )
-        sim_layout.addWidget(self.particle_radius_spinbox, 5, 1)
+        sim_layout.addWidget(self.particle_radius_spinbox, 6, 1)
 
         sim_group.setLayout(sim_layout)
         layout.addWidget(sim_group)
@@ -112,7 +128,7 @@ class WebGPUControlPanel(QWidget):
 
         # Wind X
         physics_layout.addWidget(QLabel("Wind X:"), 0, 0)
-        self.wind_x_slider = QSlider(Qt.Horizontal)
+        self.wind_x_slider = QSlider(Qt.Orientation.Horizontal)
         self.wind_x_slider.setRange(-500, 500)
         self.wind_x_slider.setValue(int(self.webgpu_widget.wind[0] * 100))
         self.wind_x_slider.valueChanged.connect(self.on_wind_x_changed)
@@ -122,7 +138,7 @@ class WebGPUControlPanel(QWidget):
 
         # Wind Y
         physics_layout.addWidget(QLabel("Wind Y:"), 1, 0)
-        self.wind_y_slider = QSlider(Qt.Horizontal)
+        self.wind_y_slider = QSlider(Qt.Orientation.Horizontal)
         self.wind_y_slider.setRange(-500, 500)
         self.wind_y_slider.setValue(int(self.webgpu_widget.wind[1] * 100))
         self.wind_y_slider.valueChanged.connect(self.on_wind_y_changed)
@@ -130,10 +146,20 @@ class WebGPUControlPanel(QWidget):
         self.wind_y_label = QLabel(f"{self.webgpu_widget.wind[1]:.2f}")
         physics_layout.addWidget(self.wind_y_label, 1, 2)
 
+        # Wind Z
+        physics_layout.addWidget(QLabel("Wind Z:"), 2, 0)
+        self.wind_z_slider = QSlider(Qt.Orientation.Horizontal)
+        self.wind_z_slider.setRange(-500, 500)
+        self.wind_z_slider.setValue(int(self.webgpu_widget.wind[2] * 100))
+        self.wind_z_slider.valueChanged.connect(self.on_wind_z_changed)
+        physics_layout.addWidget(self.wind_z_slider, 2, 1)
+        self.wind_z_label = QLabel(f"{self.webgpu_widget.wind[2]:.2f}")
+        physics_layout.addWidget(self.wind_z_label, 2, 2)
+
         # Reset wind button
         reset_wind_btn = QPushButton("Reset Wind")
         reset_wind_btn.clicked.connect(self.reset_wind)
-        physics_layout.addWidget(reset_wind_btn, 2, 0, 1, 3)
+        physics_layout.addWidget(reset_wind_btn, 3, 0, 1, 3)
 
         physics_group.setLayout(physics_layout)
         layout.addWidget(physics_group)
@@ -154,46 +180,60 @@ class WebGPUControlPanel(QWidget):
         self.show_grid_checkbox.toggled.connect(self.on_show_grid_toggled)
         display_layout.addWidget(self.show_grid_checkbox, 0, 1)
 
-        # Show numbers checkbox
-        self.show_numbers_checkbox = QCheckBox("Show Cell Counts")
-        self.show_numbers_checkbox.setChecked(self.webgpu_widget.show_numbers)
-        self.show_numbers_checkbox.toggled.connect(self.on_show_numbers_toggled)
-        display_layout.addWidget(self.show_numbers_checkbox, 1, 0)
-
         # Point size
-        display_layout.addWidget(QLabel("Point Size:"), 2, 0)
-        self.point_size_slider = QSlider(Qt.Horizontal)
-        self.point_size_slider.setRange(1, 10)
+        display_layout.addWidget(QLabel("Point Size:"), 1, 0)
+        self.point_size_slider = QSlider(Qt.Orientation.Horizontal)
+        self.point_size_slider.setRange(1, 500)
         self.point_size_slider.setValue(int(self.webgpu_widget.point_size))
         self.point_size_slider.valueChanged.connect(self.on_point_size_changed)
-        display_layout.addWidget(self.point_size_slider, 2, 1)
+        display_layout.addWidget(self.point_size_slider, 1, 1)
         self.point_size_label = QLabel(f"{self.webgpu_widget.point_size:.1f}")
-        display_layout.addWidget(self.point_size_label, 2, 2)
+        display_layout.addWidget(self.point_size_label, 1, 2)
 
         display_group.setLayout(display_layout)
         layout.addWidget(display_group)
 
-        # View Controls Group
-        view_group = QGroupBox("View Controls")
-        view_layout = QGridLayout()
+        # Camera Controls Group
+        camera_group = QGroupBox("Camera Controls")
+        camera_layout = QGridLayout()
 
-        # Zoom controls
-        view_layout.addWidget(QLabel("Zoom:"), 0, 0)
-        self.zoom_slider = QSlider(Qt.Horizontal)
-        self.zoom_slider.setRange(5, 200)  # 0.05 to 2.0
-        self.zoom_slider.setValue(int(self.webgpu_widget.zoom * 100))
-        self.zoom_slider.valueChanged.connect(self.on_zoom_changed)
-        view_layout.addWidget(self.zoom_slider, 0, 1)
-        self.zoom_label = QLabel(f"{self.webgpu_widget.zoom:.2f}")
-        view_layout.addWidget(self.zoom_label, 0, 2)
+        # Camera distance
+        camera_layout.addWidget(QLabel("Distance:"), 0, 0)
+        self.distance_slider = QSlider(Qt.Orientation.Horizontal)
+        self.distance_slider.setRange(100, 5000)
+        self.distance_slider.setValue(int(self.webgpu_widget.camera_distance))
+        self.distance_slider.valueChanged.connect(self.on_distance_changed)
+        camera_layout.addWidget(self.distance_slider, 0, 1)
+        self.distance_label = QLabel(f"{self.webgpu_widget.camera_distance:.0f}")
+        camera_layout.addWidget(self.distance_label, 0, 2)
 
-        # Reset view button
-        reset_view_btn = QPushButton("Reset View")
-        reset_view_btn.clicked.connect(self.reset_view)
-        view_layout.addWidget(reset_view_btn, 1, 0, 1, 3)
+        # Rotation X
+        camera_layout.addWidget(QLabel("Rotation X:"), 1, 0)
+        self.rotation_x_slider = QSlider(Qt.Orientation.Horizontal)
+        self.rotation_x_slider.setRange(-89, 89)
+        self.rotation_x_slider.setValue(int(self.webgpu_widget.rotation_x))
+        self.rotation_x_slider.valueChanged.connect(self.on_rotation_x_changed)
+        camera_layout.addWidget(self.rotation_x_slider, 1, 1)
+        self.rotation_x_label = QLabel(f"{self.webgpu_widget.rotation_x:.0f}°")
+        camera_layout.addWidget(self.rotation_x_label, 1, 2)
 
-        view_group.setLayout(view_layout)
-        layout.addWidget(view_group)
+        # Rotation Y
+        camera_layout.addWidget(QLabel("Rotation Y:"), 2, 0)
+        self.rotation_y_slider = QSlider(Qt.Orientation.Horizontal)
+        self.rotation_y_slider.setRange(-180, 180)
+        self.rotation_y_slider.setValue(int(self.webgpu_widget.rotation_y))
+        self.rotation_y_slider.valueChanged.connect(self.on_rotation_y_changed)
+        camera_layout.addWidget(self.rotation_y_slider, 2, 1)
+        self.rotation_y_label = QLabel(f"{self.webgpu_widget.rotation_y:.0f}°")
+        camera_layout.addWidget(self.rotation_y_label, 2, 2)
+
+        # Reset camera button
+        reset_camera_btn = QPushButton("Reset Camera")
+        reset_camera_btn.clicked.connect(self.reset_camera)
+        camera_layout.addWidget(reset_camera_btn, 3, 0, 1, 3)
+
+        camera_group.setLayout(camera_layout)
+        layout.addWidget(camera_group)
 
         # Action Buttons
         action_group = QGroupBox("Actions")
@@ -210,23 +250,30 @@ class WebGPUControlPanel(QWidget):
         action_group.setLayout(action_layout)
         layout.addWidget(action_group)
 
-        # Statistics Display
-        stats_group = QGroupBox("Statistics")
-        stats_layout = QVBoxLayout()
+        # Instructions
+        instructions_group = QGroupBox("Controls")
+        instructions_layout = QVBoxLayout()
 
-        self.stats_text = QTextEdit()
-        self.stats_text.setReadOnly(True)
-        self.stats_text.setMaximumHeight(150)
-        self.stats_text.setFont(QFont("Courier", 9))
-        stats_layout.addWidget(self.stats_text)
+        instructions_text = QTextEdit()
+        instructions_text.setReadOnly(True)
+        instructions_text.setMaximumHeight(120)
+        instructions_text.setFont(QFont("Courier", 9))
+        instructions_text.setPlainText(
+            "Mouse:\n"
+            "  Left Drag: Rotate camera\n"
+            "  Wheel: Zoom in/out\n\n"
+            "Keyboard:\n"
+            "  A: Toggle animation\n"
+            "  G: Toggle grid\n"
+            "  Space: Reset camera & wind\n"
+            "  Arrow Keys: Wind X/Y\n"
+            "  Page Up/Down: Wind Z\n"
+            "  ESC: Exit"
+        )
+        instructions_layout.addWidget(instructions_text)
 
-        # Update stats timer
-        self.stats_timer = QTimer()
-        self.stats_timer.timeout.connect(self.update_statistics)
-        self.stats_timer.start(500)  # Update every 500ms
-
-        stats_group.setLayout(stats_layout)
-        layout.addWidget(stats_group)
+        instructions_group.setLayout(instructions_layout)
+        layout.addWidget(instructions_group)
 
         layout.addStretch()
         self.setLayout(layout)
@@ -244,10 +291,9 @@ class WebGPUControlPanel(QWidget):
         self.reset_simulation.emit()
 
     def on_sim_width_changed(self, value):
-        # Update the global constant and reset simulation
-        import WebGPU2D
+        import WebGPU3D
 
-        WebGPU2D.SIM_WIDTH = value
+        WebGPU3D.SIM_WIDTH = value
         self.webgpu_widget.gen_points(
             self.webgpu_widget.num_points, self.distribution_combo.currentText()
         )
@@ -255,10 +301,19 @@ class WebGPUControlPanel(QWidget):
         self.reset_simulation.emit()
 
     def on_sim_height_changed(self, value):
-        # Update the global constant and reset simulation
-        import WebGPU2D
+        import WebGPU3D
 
-        WebGPU2D.SIM_HEIGHT = value
+        WebGPU3D.SIM_HEIGHT = value
+        self.webgpu_widget.gen_points(
+            self.webgpu_widget.num_points, self.distribution_combo.currentText()
+        )
+        self.webgpu_widget._init_buffers()
+        self.reset_simulation.emit()
+
+    def on_sim_depth_changed(self, value):
+        import WebGPU3D
+
+        WebGPU3D.SIM_DEPTH = value
         self.webgpu_widget.gen_points(
             self.webgpu_widget.num_points, self.distribution_combo.currentText()
         )
@@ -266,10 +321,9 @@ class WebGPUControlPanel(QWidget):
         self.reset_simulation.emit()
 
     def on_grid_size_changed(self, value):
-        # Update the global constant and reset simulation
-        import WebGPU2D
+        import WebGPU3D
 
-        WebGPU2D.GRID_CELL_SIZE = value
+        WebGPU3D.GRID_CELL_SIZE = value
         self.webgpu_widget.gen_points(
             self.webgpu_widget.num_points, self.distribution_combo.currentText()
         )
@@ -277,10 +331,9 @@ class WebGPUControlPanel(QWidget):
         self.reset_simulation.emit()
 
     def on_particle_radius_changed(self, value):
-        # Update the global constant and simulation parameters
-        import WebGPU2D
+        import WebGPU3D
 
-        WebGPU2D.PARTICLE_RADIUS = value
+        WebGPU3D.PARTICLE_RADIUS = value
         self.webgpu_widget.update_simulation_params()
         self.parameter_changed.emit()
 
@@ -296,6 +349,12 @@ class WebGPUControlPanel(QWidget):
         self.wind_y_label.setText(f"{wind_y:.2f}")
         self.parameter_changed.emit()
 
+    def on_wind_z_changed(self, value):
+        wind_z = value / 100.0
+        self.webgpu_widget.wind[2] = wind_z
+        self.wind_z_label.setText(f"{wind_z:.2f}")
+        self.parameter_changed.emit()
+
     def on_animate_toggled(self, checked):
         self.webgpu_widget.animate = checked
         self.parameter_changed.emit()
@@ -303,31 +362,45 @@ class WebGPUControlPanel(QWidget):
     def on_show_grid_toggled(self, checked):
         self.webgpu_widget.show_grid = checked
 
-    def on_show_numbers_toggled(self, checked):
-        self.webgpu_widget.show_numbers = checked
-
     def on_point_size_changed(self, value):
         point_size = value / 1.0
         self.webgpu_widget.point_size = point_size
         self.point_size_label.setText(f"{point_size:.1f}")
 
-    def on_zoom_changed(self, value):
-        zoom = value / 100.0
-        self.webgpu_widget.zoom = zoom
-        self.zoom_label.setText(f"{zoom:.2f}")
+    def on_distance_changed(self, value):
+        distance = float(value)
+        self.webgpu_widget.camera_distance = distance
+        self.distance_label.setText(f"{distance:.0f}")
+        self.webgpu_widget.update()
+
+    def on_rotation_x_changed(self, value):
+        rotation_x = float(value)
+        self.webgpu_widget.rotation_x = rotation_x
+        self.rotation_x_label.setText(f"{rotation_x:.0f}°")
+        self.webgpu_widget.update()
+
+    def on_rotation_y_changed(self, value):
+        rotation_y = float(value)
+        self.webgpu_widget.rotation_y = rotation_y
+        self.rotation_y_label.setText(f"{rotation_y:.0f}°")
         self.webgpu_widget.update()
 
     def reset_wind(self):
         self.webgpu_widget.wind[0] = 0.0
         self.webgpu_widget.wind[1] = 0.0
+        self.webgpu_widget.wind[2] = 0.0
         self.wind_x_slider.setValue(0)
         self.wind_y_slider.setValue(0)
+        self.wind_z_slider.setValue(0)
         self.parameter_changed.emit()
 
-    def reset_view(self):
-        self.webgpu_widget.zoom = 1.0
-        self.webgpu_widget.pan[:] = 0.0
-        self.zoom_slider.setValue(100)
+    def reset_camera(self):
+        self.webgpu_widget.camera_distance = 1500.0
+        self.webgpu_widget.rotation_x = 30.0
+        self.webgpu_widget.rotation_y = 45.0
+        self.distance_slider.setValue(1500)
+        self.rotation_x_slider.setValue(30)
+        self.rotation_y_slider.setValue(45)
         self.webgpu_widget.update()
 
     def regenerate_particles(self):
@@ -338,49 +411,26 @@ class WebGPUControlPanel(QWidget):
 
     def reset_all(self):
         self.reset_wind()
-        self.reset_view()
+        self.reset_camera()
         self.particle_spinbox.setValue(1000)
         self.distribution_combo.setCurrentText("random")
         self.sim_width_spinbox.setValue(SIM_WIDTH)
         self.sim_height_spinbox.setValue(SIM_HEIGHT)
+        self.sim_depth_spinbox.setValue(SIM_DEPTH)
         self.grid_size_spinbox.setValue(GRID_CELL_SIZE)
         self.particle_radius_spinbox.setValue(PARTICLE_RADIUS)
         self.animate_checkbox.setChecked(False)
         self.show_grid_checkbox.setChecked(True)
-        self.show_numbers_checkbox.setChecked(True)
-        self.point_size_slider.setValue(1)
+        self.point_size_slider.setValue(2)
         self.regenerate_particles()
 
-    def update_statistics(self):
-        try:
-            if hasattr(self.webgpu_widget, "read_cell_particle_counts"):
-                cell_counts = self.webgpu_widget.read_cell_particle_counts()
-                total_particles = np.sum(cell_counts)
-                max_in_cell = np.max(cell_counts)
-                avg_per_cell = np.mean(cell_counts)
-                non_empty_cells = np.count_nonzero(cell_counts)
-                total_cells = cell_counts.size
 
-                stats_text = f"""Particles: {total_particles}
-Max in cell: {max_in_cell}
-Avg per cell: {avg_per_cell:.2f}
-Non-empty cells: {non_empty_cells}/{total_cells}
-Occupancy: {(non_empty_cells / total_cells) * 100:.1f}%
-FPS: {1.0 / self.webgpu_widget.dt if self.webgpu_widget.dt > 0 else 0:.1f}
-Wind: [{self.webgpu_widget.wind[0]:.2f}, {self.webgpu_widget.wind[1]:.2f}]
-Zoom: {self.webgpu_widget.zoom:.2f}"""
-
-                self.stats_text.setPlainText(stats_text)
-        except Exception as e:
-            self.stats_text.setPlainText(f"Error updating stats: {e}")
-
-
-class WebGPU2DGui(QMainWindow):
-    """Main GUI window for WebGPU2D simulation."""
+class WebGPU3DGui(QMainWindow):
+    """Main GUI window for WebGPU3D simulation."""
 
     def __init__(self, num_points=1000, distribution="random"):
         super().__init__()
-        self.setWindowTitle("WebGPU 2D Particle Simulation - GUI")
+        self.setWindowTitle("WebGPU 3D Particle Simulation - GUI")
         self.setGeometry(100, 100, 1400, 900)
 
         # Create central widget
@@ -389,20 +439,19 @@ class WebGPU2DGui(QMainWindow):
 
         # Create main layout with splitter
         main_layout = QHBoxLayout(central_widget)
-        splitter = QSplitter(Qt.Horizontal)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
         main_layout.addWidget(splitter)
 
         # Create WebGPU widget
-        self.webgpu_widget = WebGPUScene(
+        self.webgpu_widget = WebGPUScene3D(
             num_points=num_points, distribution=distribution
         )
         self.webgpu_widget.setMinimumSize(800, 600)
-        # Set focus policy to allow the main window to handle keyboard events
         self.webgpu_widget.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         splitter.addWidget(self.webgpu_widget)
 
         # Create control panel
-        self.control_panel = WebGPUControlPanel(self.webgpu_widget)
+        self.control_panel = WebGPUControlPanel3D(self.webgpu_widget)
         self.control_panel.setMaximumWidth(350)
         self.control_panel.setMinimumWidth(300)
         splitter.addWidget(self.control_panel)
@@ -415,12 +464,10 @@ class WebGPU2DGui(QMainWindow):
         self.control_panel.parameter_changed.connect(self.on_parameter_changed)
 
     def keyPressEvent(self, event):
-        print(f"Key pressed: {event.key()}")
         if event.key() == Qt.Key.Key_R:
             self.reset_simulation()
         elif event.key() == Qt.Key.Key_Space:
             self.control_panel.animate_checkbox.click()
-            print(f"New state: {self.control_panel.animate_checkbox.isChecked()}")
         elif event.key() == Qt.Key.Key_Escape:
             self.close()
         else:
@@ -447,7 +494,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="WebGPU 2D Particle Simulation with GUI"
+        description="WebGPU 3D Particle Simulation with GUI"
     )
     parser.add_argument(
         "-p", "--points", type=int, default=1000, help="Initial number of particles"
@@ -476,7 +523,7 @@ def main():
     app = QApplication(sys.argv)
 
     try:
-        window = WebGPU2DGui(num_points=args.points, distribution=args.distribution)
+        window = WebGPU3DGui(num_points=args.points, distribution=args.distribution)
         window.show()
         return_code = app.exec()
         sys.exit(return_code)

@@ -649,9 +649,7 @@ class WebGPUScene(WebGPUWidget):
 
             if self.show_grid:
                 self.line_pipeline.set_data(positions=self.grid_buffer)
-                self.line_pipeline.render(
-                    render_pass=render_pass
-                )  # , num_lines=len(self.grid_lines))
+                self.line_pipeline.render(render_pass=render_pass)
 
             render_pass.end()
             self.device.queue.submit([command_encoder.finish()])
@@ -728,32 +726,51 @@ class WebGPUScene(WebGPUWidget):
             event: The QKeyEvent object containing information about the key press.
         """
         key = event.key()
-        if key == Qt.Key_Escape:
+        handled = False
+        if key == Qt.Key.Key_Escape:
             self.close()  # Exit the application
-        elif key == Qt.Key_A:
+            handled = True
+        elif key == Qt.Key.Key_A:
             self.animate = not self.animate
-        elif key == Qt.Key_G:
+            # Update the GUI checkbox to match
+            if hasattr(self.parent(), "control_panel"):
+                self.parent().control_panel.animate_checkbox.setChecked(self.animate)
+            handled = True
+        elif key == Qt.Key.Key_G:
             self.show_grid = not self.show_grid
-        elif key == Qt.Key_N:
+            handled = True
+        elif key == Qt.Key.Key_N:
             self.show_numbers = not self.show_numbers
-        elif key == Qt.Key_Space:
+            handled = True
+        elif key == Qt.Key.Key_Space:
             self.wind[0] = 0
             self.wind[1] = 0
             self.zoom = 1.0
             # Reset pan as well when space is pressed
             self.pan[:] = 0.0
-        elif key == Qt.Key_Up:
+            handled = True
+        elif key == Qt.Key.Key_Up:
             self.wind[1] += 0.1
-        elif key == Qt.Key_Down:
+            handled = True
+        elif key == Qt.Key.Key_Down:
             self.wind[1] -= 0.1
-        elif key == Qt.Key_Left:
+            handled = True
+        elif key == Qt.Key.Key_Left:
             self.wind[0] -= 0.1
-        elif key == Qt.Key_Right:
+            handled = True
+        elif key == Qt.Key.Key_Right:
             self.wind[0] += 0.1
-        # Trigger a redraw to apply changes
-        self.update()
-        # Call the base class implementation for any unhandled events
-        super().keyPressEvent(event)
+            handled = True
+
+        if handled:
+            # Trigger a redraw to apply changes
+            self.update()
+        else:
+            # Pass unhandled events to parent window
+            if self.parent():
+                self.parent().keyPressEvent(event)
+            # Call the base class implementation for any unhandled events
+            super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         """

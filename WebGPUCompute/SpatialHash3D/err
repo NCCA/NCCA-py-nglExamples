@@ -1,0 +1,2323 @@
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 624, in _render_pass
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Error calling Python override of QWidget::paintEvent(): Traceback (most recent call last):
+  File "/Volumes/teaching/Code/PyNGL/src/ncca/ngl/webgpu/webgpu_widget.py", line 118, in paintEvent
+    self._update_colour_buffer()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Volumes/teaching/Code/PyNGLDemos/WebGPUCompute/SpatialHash3D/./WebGPU3D.py", line 761, in _update_colour_buffer
+    self.device.queue.write_buffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        buffer=self.colour_buffer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        buffer_offset=0,
+        ^^^^^^^^^^^^^^^^
+        data=updated_colours.tobytes(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/Volumes/teaching/Code/PyNGLDemos/.venv/lib/python3.13/site-packages/wgpu/backends/wgpu_native/_api.py", line 3925, in write_buffer
+    libf.wgpuQueueWriteBuffer(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._internal, buffer._internal, buffer_offset, c_data, data_length
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+initializeWebGPU 3D
+WebGPU device created: <GPUDevice 4359908592>
+DEBUG: Position data shape: (1000, 3), min: -399.9961242675781, max: 399.6915283203125
+DEBUG: Position extents - X: [-400.00, 399.69]
+DEBUG: Position extents - Y: [-399.41, 399.11]
+DEBUG: Position extents - Z: [-399.95, 399.25]
+DEBUG: Simulation bounds: width=800, height=800, depth=800
+DEBUG: Grid cell size: 50.0
+DEBUG: Particle radius: 1.0
+Grid: 16x16x16 = 4096 cells
+DEBUG: Available pipeline types: ['MULTI_COLOURED_LINES', 'MULTI_COLOURED_POINTS', 'MULTI_COLOURED_TRIANGLES', 'POINT_LIST_MULTI_COLOURED', 'POINT_LIST_SINGLE_COLOUR', 'SINGLE_COLOUR_LINES', 'SINGLE_COLOUR_POINTS', 'SINGLE_COLOUR_TRIANGLES', 'TRIANGLE_LIST_MULTI_COLOURED', 'TRIANGLE_LIST_SINGLE_COLOUR', 'TRIANGLE_STRIP_MULTI_COLOURED', 'TRIANGLE_STRIP_SINGLE_COLOUR']
+DEBUG: Point pipeline created: <ncca.ngl.webgpu.point_pipeline.PointPipelineMultiColour object at 0x114396270>
+WebGPU 3D initialization complete
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
+Failed to paint WebGPU content: Validation Error
+
+Caused by:
+  In wgpuQueueWriteBuffer
+    Usage flags BufferUsages(VERTEX) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_DST)
