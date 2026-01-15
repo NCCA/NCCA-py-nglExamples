@@ -15,7 +15,7 @@ from wgpu.utils import get_default_device
 SIM_WIDTH = 500
 SIM_HEIGHT = 500
 GRID_CELL_SIZE = 50.0  # Size of each grid cell
-PARTICLE_RADIUS = 0.9  # Collision radius for particles
+PARTICLE_RADIUS = 1.0  # Collision radius for particles
 
 
 class WebGPUScene(WebGPUWidget):
@@ -433,6 +433,29 @@ class WebGPUScene(WebGPUWidget):
         counts_2d = counts.reshape(self.grid_height, self.grid_width)
         return counts_2d
 
+    def sim_to_qt_transformed(self, x: float, y: float) -> tuple:
+        """Transform simulation coordinates to screen coordinates accounting for zoom and pan."""
+        pixel_w = self.width()
+        pixel_h = self.height()
+
+        # Apply the same transformation as the WebGPU projection matrix
+        # First transform by zoom and pan, then map to screen coordinates
+        transformed_x = (x - self.pan[0]) / self.zoom
+        transformed_y = (y - self.pan[1]) / self.zoom
+
+        # Map from transformed simulation range to screen coordinates
+        qt_x = (transformed_x + SIM_WIDTH / 2.0) * (pixel_w / SIM_WIDTH)
+        qt_y = (SIM_HEIGHT / 2.0 - transformed_y) * (pixel_h / SIM_HEIGHT)
+
+        return qt_x, qt_y
+
+    def calculate_font_size(self, base_size: int = 10) -> int:
+        """Calculate appropriate font size based on zoom level."""
+        # Scale font size inversely with square root of zoom for perceptual consistency
+        scaled_size = base_size / np.sqrt(self.zoom)
+        # Clamp to reasonable bounds
+        return max(6, min(20, int(scaled_size)))
+
     def resizeWebGPU(self, width, height) -> None:
         """
         Called whenever the window is resized.
@@ -536,18 +559,61 @@ class WebGPUScene(WebGPUWidget):
 
             return qt_x, qt_y
 
-        for row in range(self.grid_height):
-            for col in range(self.grid_width):
-                x = -SIM_WIDTH / 2 + col * GRID_CELL_SIZE
-                y = -SIM_HEIGHT / 2 + row * GRID_CELL_SIZE
-                qt_x, qt_y = sim_to_qt(x, y)
-                self.render_text(
-                    qt_x,
-                    qt_y,
-                    f"{cell_counts[row, col]}",
-                    size=10,
-                    colour=Qt.yellow,
-                )
+        def sim_to_qt_transformed(x, y):
+            """Transform simulation coordinates to screen coordinates accounting for zoom and pan."""
+            pixel_w = self.width()
+            pixel_h = self.height()
+
+            # Apply the same transformation as the WebGPU projection matrix
+            # First transform by zoom and pan, then map to screen coordinates
+            transformed_x = (x - self.pan[0]) / self.zoom
+            transformed_y = (y - self.pan[1]) / self.zoom
+
+            # Map from transformed simulation range to screen coordinates
+            qt_x = (transformed_x + SIM_WIDTH / 2.0) * (pixel_w / SIM_WIDTH)
+            qt_y = (SIM_HEIGHT / 2.0 - transformed_y) * (pixel_h / SIM_HEIGHT)
+
+            return qt_x, qt_y
+
+        def calculate_font_size(base_size=10):
+            """Calculate appropriate font size based on zoom level."""
+            # Scale font size inversely with square root of zoom for perceptual consistency
+            scaled_size = base_size / np.sqrt(self.zoom)
+            # Clamp to reasonable bounds
+            return max(6, min(20, scaled_size))
+
+        # Calculate base font size once
+        font_size = calculate_font_size()
+
+        # Calculate cell size in screen pixels to determine if text should be rendered
+        cell_x_start, cell_y_start = sim_to_qt_transformed(
+            -SIM_WIDTH / 2, -SIM_HEIGHT / 2
+        )
+        cell_x_end, cell_y_end = sim_to_qt_transformed(
+            -SIM_WIDTH / 2 + GRID_CELL_SIZE, -SIM_HEIGHT / 2 + GRID_CELL_SIZE
+        )
+        cell_pixel_width = abs(cell_x_end - cell_x_start)
+        cell_pixel_height = abs(cell_y_end - cell_y_start)
+
+        # Only render text if cells are large enough to be readable
+        if cell_pixel_width > 15 and cell_pixel_height > 15:
+            for row in range(self.grid_height):
+                for col in range(self.grid_width):
+                    x = -SIM_WIDTH / 2 + col * GRID_CELL_SIZE
+                    y = -SIM_HEIGHT / 2 + row * GRID_CELL_SIZE
+                    # Use transformed coordinates to account for zoom and pan
+                    qt_x, qt_y = sim_to_qt_transformed(x, y)
+
+                    # Only render if text is visible on screen
+                    if 0 <= qt_x <= self.width() and 0 <= qt_y <= self.height():
+                        # Convert to integers for Qt text rendering
+                        self.render_text(
+                            int(qt_x),
+                            int(qt_y),
+                            f"{cell_counts[row, col]}",
+                            size=font_size,
+                            colour=Qt.yellow,
+                        )
 
     def _render_pass(self):
         try:
