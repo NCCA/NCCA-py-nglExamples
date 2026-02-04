@@ -325,9 +325,9 @@ class WebGPUTextureScene(WebGPUWidget):
         rot_y = Mat4.rotate_y(self.spin_y_face)
         self.mouse_global_tx = rot_y @ rot_x
         # Apply translation
-        self.mouse_global_tx[3][0] = self.model_position.x
-        self.mouse_global_tx[3][1] = self.model_position.y
-        self.mouse_global_tx[3][2] = self.model_position.z
+        self.mouse_global_tx[3, 0] = self.model_position.x
+        self.mouse_global_tx[3, 1] = self.model_position.y
+        self.mouse_global_tx[3, 2] = self.model_position.z
 
         # Calculate the final Model-View-Projection (MVP) matrix.
         mvp = self.project @ self.view @ self.mouse_global_tx

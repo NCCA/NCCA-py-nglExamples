@@ -264,9 +264,6 @@ if __name__ == "__main__":
     # Set default format for all new OpenGL contexts
     QSurfaceFormat.setDefaultFormat(format)
 
-    # Apply this format to all new OpenGL contexts
-    QSurfaceFormat.setDefaultFormat(format)
-
     # Check for a "--debug" command-line argument to run the DebugApplication
     if len(sys.argv) > 1 and "--debug" in sys.argv:
         app = DebugApplication(sys.argv)

@@ -5,19 +5,17 @@ import traceback
 
 import numpy as np
 import wgpu
-from line_pipeline import LinePipeline
 from ncca.ngl import PerspMode, Vec2, logger, ortho
-from point_pipeline import PointPipeline
+from ncca.ngl.webgpu import PipelineFactory, PipelineType, WebGPUWidget
 from PySide6.QtCore import QElapsedTimer, Qt, QTimerEvent
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
-SIM_WIDTH = 500
-SIM_HEIGHT = 500
-GRID_CELL_SIZE = 15.0  # Size of each grid cell
-PARTICLE_RADIUS = 0.9  # Collision radius for particles
+SIM_WIDTH = 800
+SIM_HEIGHT = 800
+GRID_CELL_SIZE = 50.0  # Size of each grid cell
+PARTICLE_RADIUS = 1.0  # Collision radius for particles
 
 
 class WebGPUScene(WebGPUWidget):
@@ -32,7 +30,7 @@ class WebGPUScene(WebGPUWidget):
         super().__init__()
         self.window_width: int = 1024  # Window width
         self.window_height: int = 720  # Window height
-        self.setWindowTitle("WebGPU 2D Pan and Zoom with Collisions")
+        self.setWindowTitle("WebGPU Compute Collisions with Spatial Hashing")
         self.device = None
         self.compute_pipeline = None
         self.line_pipeline = None
@@ -43,7 +41,7 @@ class WebGPUScene(WebGPUWidget):
         self.num_points = num_points
         self.msaa_sample_count = 4
         self.ratio = self.devicePixelRatio()
-        self.animate = False  # True
+        self.animate = False
         self.pan_x = 0.0
         self.pan_y = 0.0
         self.zoom = 1.0
@@ -51,7 +49,7 @@ class WebGPUScene(WebGPUWidget):
         self.last_mouse_pos = None
         self.show_grid = True
         self.show_numbers = True
-        self.point_size = 0.6
+        self.point_size = 1.0
         self.wind = np.array([0.0, 0.0], dtype=np.float32)
         self.timer = QElapsedTimer()
         self.dt = 0.0
@@ -146,20 +144,32 @@ class WebGPUScene(WebGPUWidget):
         print("initializeWebGPU")
         try:
             self.device = get_default_device()
+            print(f"WebGPU device created: {self.device}")
             self._init_buffers()
             self._create_compute_pipeline()
             # stride must be 16 as pos and dir in buffer are both Vec2
 
-            self.point_pipeline = PointPipeline(self.device, "Vec2", stride=16)
-            self.line_pipeline = LinePipeline(
-                self.device, "Vec2", topology=wgpu.PrimitiveTopology.line_list
+            self.point_pipeline = PipelineFactory.create_pipeline(
+                self.device,
+                PipelineType.MULTI_COLOURED_POINTS,
+                data_type="Vec2",
+                stride=16,
             )
-            # self._create_line_render_pipeline()
+            self.line_pipeline = PipelineFactory.create_pipeline(
+                self.device,
+                PipelineType.SINGLE_COLOUR_LINES,
+                data_type="Vec2",
+                topology=wgpu.PrimitiveTopology.line_list,
+            )
             self.startTimer(16)
             self.timer.start()
             self.last_time = self.timer.elapsed() / 1000.0
+            print("WebGPU initialization complete")
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
+            import traceback
+
+            traceback.print_exc()
 
     def _init_buffers(self):
         # Create a storage buffer for particles (used by compute shader and rendering)
@@ -405,7 +415,7 @@ class WebGPUScene(WebGPUWidget):
             source_offset=0,
             destination=self.cell_count_staging_buffer,
             destination_offset=0,
-            size=self.total_cells * 4,
+            size=self.total_cells * 4,  # size of uint32
         )
         # Submit the copy command and wait for completion
         self.device.queue.submit([command_encoder.finish()])
@@ -422,6 +432,29 @@ class WebGPUScene(WebGPUWidget):
         # Reshape to 2D grid
         counts_2d = counts.reshape(self.grid_height, self.grid_width)
         return counts_2d
+
+    def sim_to_qt_transformed(self, x: float, y: float) -> tuple:
+        """Transform simulation coordinates to screen coordinates accounting for zoom and pan."""
+        pixel_w = self.width()
+        pixel_h = self.height()
+
+        # Apply the same transformation as the WebGPU projection matrix
+        # First transform by zoom and pan, then map to screen coordinates
+        transformed_x = (x - self.pan[0]) / self.zoom
+        transformed_y = (y - self.pan[1]) / self.zoom
+
+        # Map from transformed simulation range to screen coordinates
+        qt_x = (transformed_x + SIM_WIDTH / 2.0) * (pixel_w / SIM_WIDTH)
+        qt_y = (SIM_HEIGHT / 2.0 - transformed_y) * (pixel_h / SIM_HEIGHT)
+
+        return qt_x, qt_y
+
+    def calculate_font_size(self, base_size: int = 10) -> int:
+        """Calculate appropriate font size based on zoom level."""
+        # Scale font size inversely with square root of zoom for perceptual consistency
+        scaled_size = base_size / np.sqrt(self.zoom)
+        # Clamp to reasonable bounds
+        return max(6, min(20, int(scaled_size)))
 
     def resizeWebGPU(self, width, height) -> None:
         """
@@ -503,12 +536,12 @@ class WebGPUScene(WebGPUWidget):
         max_in_cell = np.max(cell_counts)
         avg_per_cell = np.mean(cell_counts)
         non_empty_cells = np.count_nonzero(cell_counts)
-        print("Frame Stats:")
-        print(f"  Total particles counted: {total_particles}")
-        print(f"  Max particles in a cell: {max_in_cell}")
-        print(f"  Avg particles per cell: {avg_per_cell:.2f}")
-        print(f"  Non-empty cells: {non_empty_cells}/{self.total_cells}")
-        print("-" * 50)
+        # print("Frame Stats:")
+        # print(f"  Total particles counted: {total_particles}")
+        # print(f"  Max particles in a cell: {max_in_cell}")
+        # print(f"  Avg particles per cell: {avg_per_cell:.2f}")
+        # print(f"  Non-empty cells: {non_empty_cells}/{self.total_cells}")
+        # print("-" * 50)
 
         def sim_to_qt(x, y):
             # # widget size in device pixels (account for HiDPI)
@@ -526,18 +559,61 @@ class WebGPUScene(WebGPUWidget):
 
             return qt_x, qt_y
 
-        for row in range(self.grid_height):
-            for col in range(self.grid_width):
-                x = -SIM_WIDTH / 2 + col * GRID_CELL_SIZE
-                y = -SIM_HEIGHT / 2 + row * GRID_CELL_SIZE
-                qt_x, qt_y = sim_to_qt(x, y)
-                self.render_text(
-                    qt_x,
-                    qt_y,
-                    f"{cell_counts[row, col]}",
-                    size=10,
-                    colour=Qt.yellow,
-                )
+        def sim_to_qt_transformed(x, y):
+            """Transform simulation coordinates to screen coordinates accounting for zoom and pan."""
+            pixel_w = self.width()
+            pixel_h = self.height()
+
+            # Apply the same transformation as the WebGPU projection matrix
+            # First transform by zoom and pan, then map to screen coordinates
+            transformed_x = (x - self.pan[0]) / self.zoom
+            transformed_y = (y - self.pan[1]) / self.zoom
+
+            # Map from transformed simulation range to screen coordinates
+            qt_x = (transformed_x + SIM_WIDTH / 2.0) * (pixel_w / SIM_WIDTH)
+            qt_y = (SIM_HEIGHT / 2.0 - transformed_y) * (pixel_h / SIM_HEIGHT)
+
+            return qt_x, qt_y
+
+        def calculate_font_size(base_size=10):
+            """Calculate appropriate font size based on zoom level."""
+            # Scale font size inversely with square root of zoom for perceptual consistency
+            scaled_size = base_size / np.sqrt(self.zoom)
+            # Clamp to reasonable bounds
+            return max(6, min(20, scaled_size))
+
+        # Calculate base font size once
+        font_size = calculate_font_size()
+
+        # Calculate cell size in screen pixels to determine if text should be rendered
+        cell_x_start, cell_y_start = sim_to_qt_transformed(
+            -SIM_WIDTH / 2, -SIM_HEIGHT / 2
+        )
+        cell_x_end, cell_y_end = sim_to_qt_transformed(
+            -SIM_WIDTH / 2 + GRID_CELL_SIZE, -SIM_HEIGHT / 2 + GRID_CELL_SIZE
+        )
+        cell_pixel_width = abs(cell_x_end - cell_x_start)
+        cell_pixel_height = abs(cell_y_end - cell_y_start)
+
+        # Only render text if cells are large enough to be readable
+        if cell_pixel_width > 15 and cell_pixel_height > 15:
+            for row in range(self.grid_height):
+                for col in range(self.grid_width):
+                    x = -SIM_WIDTH / 2 + col * GRID_CELL_SIZE
+                    y = -SIM_HEIGHT / 2 + row * GRID_CELL_SIZE
+                    # Use transformed coordinates to account for zoom and pan
+                    qt_x, qt_y = sim_to_qt_transformed(x, y)
+
+                    # Only render if text is visible on screen
+                    if 0 <= qt_x <= self.width() and 0 <= qt_y <= self.height():
+                        # Convert to integers for Qt text rendering
+                        self.render_text(
+                            int(qt_x),
+                            int(qt_y),
+                            f"{cell_counts[row, col]}",
+                            size=font_size,
+                            colour=Qt.yellow,
+                        )
 
     def _render_pass(self):
         try:
@@ -564,12 +640,16 @@ class WebGPUScene(WebGPUWidget):
             render_pass.set_viewport(
                 0, 0, self.texture_size[0], self.texture_size[1], 0, 1
             )
-            self.point_pipeline.set_data(self.particle_buffer, self.colour_buffer)
-            self.point_pipeline.render(render_pass, self.num_points)
+            self.point_pipeline.set_data(
+                positions=self.particle_buffer, colours=self.colour_buffer
+            )
+            self.point_pipeline.render(
+                render_pass=render_pass
+            )  # num_points=self.num_points)
 
             if self.show_grid:
-                self.line_pipeline.set_data(self.grid_buffer)
-                self.line_pipeline.render(render_pass, len(self.grid_lines))
+                self.line_pipeline.set_data(positions=self.grid_buffer)
+                self.line_pipeline.render(render_pass=render_pass)
 
             render_pass.end()
             self.device.queue.submit([command_encoder.finish()])
@@ -605,6 +685,12 @@ class WebGPUScene(WebGPUWidget):
         self.sim_params["dt"] = self.dt
         self.sim_params["wind_x"] = self.wind[0]
         self.sim_params["wind_y"] = self.wind[1]
+        self.sim_params["width"] = SIM_WIDTH
+        self.sim_params["height"] = SIM_HEIGHT
+        self.sim_params["grid_width"] = self.grid_width
+        self.sim_params["grid_height"] = self.grid_height
+        self.sim_params["cell_size"] = GRID_CELL_SIZE
+        self.sim_params["particle_radius"] = PARTICLE_RADIUS
         self.device.queue.write_buffer(
             buffer=self.sim_params_buffer,
             buffer_offset=0,
@@ -627,8 +713,10 @@ class WebGPUScene(WebGPUWidget):
             1,
             PerspMode.WebGPU,
         )
-        self.point_pipeline.update_uniforms(proj.to_numpy(), self.point_size)
-        self.line_pipeline.update_uniforms(proj.to_numpy(), self.point_size)
+        self.point_pipeline.update_uniforms(
+            mvp=proj.to_numpy(), point_size=self.point_size
+        )
+        self.line_pipeline.update_uniforms(mvp=proj.to_numpy())
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         """
@@ -638,32 +726,51 @@ class WebGPUScene(WebGPUWidget):
             event: The QKeyEvent object containing information about the key press.
         """
         key = event.key()
-        if key == Qt.Key_Escape:
+        handled = False
+        if key == Qt.Key.Key_Escape:
             self.close()  # Exit the application
-        elif key == Qt.Key_A:
+            handled = True
+        elif key == Qt.Key.Key_A:
             self.animate = not self.animate
-        elif key == Qt.Key_G:
+            # Update the GUI checkbox to match
+            if hasattr(self.parent(), "control_panel"):
+                self.parent().control_panel.animate_checkbox.setChecked(self.animate)
+            handled = True
+        elif key == Qt.Key.Key_G:
             self.show_grid = not self.show_grid
-        elif key == Qt.Key_N:
+            handled = True
+        elif key == Qt.Key.Key_N:
             self.show_numbers = not self.show_numbers
-        elif key == Qt.Key_Space:
+            handled = True
+        elif key == Qt.Key.Key_Space:
             self.wind[0] = 0
             self.wind[1] = 0
             self.zoom = 1.0
             # Reset pan as well when space is pressed
             self.pan[:] = 0.0
-        elif key == Qt.Key_Up:
+            handled = True
+        elif key == Qt.Key.Key_Up:
             self.wind[1] += 0.1
-        elif key == Qt.Key_Down:
+            handled = True
+        elif key == Qt.Key.Key_Down:
             self.wind[1] -= 0.1
-        elif key == Qt.Key_Left:
+            handled = True
+        elif key == Qt.Key.Key_Left:
             self.wind[0] -= 0.1
-        elif key == Qt.Key_Right:
+            handled = True
+        elif key == Qt.Key.Key_Right:
             self.wind[0] += 0.1
-        # Trigger a redraw to apply changes
-        self.update()
-        # Call the base class implementation for any unhandled events
-        super().keyPressEvent(event)
+            handled = True
+
+        if handled:
+            # Trigger a redraw to apply changes
+            self.update()
+        else:
+            # Pass unhandled events to parent window
+            if self.parent():
+                self.parent().keyPressEvent(event)
+            # Call the base class implementation for any unhandled events
+            super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         """

@@ -5,8 +5,8 @@
 
 [project]
 name = "pyngldemos"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "Demos for PyNGL"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -18,7 +18,7 @@ dependencies = [
     "wgpu",
     "marimo>=0.17.2",
     "matplotlib>=3.10.7",
-    "ncca-ngl>=0.2.7",
+    "ncca-ngl>=0.5.0",
 ]
 
 
@@ -27,8 +27,8 @@ members=["*"]
 exclude=["*"]
 [tool.uv.sources]
 # ncca-ngl = [
-# { path = "/home/jmacey/Code/PyNGL/", editable=true}
-# ]
+#  { path = "/Users/jmacey/teaching/Code/PyNGL", editable=true}
+#  ]
 
 [dependency-groups]
 dev = [

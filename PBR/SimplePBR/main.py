@@ -161,9 +161,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.mouse_global_tx = rot_y @ rot_x
 
         # Update model position
-        self.mouse_global_tx[3][0] = self.model_position.x
-        self.mouse_global_tx[3][1] = self.model_position.y
-        self.mouse_global_tx[3][2] = self.model_position.z
+        self.mouse_global_tx[3, 0] = self.model_position.x
+        self.mouse_global_tx[3, 1] = self.model_position.y
+        self.mouse_global_tx[3, 2] = self.model_position.z
 
         # Render the floor
         ShaderLib.use(DefaultShader.COLOUR)

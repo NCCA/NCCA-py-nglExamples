@@ -68,7 +68,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         super().__init__()
         self.setup_event_handling(
             rotation_sensitivity=0.5,
-            translation_sensitivity=0.01,
+            translation_sensitivity=0.1,
             zoom_sensitivity=0.1,
             initial_position=Vec3(0, 0, 0),
         )  # --- Camera and Transformation Attributes ---
@@ -282,9 +282,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         rot_y = Mat4().rotate_y(self.spin_y_face)
         self.mouse_global_tx = rot_y @ rot_x
         # Update model position
-        self.mouse_global_tx[3][0] = self.model_position.x
-        self.mouse_global_tx[3][1] = self.model_position.y
-        self.mouse_global_tx[3][2] = self.model_position.z
+        self.mouse_global_tx[3, 0] = self.model_position.x
+        self.mouse_global_tx[3, 1] = self.model_position.y
+        self.mouse_global_tx[3, 2] = self.model_position.z
 
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(
