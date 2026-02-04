@@ -717,10 +717,21 @@ class WebGPUScene3D(WebGPUWidget):
             Vec3(0, 1, 0),
         )
 
+        # For proper billboarding, create MVP without camera rotation
+        # The view matrix should only contain translation, no rotation
+        view_translation_only = Mat4.identity()
+        view_translation_only.m[3][0] = self.view.m[3][0]  # X translation
+        view_translation_only.m[3][1] = self.view.m[3][1]  # Y translation
+        view_translation_only.m[3][2] = self.view.m[3][2]  # Z translation
+
+        # MVP matrix for points (with billboarding - no view rotation)
         self.mvp_matrix = (
-            (self.project @ self.view @ rot_y_rad).to_numpy().astype(np.float32)
+            (self.project @ view_translation_only @ rot_y_rad @ rot_x_rad)
+            .to_numpy()
+            .astype(np.float32)
         )
-        self.view_matrix = (self.view @ self.view).to_numpy().astype(np.float32)
+        # View matrix for other elements (grid lines) - keep full view transform
+        self.view_matrix = self.view.to_numpy().astype(np.float32)
 
         self.point_pipeline.update_uniforms(
             mvp=self.mvp_matrix,
