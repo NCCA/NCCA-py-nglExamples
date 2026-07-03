@@ -68,7 +68,7 @@ def _(Mat4, Vec3, look_at, perspective, vertex_uniform_data):
     MV = view @ model_tx
     MVP = project @ MV
     normal_matrix = MV.copy()  # need to copy else we get the same matrix
-    normal_matrix.inverse().transpose()
+    normal_matrix = normal_matrix.inverse().transposed()
 
     vertex_uniform_data["MVP"] = MVP.to_numpy()
     vertex_uniform_data["model_view"] = MV.to_numpy()

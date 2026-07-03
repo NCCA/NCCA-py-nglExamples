@@ -127,18 +127,18 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Primitives.create(Prims.TRIANGLE_PLANE, "floor", 20, 20, 10, 10, Vec3(0, 1, 0))
 
     def load_matrices_to_shader(self):
-        M = self.mouse_global_tx @ self.transform.get_matrix()
+        M = self.mouse_global_tx @ self.transform.matrix()
         MV = self.view @ M
         MVP = self.project @ MV
 
         normalMatrix = Mat3.from_mat4(MV)
-        normalMatrix.inverse().transpose()
+        normalMatrix = normalMatrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", MVP)
         ShaderLib.set_uniform("normalMatrix", normalMatrix)
         ShaderLib.set_uniform("M", M)
 
     def load_matrices_to_colour_shader(self):
-        M = self.mouse_global_tx @ self.transform.get_matrix()
+        M = self.mouse_global_tx @ self.transform.matrix()
         MV = self.view @ M
         MVP = self.project @ MV
         ShaderLib.use(DefaultShader.COLOUR)

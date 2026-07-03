@@ -223,10 +223,10 @@ class ArcballCamera:
         # Extract right and up vectors from view matrix
         right = Vec3(
             current_view[0][0], current_view[1][0], current_view[2][0]
-        ).normalize()
+        ).normalized()
         up = Vec3(
             current_view[0][1], current_view[1][1], current_view[2][1]
-        ).normalize()
+        ).normalized()
 
         # Scale pan by distance and field of view with improved sensitivity
         fov_scale = math.tan(math.radians(22.5))  # Half of 45-degree FOV
@@ -251,7 +251,7 @@ class ArcballCamera:
         )
 
         # Maintain direction from target to eye
-        direction = (self.eye - self.target).normalize()
+        direction = (self.eye - self.target).normalized()
         self.eye = self.target + direction * self.distance
 
     def get_view_matrix(self):
@@ -364,7 +364,7 @@ class MainWindow(QOpenGLWindow):
 
         MVP = self.project @ self.view @ model
         normal_matrix = self.view @ model
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
 
         t[0]["MVP"] = MVP.to_numpy()
         t[0]["normal_matrix"] = normal_matrix.to_numpy()
@@ -387,7 +387,7 @@ class MainWindow(QOpenGLWindow):
         tx = Mat4().translate(0.0, -0.45, 0.0)
         mvp = self.project @ self.view @ tx
         normal_matrix = Mat3.from_mat4(mvp)
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", mvp)
         ShaderLib.set_uniform("normalMatrix", normal_matrix)
         Primitives.draw("floor")

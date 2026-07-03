@@ -225,10 +225,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Primitives.draw("plane")
         self.transform.set_position(0, 1, 0)
         MVP = (
-            self.projection
-            @ self.view
-            @ self.mouse_global_tx
-            @ self.transform.get_matrix()
+            self.projection @ self.view @ self.mouse_global_tx @ self.transform.matrix()
         )
         ShaderLib.set_uniform("MVP", MVP)
         Primitives.draw("sphere")
@@ -238,11 +235,11 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Load transformation matrices to the shader uniforms.
         """
         ShaderLib.use(PHONG_SHADER)
-        M = self.transform.get_matrix()
+        M = self.transform.matrix()
         MV = self.view @ M
         mvp = self.project @ MV
         normal_matrix = Mat3.from_mat4(MV)
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", mvp)
         ShaderLib.set_uniform("MV", MV)
         ShaderLib.set_uniform("M", M)

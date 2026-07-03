@@ -186,11 +186,11 @@ class MainWindow(QOpenGLWindow):
         """Loads model, view, and projection matrices to the PBR shader."""
         ShaderLib.use(PBR_SHADER)
 
-        M = self.mouse_global_tx @ self.transform.get_matrix()
+        M = self.mouse_global_tx @ self.transform.matrix()
         MV = self.view @ M
         MVP = self.project @ MV
         normal_matrix = Mat3.from_mat4(MV)
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", MVP)
         ShaderLib.set_uniform("normalMatrix", normal_matrix)
         ShaderLib.set_uniform("M", M)
@@ -242,12 +242,7 @@ class MainWindow(QOpenGLWindow):
             colour: The color of the light.
         """
         ShaderLib.use(DefaultShader.COLOUR)
-        MVP = (
-            self.project
-            @ self.view
-            @ self.mouse_global_tx
-            @ self.transform.get_matrix()
-        )
+        MVP = self.project @ self.view @ self.mouse_global_tx @ self.transform.matrix()
         ShaderLib.set_uniform("MVP", MVP)
         c = colour / 200.0
         ShaderLib.set_uniform("Colour", c.x, c.y, c.z, 1.0)

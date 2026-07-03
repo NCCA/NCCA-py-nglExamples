@@ -310,13 +310,11 @@ class WebGPUScene(WebGPUWidget):
         self.mouse_global_tx[3, 1] = self.model_position.y
         self.mouse_global_tx[3, 2] = self.model_position.z
         # Update transform UBO
-        model_view = (
-            self.view @ self.model_transform.get_matrix() @ self.mouse_global_tx
-        )
+        model_view = self.view @ self.model_transform.matrix() @ self.mouse_global_tx
         self.transform_uniforms["M"] = model_view.to_numpy()
         self.transform_uniforms["MVP"] = (self.project @ model_view).to_numpy()
         normal_matrix = model_view.copy()
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         self.transform_uniforms["normal_matrix"] = normal_matrix.to_numpy()
         self.device.queue.write_buffer(
             self.transform_buffer, 0, self.transform_uniforms.tobytes()

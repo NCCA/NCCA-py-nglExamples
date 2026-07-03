@@ -162,16 +162,16 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         with self.vao:
             t = Transform()
             t.set_position(-1.2, 0.0, 0.0)
-            mvp = self.project @ self.view @ t.get_matrix() @ mouse_global_tx
+            mvp = self.project @ self.view @ t.matrix() @ mouse_global_tx
             ShaderLib.set_uniform("MVP", mvp)
             self.vao.draw(0, self.index * 3)
             t.set_position(0.0, 0.0, 0.0)
-            mvp = self.project @ self.view @ t.get_matrix() @ mouse_global_tx
+            mvp = self.project @ self.view @ t.matrix() @ mouse_global_tx
             ShaderLib.set_uniform("MVP", mvp)
             gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
             self.vao.draw()
             t.set_position(1.2, 0.0, 0.0)
-            mvp = self.project @ self.view @ t.get_matrix() @ mouse_global_tx
+            mvp = self.project @ self.view @ t.matrix() @ mouse_global_tx
             ShaderLib.set_uniform("MVP", mvp)
             self.vao.draw(self.index * 3, 3)
             gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)

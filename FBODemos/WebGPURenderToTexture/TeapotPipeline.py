@@ -1,6 +1,5 @@
 import numpy as np
 import wgpu
-
 from ncca.ngl import Mat4, PrimData, Prims, Vec3
 
 
@@ -25,7 +24,9 @@ class TeapotPipeline:
         self._create_render_pipeline()
         teapot = PrimData.primitive(Prims.TEAPOT.value)
         self.teapot_size = teapot.size // 8
-        self.vertex_buffer = self.device.create_buffer_with_data(data=teapot, usage=wgpu.BufferUsage.VERTEX)
+        self.vertex_buffer = self.device.create_buffer_with_data(
+            data=teapot, usage=wgpu.BufferUsage.VERTEX
+        )
         self.width = width
         self.height = height
 
@@ -76,11 +77,13 @@ class TeapotPipeline:
         # Create uniform buffers
 
         # Transforms UBO
-        transform_dtype = np.dtype([
-            ("MVP", np.float32, (4, 4)),
-            ("normal_matrix", np.float32, (4, 4)),
-            ("M", np.float32, (4, 4)),
-        ])
+        transform_dtype = np.dtype(
+            [
+                ("MVP", np.float32, (4, 4)),
+                ("normal_matrix", np.float32, (4, 4)),
+                ("M", np.float32, (4, 4)),
+            ]
+        )
         self.transform_uniforms = np.zeros((), dtype=transform_dtype)
         self.transform_buffer = self.device.create_buffer(
             size=self.transform_uniforms.nbytes,
@@ -90,12 +93,14 @@ class TeapotPipeline:
 
         # Material UBO
         # Note: WGSL structures have specific padding rules (std140).
-        material_dtype = np.dtype({
-            "names": ["albedo", "metallic", "roughness", "ao"],
-            "formats": [(np.float32, 3), np.float32, np.float32, np.float32],
-            "offsets": [0, 12, 16, 20],
-            "itemsize": 32,
-        })
+        material_dtype = np.dtype(
+            {
+                "names": ["albedo", "metallic", "roughness", "ao"],
+                "formats": [(np.float32, 3), np.float32, np.float32, np.float32],
+                "offsets": [0, 12, 16, 20],
+                "itemsize": 32,
+            }
+        )
 
         self.material_uniforms = np.zeros((), dtype=material_dtype)
         self.material_uniforms["albedo"] = (0.950, 0.71, 0.29)
@@ -109,12 +114,14 @@ class TeapotPipeline:
         )
 
         # Light UBO
-        light_dtype = np.dtype({
-            "names": ["lightPosition", "lightColor"],
-            "formats": [(np.float32, 3), (np.float32, 3)],
-            "offsets": [0, 16],
-            "itemsize": 32,
-        })
+        light_dtype = np.dtype(
+            {
+                "names": ["lightPosition", "lightColor"],
+                "formats": [(np.float32, 3), (np.float32, 3)],
+                "offsets": [0, 16],
+                "itemsize": 32,
+            }
+        )
         self.light_uniforms = np.zeros((), dtype=light_dtype)
         self.light_uniforms["lightPosition"] = self.light_pos.to_numpy()
         self.light_uniforms["lightColor"] = (400.0, 400.0, 400.0)
@@ -125,12 +132,14 @@ class TeapotPipeline:
         )
 
         # View UBO
-        view_dtype = np.dtype({
-            "names": ["camPos", "exposure"],
-            "formats": [(np.float32, 3), np.float32],
-            "offsets": [0, 12],
-            "itemsize": 16,
-        })
+        view_dtype = np.dtype(
+            {
+                "names": ["camPos", "exposure"],
+                "formats": [(np.float32, 3), np.float32],
+                "offsets": [0, 12],
+                "itemsize": 16,
+            }
+        )
         self.view_uniforms = np.zeros((), dtype=view_dtype)
         self.view_uniforms["camPos"] = self.eye.to_numpy()
         self.view_uniforms["exposure"] = 2.2
@@ -194,7 +203,7 @@ class TeapotPipeline:
         model_view = self.view @ model
         MVP = self.project @ model_view
         normal_matrix = model_view.copy()
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
 
         self.transform_uniforms["M"] = model_view.to_numpy()
         self.transform_uniforms["MVP"] = MVP.to_numpy()

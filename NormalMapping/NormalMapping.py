@@ -226,7 +226,7 @@ class MainWindow(QOpenGLWindow):
         MV = self.view @ M
         MVP = self.project @ MV
         normalMatrix = Mat3.from_mat4(MV)
-        normalMatrix.inverse().transpose()
+        normalMatrix = normalMatrix.inverse().transposed()
         ShaderLib.set_uniform("normalMatrix", normalMatrix)
         ShaderLib.set_uniform("MVP", MVP)
         ShaderLib.set_uniform("M", M)

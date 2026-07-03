@@ -223,12 +223,7 @@ class MainWindow(QOpenGLWindow):
 
         # Create an actual structured array instance
 
-        MVP = (
-            self.project
-            @ self.view
-            @ self.mouse_global_tx
-            @ self.transform.get_matrix()
-        )
+        MVP = self.project @ self.view @ self.mouse_global_tx @ self.transform.matrix()
         ShaderLib.set_uniform("MVP", MVP)
 
     def paintGL(self) -> None:

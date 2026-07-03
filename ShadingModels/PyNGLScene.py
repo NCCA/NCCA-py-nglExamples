@@ -180,7 +180,7 @@ class PyNGLScene(QOpenGLWidget):
         MV = self.camera.get_view_matrix() @ self._model_transform @ model_matrix
         MVP = self.camera.get_projection_matrix() @ MV
         normal_matrix = Mat3.from_mat4(MV)
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         self.shader.apply_uniforms(MVP, MV, normal_matrix)
 
         if self._wireframe:

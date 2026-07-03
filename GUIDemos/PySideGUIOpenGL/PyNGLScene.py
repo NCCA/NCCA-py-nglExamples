@@ -109,10 +109,10 @@ class PyNGLScene(QOpenGLWidget):
         Load transformation matrices to the shader uniforms.
         """
         ShaderLib.use(DefaultShader.DIFFUSE)
-        MV = self.view @ transform.get_matrix()
+        MV = self.view @ transform.matrix()
         mvp = self.project @ MV
         normal_matrix = Mat3.from_mat4(MV)
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", mvp)
         ShaderLib.set_uniform("MV", MV)
         ShaderLib.set_uniform("normalMatrix", normal_matrix)

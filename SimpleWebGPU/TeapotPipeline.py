@@ -203,7 +203,7 @@ class TeapotPipeline:
         model_view = self.view @ model
         MVP = self.project @ model_view
         normal_matrix = model_view.copy()
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
 
         self.transform_uniforms["M"] = model_view.to_numpy()
         self.transform_uniforms["MVP"] = MVP.to_numpy()

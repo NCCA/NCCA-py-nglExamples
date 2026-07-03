@@ -158,7 +158,7 @@ class MainWindow(QOpenGLWindow):
         M = self.view @ self.mouse_global_tx
         MVP = self.project @ M
         normal_matrix = self.view @ self.mouse_global_tx
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
 
         t[0]["MVP"] = MVP.to_numpy()
         t[0]["normal_matrix"] = normal_matrix.to_numpy()
@@ -190,7 +190,7 @@ class MainWindow(QOpenGLWindow):
         tx = Mat4().translate(0.0, -0.45, 0.0)
         mvp = self.project @ self.view @ self.mouse_global_tx @ tx
         normal_matrix = Mat3.from_mat4(mvp)
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", mvp)
         ShaderLib.set_uniform("normalMatrix", normal_matrix)
         Primitives.draw("floor")

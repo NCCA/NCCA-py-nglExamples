@@ -239,12 +239,12 @@ class MainWindow(QOpenGLWindow):
         """
         Calculates and sends the required matrices and uniforms to the PBR shader.
         """
-        M = self.transform.get_matrix()
+        M = self.transform.matrix()
         MV = self.camera.view @ M
         MVP = self.camera.get_vp() @ M
 
         normal_matrix = Mat3.from_mat4(MV)
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
 
         ShaderLib.use(PBR_SHADER)
         ShaderLib.set_uniform("MVP", MVP)
@@ -263,7 +263,7 @@ class MainWindow(QOpenGLWindow):
         """
         Calculates and sends the MVP matrix to the simple colour shader.
         """
-        M = self.mouse_global_tx @ self.transform.get_matrix()
+        M = self.mouse_global_tx @ self.transform.matrix()
         MVP = self.camera.get_vp() @ M
         ShaderLib.use(DefaultShader.COLOUR)
         ShaderLib.set_uniform("MVP", MVP)

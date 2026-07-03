@@ -16,13 +16,12 @@ from ncca.ngl import (
     look_at,
     perspective,
 )
+from Pipeline import Pipeline
 from PySide6.QtCore import QElapsedTimer, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
-from wgpu.utils import get_default_device
-
-from Pipeline import Pipeline
 from WebGPUWidget import WebGPUWidget
+from wgpu.utils import get_default_device
 
 
 class WebGPUScene(WebGPUWidget):
@@ -96,67 +95,69 @@ class WebGPUScene(WebGPUWidget):
         delta_time = current_frame - self.last_frame
         self.last_frame = current_frame
         self._update_camera_movement(delta_time)
-        self.pipeline.update_lights(self.light_one_state, self.light_two_state, self.light_three_state)
+        self.pipeline.update_lights(
+            self.light_one_state, self.light_two_state, self.light_three_state
+        )
         scene_objects: List[Tuple[str, Mat4, Tuple[float, float, float, float]]] = []
 
         tx = Transform()
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(-1.0, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("buddah", tx.get_matrix(), (1, 0, 0, 1)))
+        scene_objects.append(("buddah", tx.matrix(), (1, 0, 0, 1)))
         tx.reset()
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(-2.0, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("bunny", tx.get_matrix(), (0.1, 0.2, 1, 1)))
+        scene_objects.append(("bunny", tx.matrix(), (0.1, 0.2, 1, 1)))
         tx.reset()
         tx.set_position(0.0, 0.0, 0.0)
-        scene_objects.append(("teapot", tx.get_matrix(), (0, 1, 0, 1)))
+        scene_objects.append(("teapot", tx.matrix(), (0, 1, 0, 1)))
         tx.reset()
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(1.5, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("dragon", tx.get_matrix(), (1, 1, 0, 1)))
+        scene_objects.append(("dragon", tx.matrix(), (1, 1, 0, 1)))
         tx.reset()
         tx.set_position(0.0, 0.1, 1.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("troll", tx.get_matrix(), (0, 0.2, 1, 1)))
+        scene_objects.append(("troll", tx.matrix(), (0, 0.2, 1, 1)))
         tx.reset()
         tx.set_position(-1.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
-        scene_objects.append(("icosahedron", tx.get_matrix(), (0.2, 0.2, 0.8, 1)))
+        scene_objects.append(("icosahedron", tx.matrix(), (0.2, 0.2, 0.8, 1)))
         tx.reset()
         tx.set_position(-2.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
-        scene_objects.append(("dodecahedron", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("dodecahedron", tx.matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(2.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
-        scene_objects.append(("football", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("football", tx.matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(1.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
-        scene_objects.append(("tetrahedron", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("tetrahedron", tx.matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(1.0, 0.0, -1.0)
         tx.set_scale(0.5, 0.5, 0.5)
-        scene_objects.append(("octahedron", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("octahedron", tx.matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(0.0, 0.0, -1.0)
         tx.set_scale(0.5, 0.5, 0.5)
-        scene_objects.append(("cube", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("cube", tx.matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(0, -0.5, 0)
-        scene_objects.append(("floor", tx.get_matrix(), (1, 1, 1, 1)))
+        scene_objects.append(("floor", tx.matrix(), (1, 1, 1, 1)))
 
         tx.reset()
         tx.set_position(0.0, 1.0, 1.0)
-        scene_objects.append(("light1", tx.get_matrix(), (1, 1, 1, 1)))
+        scene_objects.append(("light1", tx.matrix(), (1, 1, 1, 1)))
         tx.reset()
         tx.set_position(-1.0, 1.0, -1.0)
-        scene_objects.append(("light2", tx.get_matrix(), (1, 1, 1, 1)))
+        scene_objects.append(("light2", tx.matrix(), (1, 1, 1, 1)))
         tx.set_position(1.0, 1.0, -1.0)
-        scene_objects.append(("light3", tx.get_matrix(), (1, 1, 1, 1)))
+        scene_objects.append(("light3", tx.matrix(), (1, 1, 1, 1)))
 
         self.pipeline.render(
             self.colour_buffer_texture_view,

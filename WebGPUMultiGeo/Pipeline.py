@@ -293,7 +293,7 @@ class Pipeline:
         (Internal) Update the storage buffer for a single mesh instance.
         """
         normal_matrix = model.copy()
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         self.mesh_data.update_mesh_data(name, model, normal_matrix, colour)
 
     def _begin_render_pass(
