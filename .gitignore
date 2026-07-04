@@ -82,3 +82,6 @@ venv.bak/
 
 # Cython debug symbols
 cython_debug/
+.serena
+.DS_Store
+err
