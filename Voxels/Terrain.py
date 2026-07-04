@@ -32,6 +32,9 @@ class Terrain:
                     active = rand_tex() > self.num_textures // 2
                     self._set_voxel(x, y, z, pos, rand_tex(), active)
 
+    def get_num_voxels(self) -> int:
+        return self.voxel_positions.shape[0]
+
     def gen_texture_buffer(self) -> None:
         # Generate IDs for 3 buffers and 3 textures
         self.buffer_ids = gl.glGenBuffers(3)
@@ -105,8 +108,15 @@ class Terrain:
         self.texture_index[index] = np.clip(
             self.texture_index[index], int(0), int(self.num_textures - 1)
         )
+        # Re-upload the modified index buffer to the GPU (the texture buffer
+        # association is already set up in gen_texture_buffer).
         gl.glBindBuffer(gl.GL_TEXTURE_BUFFER, self.buffer_ids[1])
-        gl.glTexBuffer(gl.GL_TEXTURE_BUFFER, gl.GL_R32I, self.buffer_ids[1])
+        gl.glBufferData(
+            gl.GL_TEXTURE_BUFFER,
+            self.texture_index.nbytes,
+            self.texture_index,
+            gl.GL_STATIC_DRAW,
+        )
 
     def _set_voxel(self, x: int, y: int, z: int, pos: tuple, tex: int, active: bool):
         if x >= self.width or y >= self.height or z >= self.depth:
