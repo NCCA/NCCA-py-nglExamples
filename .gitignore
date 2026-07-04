@@ -85,3 +85,4 @@ cython_debug/
 .serena
 .DS_Store
 err
+.worktrees/
