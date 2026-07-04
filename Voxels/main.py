@@ -81,8 +81,12 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.screen_click_x: float = 0.0  # last mouse position (logical pixels)
         self.screen_click_y: float = 0.0
         self.voxel_index: int = 0  # voxel currently under the cursor
+        self.current_depth: float = 1.0  # linear depth under the cursor
         self.orig_x: float = 0.0  # left-drag anchor for camera rotation
         self.orig_y: float = 0.0
+        # near/far used for both the projection and depth linearisation
+        self.near: float = 0.05
+        self.far: float = 350.0
 
     def _setup_camera(self):
         eye = Vec3(0, 10, 60)
@@ -217,16 +221,17 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             gl.glDrawArrays(gl.GL_POINTS, 0, self.terrain.get_num_voxels())
             gl.glBindVertexArray(0)
 
-        # Pick the voxel under the cursor and apply any held edit keys.
-        # (matches NGLScene::paintGL: S removes, Z/X change the texture index)
-        if self.keys_pressed & self._EDIT_KEYS:
-            self._update_voxel_index()
-            if Qt.Key_S in self.keys_pressed:
-                self.terrain.remove_index(self.voxel_index)
-            if Qt.Key_Z in self.keys_pressed:
-                self.terrain.change_texture_id(self.voxel_index, -1)
-            if Qt.Key_X in self.keys_pressed:
-                self.terrain.change_texture_id(self.voxel_index, 1)
+        # Read the voxel index and depth under the cursor. Done every frame
+        # (like NGLScene::paintGL) because the depth also gates forward
+        # movement in _process_movement. Then apply any held edit keys:
+        # S removes, Z/X change the texture index.
+        self._update_voxel_index()
+        if Qt.Key_S in self.keys_pressed:
+            self.terrain.remove_index(self.voxel_index)
+        if Qt.Key_Z in self.keys_pressed:
+            self.terrain.change_texture_id(self.voxel_index, -1)
+        if Qt.Key_X in self.keys_pressed:
+            self.terrain.change_texture_id(self.voxel_index, 1)
 
         # Now, copy the result from our FBO to the screen
 
@@ -283,7 +288,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         x_direction = 0.0  # forward / back
         y_direction = 0.0  # strafe left / right
         inc = 1.0
-        if Qt.Key_Up in self.keys_pressed:
+        # Only move forward if nothing is close in front of the cursor,
+        # so we stop before flying into a block (matches NGLScene::paintGL).
+        if Qt.Key_Up in self.keys_pressed and self.current_depth >= 0.005:
             x_direction = inc
         if Qt.Key_Down in self.keys_pressed:
             x_direction = -inc
@@ -342,7 +349,17 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         r, g, b, a = (int(data[0]), int(data[1]), int(data[2]), int(data[3]))
         self.voxel_index = (r << 24) | (g << 16) | (b << 8) | a
 
+        # Read the depth at the same pixel and linearise it. This gates forward
+        # movement so the camera stops in front of a block.
         gl.glReadBuffer(gl.GL_COLOR_ATTACHMENT0)
+        depth = np.frombuffer(
+            bytes(gl.glReadPixels(x, y, 1, 1, gl.GL_DEPTH_COMPONENT, gl.GL_FLOAT)),
+            dtype=np.float32,
+        )[0]
+        self.current_depth = (2.0 * self.near) / (
+            self.far + self.near - depth * (self.far - self.near)
+        )
+
         gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, 0)
 
     def mousePressEvent(self, event) -> None:
