@@ -6,21 +6,33 @@ spheres that are inside or intersecting."""
 import sys
 import traceback
 
+import numpy as np
 import OpenGL.GL as gl
 from ncca.ngl import (
+    DefaultShader,
     Mat3,
     Mat4,
     Primitives,
     Prims,
     ShaderLib,
+    VAOFactory,
+    VAOType,
     Vec3,
     logger,
 )
+from ncca.ngl.abstract_vao import VertexData
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 from uvn_camera import FrustumCamera
+
+# Camera key-movement modes, matching NGL9Demos/FrustumCull's e/l/b/s toggle.
+MOVE_EYE = "eye"
+MOVE_LOOK = "look"
+MOVE_BOTH = "both"
+MOVE_SLIDE = "slide"
+KEY_INCREMENT = 0.2
 
 
 class MainWindow(QOpenGLWindow):
@@ -75,6 +87,7 @@ class MainWindow(QOpenGLWindow):
 
         self.active_camera_index: int = 1
         self.last_drawn: int = 0
+        self.move_mode: str = MOVE_EYE
 
     def initializeGL(self) -> None:
         self.makeCurrent()
@@ -103,6 +116,41 @@ class MainWindow(QOpenGLWindow):
             for y in range(-8, 9, 4)
             for z in range(-20, 21, 4)
         ]
+
+        # 12-edge wireframe box (4 near + 4 far + 4 connecting), rebuilt from the
+        # test camera's frustum corners each frame since the camera can move.
+        self.frustum_vao = VAOFactory.create_vao(VAOType.SIMPLE, gl.GL_LINES)
+
+    # Indices into FrustumCamera.corners == [ntl, ntr, nbl, nbr, ftl, ftr, fbl, fbr]
+    _FRUSTUM_EDGES = (
+        (0, 1),
+        (1, 3),
+        (3, 2),
+        (2, 0),  # near face
+        (4, 5),
+        (5, 7),
+        (7, 6),
+        (6, 4),  # far face
+        (0, 4),
+        (1, 5),
+        (2, 6),
+        (3, 7),  # connecting edges
+    )
+
+    def _draw_frustum(self, camera: FrustumCamera) -> None:
+        corners = camera.corners
+        verts: list[float] = []
+        for a, b in self._FRUSTUM_EDGES:
+            for corner in (corners[a], corners[b]):
+                verts.extend((corner.x, corner.y, corner.z))
+        data = np.array(verts, dtype=np.float32)
+        vertex_count = len(self._FRUSTUM_EDGES) * 2
+
+        with self.frustum_vao as vao:
+            vao.set_data(VertexData(data, vertex_count))
+            vao.set_vertex_attribute_pointer(0, 3, gl.GL_FLOAT, 3 * 4, 0)
+            vao.set_num_indices(vertex_count)
+            vao.draw()
 
     def paintGL(self) -> None:
         self.makeCurrent()
@@ -144,6 +192,34 @@ class MainWindow(QOpenGLWindow):
         self.last_drawn = drawn
         self.setTitle(f"FrustumCull - drawn {drawn}/{len(self.grid_positions)}")
 
+        # Draw the test camera's frustum as a wireframe box, always in the
+        # test camera's own colour, viewed from whichever camera is active.
+        ShaderLib.use(DefaultShader.COLOUR)
+        mvp = camera.project @ camera.view @ self.mouse_global_tx
+        ShaderLib.set_uniform("MVP", mvp)
+        ShaderLib.set_uniform("Colour", 1.0, 1.0, 0.0, 1.0)
+        self._draw_frustum(self.test_camera)
+
+        # Mark the test camera's eye position with a small cube when viewing
+        # from the observer camera, so its location is visible top-down.
+        if self.active_camera_index == 1:
+            ShaderLib.use("Phong")
+            eye = self.test_camera.eye
+            mv = (
+                camera.view
+                @ self.mouse_global_tx
+                @ Mat4().translate(eye.x, eye.y, eye.z)
+                @ Mat4().scale(0.5, 0.5, 0.5)
+            )
+            mvp = camera.project @ mv
+            normal_matrix = Mat3.from_mat4(mv).inverse().transposed()
+            ShaderLib.set_uniform("MVP", mvp)
+            ShaderLib.set_uniform("MV", mv)
+            ShaderLib.set_uniform("normalMatrix", normal_matrix)
+            ShaderLib.set_uniform("lightPos", 10.0, 10.0, 10.0)
+            ShaderLib.set_uniform("viewerPos", camera.eye.x, camera.eye.y, camera.eye.z)
+            Primitives.draw("cube")
+
     def resizeGL(self, w: int, h: int) -> None:
         """
         Called whenever the window is resized.
@@ -166,6 +242,18 @@ class MainWindow(QOpenGLWindow):
             self.observer_camera.near,
             self.observer_camera.far,
         )
+
+    def _move_test_camera(self, dx: float, dy: float, dz: float) -> None:
+        """Move the test camera using whichever mode (keys e, l, b, /) is active."""
+        camera = self.test_camera
+        if self.move_mode == MOVE_EYE:
+            camera.move_eye(dx, dy, dz)
+        elif self.move_mode == MOVE_LOOK:
+            camera.move_look(dx, dy, dz)
+        elif self.move_mode == MOVE_BOTH:
+            camera.move_both(dx, dy, dz)
+        elif self.move_mode == MOVE_SLIDE:
+            camera.slide(dx, dy, dz)
 
     def keyPressEvent(self, event) -> None:
         """
@@ -194,6 +282,40 @@ class MainWindow(QOpenGLWindow):
             self.spin_x_face = 0
             self.spin_y_face = 0
             self.model_position.set(0, 0, 0)
+        # Switch which of the test camera's move_* methods Left/Right/Up/
+        # Down/I/O drive, matching NGL9Demos/FrustumCull's e/l/b/s toggle.
+        elif key == Qt.Key_E:
+            self.move_mode = MOVE_EYE
+        elif key == Qt.Key_L:
+            self.move_mode = MOVE_LOOK
+        elif key == Qt.Key_B:
+            self.move_mode = MOVE_BOTH
+        elif key == Qt.Key_Slash:
+            self.move_mode = MOVE_SLIDE
+        elif key == Qt.Key_Left:
+            self._move_test_camera(KEY_INCREMENT, 0, 0)
+        elif key == Qt.Key_Right:
+            self._move_test_camera(-KEY_INCREMENT, 0, 0)
+        elif key == Qt.Key_Up:
+            self._move_test_camera(0, KEY_INCREMENT, 0)
+        elif key == Qt.Key_Down:
+            self._move_test_camera(0, -KEY_INCREMENT, 0)
+        elif key == Qt.Key_O:
+            self._move_test_camera(0, 0, KEY_INCREMENT)
+        elif key == Qt.Key_I:
+            self._move_test_camera(0, 0, -KEY_INCREMENT)
+        elif key == Qt.Key_R:
+            self.test_camera.roll(3.0)
+        elif key == Qt.Key_P:
+            self.test_camera.pitch(3.0)
+        elif key == Qt.Key_Y:
+            self.test_camera.yaw(3.0)
+        elif key in (Qt.Key_Plus, Qt.Key_Equal):
+            c = self.test_camera
+            c.set_shape(c.fov + 1.0, c.aspect, c.near, c.far)
+        elif key == Qt.Key_Minus:
+            c = self.test_camera
+            c.set_shape(max(1.0, c.fov - 1.0), c.aspect, c.near, c.far)
         # Trigger a redraw to apply changes
         self.update()
         # Call the base class implementation for any unhandled events

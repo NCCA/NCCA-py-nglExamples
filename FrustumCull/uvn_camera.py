@@ -142,3 +142,27 @@ class FrustumCamera(UVNCamera):
     def move_eye(self, dx: float, dy: float, dz: float) -> None:
         super().move_eye(dx, dy, dz)
         self.calculate_frustum()
+
+    def move_look(self, dx: float, dy: float, dz: float) -> None:
+        super().move_look(dx, dy, dz)
+        self.calculate_frustum()
+
+    def move_both(self, dx: float, dy: float, dz: float) -> None:
+        super().move_both(dx, dy, dz)
+        self.calculate_frustum()
+
+    # slide() is not overridden: UVNCamera.slide() dispatches to self.move_both(),
+    # which polymorphically resolves to the override above and recalculates the
+    # frustum already.
+
+    def roll(self, degrees: float) -> None:
+        super().roll(degrees)
+        self.calculate_frustum()
+
+    def pitch(self, degrees: float) -> None:
+        super().pitch(degrees)
+        self.calculate_frustum()
+
+    def yaw(self, degrees: float) -> None:
+        super().yaw(degrees)
+        self.calculate_frustum()
