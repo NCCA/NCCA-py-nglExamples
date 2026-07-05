@@ -9,23 +9,16 @@ import math
 import random
 import sys
 import traceback
-from dataclasses import dataclass
 
 import numpy as np
 import OpenGL.GL as gl
 from ncca.ngl import (
-    DefaultShader,
-    Mat3,
     Mat4,
-    Primitives,
-    Prims,
     ShaderLib,
     Texture,
-    Transform,
     VAOFactory,
     VAOType,
     Vec3,
-    Vec4,
     VertexData,
     logger,
     look_at,
