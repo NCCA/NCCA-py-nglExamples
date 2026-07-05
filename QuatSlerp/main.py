@@ -1,5 +1,7 @@
 #!/usr/bin/env -S uv run --script
-"""QuatSlerp demo: slerp between two quaternion orientations of a teapot."""
+"""QuatSlerp demo: slerp between two quaternion orientations of a teapot, with a
+Qt Designer side panel (start/end rotation, quaternion readouts, interpolation
+slider) matching the original NGL9Demos/QuatSlerp UI."""
 
 import sys
 import traceback
@@ -17,15 +19,29 @@ from ncca.ngl import (
     look_at,
     perspective,
 )
-from PySide6.QtCore import Qt, QTimer
+from ncca.ngl.widgets import Vec3Widget
+from PySide6.QtCore import QFile, Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
-from PySide6.QtOpenGL import QOpenGLWindow
-from PySide6.QtWidgets import QApplication
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
+from PySide6.QtUiTools import QUiLoader
+from PySide6.QtWidgets import QApplication, QMainWindow, QSizePolicy, QWidget
 
 
-class MainWindow(QOpenGLWindow):
-    def __init__(self, parent: object = None) -> None:
-        super().__init__()
+class Loader(QUiLoader):
+    """Custom QUiLoader so the promoted Vec3Widget resolves to the real class."""
+
+    def createWidget(
+        self, class_name: str, parent: QWidget | None = None, name: str = ""
+    ) -> QWidget:
+        if class_name == "Vec3Widget":
+            return Vec3Widget(parent)
+        return super().createWidget(class_name, parent, name)
+
+
+class QuatSlerpScene(QOpenGLWidget):
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setFocusPolicy(Qt.StrongFocus)
         self.mouse_global_tx: Mat4 = Mat4()
         self.view: Mat4 = Mat4()
         self.project: Mat4 = Mat4()
@@ -33,7 +49,6 @@ class MainWindow(QOpenGLWindow):
 
         self.window_width: int = 1024
         self.window_height: int = 720
-        self.setTitle("QuatSlerp")
 
         self.rotate: bool = False
         self.translate: bool = False
@@ -46,6 +61,37 @@ class MainWindow(QOpenGLWindow):
         self.INCREMENT: float = 0.01
         self.ZOOM: float = 0.1
 
+        self.start_rotation = Vec3(45, 90, 80)
+        self.end_rotation = Vec3(-300, 270, 360)
+        self.start_quat = Quaternion.from_mat4(self._euler_mat4(self.start_rotation))
+        self.end_quat = Quaternion.from_mat4(self._euler_mat4(self.end_rotation))
+        self.interp: float = 0.0
+
+    @staticmethod
+    def _euler_mat4(rotation: Vec3) -> Mat4:
+        return (
+            Mat4().rotate_z(rotation.z)
+            @ Mat4().rotate_y(rotation.y)
+            @ Mat4().rotate_x(rotation.x)
+        )
+
+    def set_start_rotation(self, rotation: Vec3) -> None:
+        self.start_rotation = rotation
+        self.start_quat = Quaternion.from_mat4(self._euler_mat4(rotation))
+        self.update()
+
+    def set_end_rotation(self, rotation: Vec3) -> None:
+        self.end_rotation = rotation
+        self.end_quat = Quaternion.from_mat4(self._euler_mat4(rotation))
+        self.update()
+
+    def set_interp(self, value: float) -> None:
+        self.interp = value
+        self.update()
+
+    def interpolated_quat(self) -> Quaternion:
+        return self.start_quat.slerp(self.end_quat, self.interp)
+
     def initializeGL(self) -> None:
         self.makeCurrent()
         gl.glClearColor(0.4, 0.4, 0.4, 1.0)
@@ -57,24 +103,6 @@ class MainWindow(QOpenGLWindow):
         ShaderLib.set_uniform("lightPos", 1.0, 1.0, 1.0)
         ShaderLib.set_uniform("lightDiffuse", 1.0, 1.0, 1.0, 1.0)
         Primitives.load_default_primitives()
-
-        # Build the start / end orientations from Euler-angle rotation matrices,
-        # then convert to quaternions so we can slerp between them.
-        self.start_rotation = Vec3(45, 90, 80)
-        self.end_rotation = Vec3(-300, 270, 360)
-        start_mat = (
-            Mat4().rotate_z(self.start_rotation.z)
-            @ Mat4().rotate_y(self.start_rotation.y)
-            @ Mat4().rotate_x(self.start_rotation.x)
-        )
-        end_mat = (
-            Mat4().rotate_z(self.end_rotation.z)
-            @ Mat4().rotate_y(self.end_rotation.y)
-            @ Mat4().rotate_x(self.end_rotation.x)
-        )
-        self.start_quat = Quaternion.from_mat4(start_mat)
-        self.end_quat = Quaternion.from_mat4(end_mat)
-        self.interp: float = 0.0
 
     def _model_matrix(self, quat: Quaternion, position: Vec3) -> Mat4:
         """Build a model matrix from a quaternion rotation plus a position.
@@ -110,8 +138,9 @@ class MainWindow(QOpenGLWindow):
         self.mouse_global_tx[3, 1] = self.model_position.y
         self.mouse_global_tx[3, 2] = self.model_position.z
 
-        interp_quat = self.start_quat.slerp(self.end_quat, self.interp)
+        interp_quat = self.interpolated_quat()
 
+        ShaderLib.use(DefaultShader.DIFFUSE)
         ShaderLib.set_uniform("Colour", 1.0, 1.0, 0.0, 1.0)
 
         model = self._model_matrix(interp_quat, Vec3(0, 0, 0))
@@ -133,16 +162,10 @@ class MainWindow(QOpenGLWindow):
 
     def keyPressEvent(self, event) -> None:
         key = event.key()
-        if key == Qt.Key_Escape:
-            self.close()
-        elif key == Qt.Key_W:
+        if key == Qt.Key_W:
             gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
         elif key == Qt.Key_S:
             gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
-        elif key == Qt.Key_Up:
-            self.interp = min(1.0, self.interp + 0.05)
-        elif key == Qt.Key_Down:
-            self.interp = max(0.0, self.interp - 0.05)
         elif key == Qt.Key_Space:
             self.spin_x_face = 0
             self.spin_y_face = 0
@@ -180,6 +203,7 @@ class MainWindow(QOpenGLWindow):
             self.original_x_pos = position.x()
             self.original_y_pos = position.y()
             self.translate = True
+        self.setFocus()
 
     def mouseReleaseEvent(self, event) -> None:
         if event.button() == Qt.LeftButton:
@@ -194,6 +218,65 @@ class MainWindow(QOpenGLWindow):
         elif num_pixels.x() < 0:
             self.model_position.z -= self.ZOOM
         self.update()
+
+
+class MainWindow(QMainWindow):
+    def __init__(self) -> None:
+        super().__init__()
+        self.setWindowTitle("QuatSlerp")
+        self._load_ui()
+
+        self.scene = QuatSlerpScene()
+        self.scene.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.centralWidget().layout().addWidget(self.scene, 0, 0)
+
+        self.start_rotation_widget.set_range(-360.0, 360.0)
+        self.start_rotation_widget.set_value(self.scene.start_rotation)
+        self.end_rotation_widget.set_range(-360.0, 360.0)
+        self.end_rotation_widget.set_value(self.scene.end_rotation)
+
+        self.start_rotation_widget.valueChanged.connect(self._start_rotation_changed)
+        self.end_rotation_widget.valueChanged.connect(self._end_rotation_changed)
+        self.interp_slider.valueChanged.connect(self._interp_changed)
+
+        self._update_readouts()
+
+    def _load_ui(self) -> None:
+        loader = Loader()
+        ui_file = QFile("ui/MainWindow.ui")
+        ui_file.open(QFile.ReadOnly)
+        loaded_ui = loader.load(ui_file, self)
+        self.setCentralWidget(loaded_ui)
+        for child in loaded_ui.findChildren(QWidget):
+            name = child.objectName()
+            if name:
+                setattr(self, name, child)
+        ui_file.close()
+
+    def _start_rotation_changed(self, value: Vec3) -> None:
+        self.scene.set_start_rotation(value)
+        self._update_readouts()
+
+    def _end_rotation_changed(self, value: Vec3) -> None:
+        self.scene.set_end_rotation(value)
+        self._update_readouts()
+
+    def _interp_changed(self, value: int) -> None:
+        self.scene.set_interp(value / 1000.0)
+        self._update_readouts()
+
+    def _update_readouts(self) -> None:
+        self.start_quat_edit.setText(str(self.scene.start_quat))
+        self.end_quat_edit.setText(str(self.scene.end_quat))
+        interp_quat = self.scene.interpolated_quat()
+        self.interp_quat_edit.setText(str(interp_quat))
+        self.matrix_edit.setPlainText(str(interp_quat.to_mat4()))
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() == Qt.Key_Escape:
+            self.close()
+        else:
+            super().keyPressEvent(event)
 
 
 class DebugApplication(QApplication):

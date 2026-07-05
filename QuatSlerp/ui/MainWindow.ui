@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWidget</class>
+ <widget class="QWidget" name="MainWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1024</width>
+    <height>720</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>QuatSlerp</string>
+  </property>
+  <layout class="QGridLayout" name="main_window_grid_layout" columnstretch="3,1">
+   <item row="0" column="1">
+    <widget class="QGroupBox" name="transform_gb">
+     <property name="title">
+      <string>Transform</string>
+     </property>
+     <layout class="QVBoxLayout" name="transform_layout">
+      <item>
+       <widget class="QLabel" name="start_rotation_label">
+        <property name="text">
+         <string>Start Rotation</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Vec3Widget" name="start_rotation_widget" native="true"/>
+      </item>
+      <item>
+       <widget class="QLabel" name="end_rotation_label">
+        <property name="text">
+         <string>End Rotation</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Vec3Widget" name="end_rotation_widget" native="true"/>
+      </item>
+      <item>
+       <widget class="QLabel" name="start_quat_label">
+        <property name="text">
+         <string>Start Quaternion</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="start_quat_edit">
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="end_quat_label">
+        <property name="text">
+         <string>End Quaternion</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="end_quat_edit">
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="interp_quat_label">
+        <property name="text">
+         <string>Interpolated Quat</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="interp_quat_edit">
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="matrix_label">
+        <property name="text">
+         <string>Rotation Matrix</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QTextEdit" name="matrix_edit">
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="interp_label">
+        <property name="text">
+         <string>Interpolate</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QSlider" name="interp_slider">
+        <property name="minimum">
+         <number>0</number>
+        </property>
+        <property name="maximum">
+         <number>1000</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>Vec3Widget</class>
+   <extends>QWidget</extends>
+   <header>ncca.ngl.widgets</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
