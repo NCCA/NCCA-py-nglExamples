@@ -1,11 +1,13 @@
 from typing import Optional
 
 import OpenGL.GL as gl
-from Camera import Camera
-from ncca.ngl import Mat3, Mat4, Primitives, Prims, Vec3
+from ncca.ngl import Mat3, Mat4, Prims, Vec3
+from ncca.ngl.opengl import Primitives
 from PySide6.QtCore import QEvent, Qt, Signal, Slot
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from ShaderLoader import ShaderLoader
+
+from Camera import Camera
 
 
 class PyNGLScene(QOpenGLWidget):

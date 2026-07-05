@@ -1,4 +1,5 @@
-from ncca.ngl import DefaultShader, Mat3, Mat4, Primitives, ShaderLib, Transform, Vec3
+from ncca.ngl import Mat3, Mat4, Transform, Vec3
+from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib
 
 
 def color_id_generator():

@@ -3,18 +3,14 @@
 import sys
 
 import OpenGL.GL as gl
-from ncca.ngl import (
+from ncca.ngl import Mat4, Vec3, Vec3Array, look_at, perspective
+from ncca.ngl.opengl import (
     DefaultShader,
-    Mat4,
     PySideEventHandlingMixin,
     ShaderLib,
     VAOFactory,
     VAOType,
-    Vec3,
-    Vec3Array,
     VertexData,
-    look_at,
-    perspective,
 )
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow

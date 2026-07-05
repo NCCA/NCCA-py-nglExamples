@@ -12,17 +12,8 @@ from enum import Enum
 import numpy as np
 import OpenGL.GL as gl
 from aiohttp.hdrs import TE
-from ncca.ngl import (
-    Mat4,
-    ShaderLib,
-    Text,
-    VAOFactory,
-    VAOType,
-    Vec3,
-    VertexData,
-    logger,
-    ortho,
-)
+from ncca.ngl import Mat4, Vec3, logger, ortho
+from ncca.ngl.opengl import ShaderLib, Text, VAOFactory, VAOType, VertexData
 from PySide6.QtCore import QEvent, QObject, Qt, QTimerEvent
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QSurfaceFormat, QWheelEvent
 from PySide6.QtOpenGL import QOpenGLWindow

@@ -11,7 +11,8 @@ import sys
 import traceback
 
 import OpenGL.GL as gl
-from ncca.ngl import ShaderLib, VAOFactory, VAOType, VertexData, logger, perspective
+from ncca.ngl import logger, perspective
+from ncca.ngl.opengl import ShaderLib, VAOFactory, VAOType, VertexData
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow

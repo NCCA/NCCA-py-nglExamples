@@ -14,8 +14,9 @@ from dataclasses import dataclass
 
 import numpy as np
 import OpenGL.GL as gl
-from ncca.ngl import BBox, Obj, VAOFactory, VAOType
-from ncca.ngl.abstract_vao import VertexData
+from ncca.ngl import BBox, Obj
+from ncca.ngl.opengl import VAOFactory, VAOType
+from ncca.ngl.opengl.abstract_vao import VertexData
 
 
 class ColourObj(Obj):

@@ -11,17 +11,8 @@ import sys
 import traceback
 
 import OpenGL.GL as gl
-from ncca.ngl import (
-    DefaultShader,
-    Mat4,
-    Primitives,
-    ShaderLib,
-    Text,
-    Vec3,
-    logger,
-    look_at,
-    perspective,
-)
+from ncca.ngl import Mat4, Vec3, logger, look_at, perspective
+from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib, Text
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow

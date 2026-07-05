@@ -11,19 +11,14 @@ import logging
 import sys
 
 import OpenGL.GL as gl
-from ncca.ngl import (
-    Mat4,
+from ncca.ngl import Mat4, Random, Vec3, Vec4Array, look_at, perspective
+from ncca.ngl.opengl import (
     PySideEventHandlingMixin,
-    Random,
     ShaderLib,
     Text,
     VAOFactory,
     VAOType,
-    Vec3,
-    Vec4Array,
     VertexData,
-    look_at,
-    perspective,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QSurfaceFormat

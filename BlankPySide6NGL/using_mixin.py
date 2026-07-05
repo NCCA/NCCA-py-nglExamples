@@ -11,7 +11,8 @@ import sys
 import traceback
 
 import OpenGL.GL as gl
-from ncca.ngl import Mat4, PySideEventHandlingMixin, Vec3, logger, look_at, perspective
+from ncca.ngl import Mat4, Vec3, logger, look_at, perspective
+from ncca.ngl.opengl import PySideEventHandlingMixin
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication

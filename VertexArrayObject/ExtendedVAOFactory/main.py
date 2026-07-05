@@ -12,17 +12,8 @@ import sys
 
 import OpenGL.GL as gl
 from MultiBufferIndexVAO import MultiBufferIndexVAO, VertexData
-from ncca.ngl import (
-    Mat4,
-    PySideEventHandlingMixin,
-    ShaderLib,
-    Transform,
-    VAOFactory,
-    Vec3,
-    Vec3Array,
-    look_at,
-    perspective,
-)
+from ncca.ngl import Mat4, Transform, Vec3, Vec3Array, look_at, perspective
+from ncca.ngl.opengl import PySideEventHandlingMixin, ShaderLib, VAOFactory
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication

@@ -7,18 +7,9 @@ import traceback
 
 import OpenGL.GL as gl
 from klein_bottle import build_klein_bottle
-from ncca.ngl import (
-    Mat3,
-    Mat4,
-    ShaderLib,
-    VAOFactory,
-    VAOType,
-    Vec3,
-    logger,
-    look_at,
-    perspective,
-)
-from ncca.ngl.abstract_vao import VertexData
+from ncca.ngl import Mat3, Mat4, Vec3, logger, look_at, perspective
+from ncca.ngl.opengl import ShaderLib, VAOFactory, VAOType
+from ncca.ngl.opengl.abstract_vao import VertexData
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow

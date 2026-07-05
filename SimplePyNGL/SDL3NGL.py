@@ -12,17 +12,8 @@ import sys
 import numpy as np
 import OpenGL.GL as gl
 import sdl3
-from ncca.ngl import (
-    DefaultShader,
-    Mat3,
-    Mat4,
-    Primitives,
-    Prims,
-    ShaderLib,
-    Vec3,
-    look_at,
-    perspective,
-)
+from ncca.ngl import Mat3, Mat4, Prims, Vec3, look_at, perspective
+from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib
 
 PBR_SHADER = "pbr"
 

@@ -7,18 +7,8 @@ import sys
 import traceback
 
 import OpenGL.GL as gl
-from ncca.ngl import (
-    DefaultShader,
-    Mat3,
-    Mat4,
-    Primitives,
-    Quaternion,
-    ShaderLib,
-    Vec3,
-    logger,
-    look_at,
-    perspective,
-)
+from ncca.ngl import Mat3, Mat4, Quaternion, Vec3, logger, look_at, perspective
+from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib
 from ncca.ngl.widgets import Vec3Widget
 from PySide6.QtCore import QFile, Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat

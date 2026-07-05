@@ -12,17 +12,8 @@ import traceback
 
 import OpenGL.GL as gl
 from heightmap import build_heightmap_mesh
-from ncca.ngl import (
-    IndexVertexData,
-    Mat4,
-    ShaderLib,
-    VAOFactory,
-    VAOType,
-    Vec3,
-    logger,
-    look_at,
-    perspective,
-)
+from ncca.ngl import Mat4, Vec3, logger, look_at, perspective
+from ncca.ngl.opengl import IndexVertexData, ShaderLib, VAOFactory, VAOType
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow

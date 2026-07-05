@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Any, Dict
 
 import OpenGL.GL as gl
-from ncca.ngl import Mat3, Mat4, ShaderLib, Vec2, Vec3, Vec4
+from ncca.ngl import Mat3, Mat4, Vec2, Vec3, Vec4
+from ncca.ngl.opengl import ShaderLib
 
 
 class ShaderLoader:

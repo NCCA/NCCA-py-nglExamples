@@ -13,15 +13,8 @@ import traceback
 import numpy as np
 import OpenGL.GL as gl
 from FrameBufferObject import FrameBufferObject
-from ncca.ngl import (
-    FirstPersonCamera,
-    Mat4,
-    PySideEventHandlingMixin,
-    ShaderLib,
-    Texture,
-    Vec3,
-    logger,
-)
+from ncca.ngl import FirstPersonCamera, Mat4, Vec3, logger
+from ncca.ngl.opengl import PySideEventHandlingMixin, ShaderLib, Texture
 from PySide6.QtCore import QElapsedTimer, Qt
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow

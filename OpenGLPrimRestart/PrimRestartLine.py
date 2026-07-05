@@ -14,20 +14,13 @@ import traceback
 
 import numpy as np
 import OpenGL.GL as gl
-from ncca.ngl import (
+from ncca.ngl import Mat4, Random, Vec3, Vec3Array, lerp, logger, look_at, perspective
+from ncca.ngl.opengl import (
     IndexVertexData,
-    Mat4,
     PySideEventHandlingMixin,
-    Random,
     ShaderLib,
     VAOFactory,
     VAOType,
-    Vec3,
-    Vec3Array,
-    lerp,
-    logger,
-    look_at,
-    perspective,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QSurfaceFormat

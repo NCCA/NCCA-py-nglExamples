@@ -2,7 +2,7 @@ import json
 import os
 
 import OpenGL.GL as gl
-from ncca.ngl import Texture
+from ncca.ngl.opengl import Texture
 
 
 class _Texture:

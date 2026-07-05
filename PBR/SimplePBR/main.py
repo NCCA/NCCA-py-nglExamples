@@ -13,19 +13,21 @@ import traceback
 
 import OpenGL.GL as gl
 from ncca.ngl import (
-    DefaultShader,
     Mat3,
     Mat4,
-    Primitives,
     Prims,
-    PySideEventHandlingMixin,
-    ShaderLib,
     Transform,
     Vec3,
     Vec3Array,
     logger,
     look_at,
     perspective,
+)
+from ncca.ngl.opengl import (
+    DefaultShader,
+    Primitives,
+    PySideEventHandlingMixin,
+    ShaderLib,
 )
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow

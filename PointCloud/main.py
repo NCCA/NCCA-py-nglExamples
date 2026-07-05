@@ -8,18 +8,9 @@ import traceback
 
 import numpy as np
 import OpenGL.GL as gl
-from ncca.ngl import (
-    DefaultShader,
-    Mat4,
-    ShaderLib,
-    VAOFactory,
-    VAOType,
-    Vec3,
-    logger,
-    look_at,
-    perspective,
-)
-from ncca.ngl.abstract_vao import VertexData
+from ncca.ngl import Mat4, Vec3, logger, look_at, perspective
+from ncca.ngl.opengl import DefaultShader, ShaderLib, VAOFactory, VAOType
+from ncca.ngl.opengl.abstract_vao import VertexData
 from point_cloud import PointCloud
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat

@@ -1,17 +1,6 @@
 import OpenGL.GL as gl
-from ncca.ngl import (
-    DefaultShader,
-    Mat3,
-    Mat4,
-    Primitives,
-    Prims,
-    ShaderLib,
-    Transform,
-    Vec3,
-    Vec4,
-    look_at,
-    perspective,
-)
+from ncca.ngl import Mat3, Mat4, Prims, Transform, Vec3, Vec4, look_at, perspective
+from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib
 from PySide6.QtCore import Slot
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 

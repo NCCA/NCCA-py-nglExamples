@@ -15,24 +15,26 @@ import numpy as np
 import OpenGL.GL as gl
 from FrameBufferObject import FrameBufferObject
 from ncca.ngl import (
-    DefaultShader,
     Mat3,
     Mat4,
-    Primitives,
     Prims,
-    PySideEventHandlingMixin,
-    ShaderLib,
-    Text,
     Transform,
-    VAOFactory,
-    VAOType,
     Vec2,
     Vec3,
     Vec4,
-    VertexData,
     logger,
     look_at,
     perspective,
+)
+from ncca.ngl.opengl import (
+    DefaultShader,
+    Primitives,
+    PySideEventHandlingMixin,
+    ShaderLib,
+    Text,
+    VAOFactory,
+    VAOType,
+    VertexData,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QSurfaceFormat

@@ -14,20 +14,8 @@ from typing import List
 
 import numpy as np
 import OpenGL.GL as gl
-from ncca.ngl import (
-    DefaultShader,
-    Mat3,
-    Mat4,
-    Primitives,
-    Random,
-    ShaderLib,
-    ShaderType,
-    Transform,
-    Vec3,
-    logger,
-    look_at,
-    perspective,
-)
+from ncca.ngl import Mat3, Mat4, Random, Transform, Vec3, logger, look_at, perspective
+from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib, ShaderType
 from PySide6.QtCore import QEvent, QObject, Qt, QTimerEvent
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QSurfaceFormat, QWheelEvent
 from PySide6.QtOpenGL import QOpenGLWindow

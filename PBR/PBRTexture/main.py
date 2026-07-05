@@ -17,20 +17,18 @@ import traceback
 import numpy as np
 import OpenGL.GL as gl
 from ncca.ngl import (
-    DefaultShader,
     FirstPersonCamera,
     Mat2,
     Mat3,
     Mat4,
-    Primitives,
     Prims,
     Random,
-    ShaderLib,
     Transform,
     Vec3,
     Vec3Array,
     logger,
 )
+from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib
 from PySide6.QtCore import QElapsedTimer, Qt
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow

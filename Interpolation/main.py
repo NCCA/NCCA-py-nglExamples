@@ -10,16 +10,8 @@ import traceback
 
 import OpenGL.GL as gl
 from easing import cubic_interp, trig_interp
-from ncca.ngl import (
-    Mat3,
-    Mat4,
-    Primitives,
-    ShaderLib,
-    Vec3,
-    logger,
-    look_at,
-    perspective,
-)
+from ncca.ngl import Mat3, Mat4, Vec3, logger, look_at, perspective
+from ncca.ngl.opengl import Primitives, ShaderLib
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
