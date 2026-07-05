@@ -233,11 +233,15 @@ class MainWindow(QOpenGLWindow):
             self.translate = False
 
     def wheelEvent(self, event) -> None:
-        num_pixels = event.angleDelta()
-        if num_pixels.x() > 0:
-            self.model_position.z += self.ZOOM
-        elif num_pixels.x() < 0:
-            self.model_position.z -= self.ZOOM
+        # Use the vertical wheel delta (angleDelta().y()) -- .x() is only
+        # populated by horizontal scroll gestures, which left plain vertical
+        # wheel/trackpad scrolling doing almost nothing and made stray
+        # horizontal trackpad noise cause small unintended zoom jumps.
+        # Scaling by the delta magnitude (120 = one standard wheel notch)
+        # instead of a fixed step also makes fast scrolling zoom
+        # proportionally rather than being capped to one step per event.
+        delta = event.angleDelta().y()
+        self.model_position.z += self.ZOOM * (delta / 120.0)
         self.update()
 
 
