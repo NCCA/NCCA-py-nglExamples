@@ -79,23 +79,27 @@ class MainWindow(QOpenGLWindow):
             "PBR", "shaders/PBRVertex.glsl", "shaders/PBRFragment.glsl"
         )
         ShaderLib.use("PBR")
-        ShaderLib.set_uniform("lightPositions[0]", -10.0, 4.0, -10.0)
-        ShaderLib.set_uniform("lightColours[0]", 400.0, 400.0, 400.0)
-        ShaderLib.set_uniform("lightPositions[1]", 10.0, 4.0, -10.0)
-        ShaderLib.set_uniform("lightColours[1]", 400.0, 400.0, 400.0)
-        ShaderLib.set_uniform("lightPositions[2]", -10.0, 4.0, 10.0)
-        ShaderLib.set_uniform("lightColours[2]", 400.0, 400.0, 400.0)
-        ShaderLib.set_uniform("albedo", 0.8, 0.1, 0.1)
-        ShaderLib.set_uniform("metallic", 0.6)
-        ShaderLib.set_uniform("roughness", 0.3)
-        ShaderLib.set_uniform("ao", 1.0)
+        # Matches NGL9Demos/Camera/src/NGLScene.cpp's own material/light
+        # values (this shader is shared with ShadingModels, whose defaults
+        # are unrelated and don't belong here).
+        ShaderLib.set_uniform("lightPositions[0]", -2.0, 0.0, 1.0)
+        ShaderLib.set_uniform("lightColours[0]", 100.0, 100.0, 100.0)
+        ShaderLib.set_uniform("lightPositions[1]", 2.0, 0.0, 1.0)
+        ShaderLib.set_uniform("lightColours[1]", 100.0, 100.0, 100.0)
+        ShaderLib.set_uniform("lightPositions[2]", 0.0, 2.0, 1.0)
+        ShaderLib.set_uniform("lightColours[2]", 100.0, 100.0, 100.0)
+        ShaderLib.set_uniform("albedo", 0.950, 0.71, 0.29)
+        ShaderLib.set_uniform("metallic", 1.02)
+        ShaderLib.set_uniform("roughness", 0.38)
+        ShaderLib.set_uniform("ao", 0.2)
+        ShaderLib.set_uniform("exposure", 2.2)
 
         Primitives.load_default_primitives()
         Primitives.create(Prims.TRIANGLE_PLANE, "ground", 30, 30, 20, 20, Vec3(0, 1, 0))
 
     def _update_lights(self) -> None:
         for i in range(3):
-            c = 400.0 if self.light_on[i] else 0.0
+            c = 100.0 if self.light_on[i] else 0.0
             ShaderLib.set_uniform(f"lightColours[{i}]", c, c, c)
 
     def load_matrices(self, camera: UVNCamera, tx: Transform) -> None:
