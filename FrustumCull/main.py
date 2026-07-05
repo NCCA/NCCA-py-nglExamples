@@ -34,10 +34,6 @@ MOVE_BOTH = "both"
 MOVE_SLIDE = "slide"
 KEY_INCREMENT = 0.2
 
-# Radius of the grid spheres, used both for the mesh and the culling test so
-# the visible sphere and the frustum-cull boundary always match.
-SPHERE_RADIUS = 2.0
-
 
 class MainWindow(QOpenGLWindow):
     """
@@ -112,7 +108,7 @@ class MainWindow(QOpenGLWindow):
             "Phong", "shaders/PhongVertex.glsl", "shaders/PhongFragment.glsl"
         )
         Primitives.load_default_primitives()
-        Primitives.create(Prims.SPHERE, "sphere", SPHERE_RADIUS, 12)
+        Primitives.create(Prims.SPHERE, "sphere", 1.0, 12)
 
         self.grid_positions = [
             Vec3(x, y, z)
@@ -175,7 +171,7 @@ class MainWindow(QOpenGLWindow):
         ShaderLib.use("Phong")
         drawn = 0
         for pos in self.grid_positions:
-            state = self.test_camera.is_sphere_in_frustum(pos, SPHERE_RADIUS)
+            state = self.test_camera.is_sphere_in_frustum(pos, 1.0)
             if state == "OUTSIDE":
                 continue
             drawn += 1
