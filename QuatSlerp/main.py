@@ -144,8 +144,8 @@ class MainWindow(QOpenGLWindow):
         elif key == Qt.Key_Down:
             self.interp = max(0.0, self.interp - 0.05)
         elif key == Qt.Key_Space:
-            self.spinXFace = 0
-            self.spinYFace = 0
+            self.spin_x_face = 0
+            self.spin_y_face = 0
             self.model_position.set(0, 0, 0)
         self.update()
         super().keyPressEvent(event)

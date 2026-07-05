@@ -178,8 +178,8 @@ class MainWindow(QOpenGLWindow):
             )  # Switch to solid fill rendering
         elif key == Qt.Key_Space:
             # Reset camera rotation and position
-            self.spinXFace = 0
-            self.spinYFace = 0
+            self.spin_x_face = 0
+            self.spin_y_face = 0
             self.model_position.set(0, 0, 0)
         # Trigger a redraw to apply changes
         self.update()
