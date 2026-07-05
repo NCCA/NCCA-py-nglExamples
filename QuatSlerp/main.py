@@ -1,0 +1,234 @@
+#!/usr/bin/env -S uv run --script
+"""QuatSlerp demo: slerp between two quaternion orientations of a teapot."""
+
+import sys
+import traceback
+
+import OpenGL.GL as gl
+from ncca.ngl import (
+    DefaultShader,
+    Mat3,
+    Mat4,
+    Primitives,
+    Quaternion,
+    ShaderLib,
+    Vec3,
+    logger,
+    look_at,
+    perspective,
+)
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QSurfaceFormat
+from PySide6.QtOpenGL import QOpenGLWindow
+from PySide6.QtWidgets import QApplication
+
+
+class MainWindow(QOpenGLWindow):
+    def __init__(self, parent: object = None) -> None:
+        super().__init__()
+        self.mouse_global_tx: Mat4 = Mat4()
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
+        self.model_position: Vec3 = Vec3()
+
+        self.window_width: int = 1024
+        self.window_height: int = 720
+        self.setTitle("QuatSlerp")
+
+        self.rotate: bool = False
+        self.translate: bool = False
+        self.spin_x_face: int = 0
+        self.spin_y_face: int = 0
+        self.original_x_rotation: int = 0
+        self.original_y_rotation: int = 0
+        self.original_x_pos: int = 0
+        self.original_y_pos: int = 0
+        self.INCREMENT: float = 0.01
+        self.ZOOM: float = 0.1
+
+    def initializeGL(self) -> None:
+        self.makeCurrent()
+        gl.glClearColor(0.4, 0.4, 0.4, 1.0)
+        gl.glEnable(gl.GL_DEPTH_TEST)
+        gl.glEnable(gl.GL_MULTISAMPLE)
+        self.view = look_at(Vec3(0, 0, 8), Vec3(0, 0, 0), Vec3(0, 1, 0))
+
+        ShaderLib.use(DefaultShader.DIFFUSE)
+        ShaderLib.set_uniform("lightPos", 1.0, 1.0, 1.0)
+        ShaderLib.set_uniform("lightDiffuse", 1.0, 1.0, 1.0, 1.0)
+        Primitives.load_default_primitives()
+
+        # Build the start / end orientations from Euler-angle rotation matrices,
+        # then convert to quaternions so we can slerp between them.
+        self.start_rotation = Vec3(45, 90, 80)
+        self.end_rotation = Vec3(-300, 270, 360)
+        start_mat = (
+            Mat4().rotate_z(self.start_rotation.z)
+            @ Mat4().rotate_y(self.start_rotation.y)
+            @ Mat4().rotate_x(self.start_rotation.x)
+        )
+        end_mat = (
+            Mat4().rotate_z(self.end_rotation.z)
+            @ Mat4().rotate_y(self.end_rotation.y)
+            @ Mat4().rotate_x(self.end_rotation.x)
+        )
+        self.start_quat = Quaternion.from_mat4(start_mat)
+        self.end_quat = Quaternion.from_mat4(end_mat)
+        self.interp: float = 0.0
+
+    def _model_matrix(self, quat: Quaternion, position: Vec3) -> Mat4:
+        """Build a model matrix from a quaternion rotation plus a position.
+
+        NOTE: ncca.ngl's Transform class only builds rotation from Euler
+        angles (set_rotation), it has no way to set rotation from a Mat4, so
+        we assemble the model matrix directly instead of going via Transform.
+        """
+        model = quat.to_mat4()
+        model[3, 0] = position.x
+        model[3, 1] = position.y
+        model[3, 2] = position.z
+        return model
+
+    def load_matrices_to_shader(self, model: Mat4) -> None:
+        ShaderLib.use(DefaultShader.DIFFUSE)
+        mv = self.view @ self.mouse_global_tx @ model
+        mvp = self.project @ mv
+        normal_matrix = Mat3.from_mat4(mv).inverse().transposed()
+        ShaderLib.set_uniform("MVP", mvp)
+        ShaderLib.set_uniform("MV", mv)
+        ShaderLib.set_uniform("normalMatrix", normal_matrix)
+
+    def paintGL(self) -> None:
+        self.makeCurrent()
+        gl.glViewport(0, 0, self.window_width, self.window_height)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+
+        rot_x = Mat4().rotate_x(self.spin_x_face)
+        rot_y = Mat4().rotate_y(self.spin_y_face)
+        self.mouse_global_tx = rot_y @ rot_x
+        self.mouse_global_tx[3, 0] = self.model_position.x
+        self.mouse_global_tx[3, 1] = self.model_position.y
+        self.mouse_global_tx[3, 2] = self.model_position.z
+
+        interp_quat = self.start_quat.slerp(self.end_quat, self.interp)
+
+        ShaderLib.set_uniform("Colour", 1.0, 1.0, 0.0, 1.0)
+
+        model = self._model_matrix(interp_quat, Vec3(0, 0, 0))
+        self.load_matrices_to_shader(model)
+        Primitives.draw("teapot")
+
+        model = self._model_matrix(self.start_quat, Vec3(-2, 0, 0))
+        self.load_matrices_to_shader(model)
+        Primitives.draw("teapot")
+
+        model = self._model_matrix(self.end_quat, Vec3(2, 0, 0))
+        self.load_matrices_to_shader(model)
+        Primitives.draw("teapot")
+
+    def resizeGL(self, w: int, h: int) -> None:
+        self.window_width = int(w * self.devicePixelRatio())
+        self.window_height = int(h * self.devicePixelRatio())
+        self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
+
+    def keyPressEvent(self, event) -> None:
+        key = event.key()
+        if key == Qt.Key_Escape:
+            self.close()
+        elif key == Qt.Key_W:
+            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
+        elif key == Qt.Key_S:
+            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
+        elif key == Qt.Key_Up:
+            self.interp = min(1.0, self.interp + 0.05)
+        elif key == Qt.Key_Down:
+            self.interp = max(0.0, self.interp - 0.05)
+        elif key == Qt.Key_Space:
+            self.spinXFace = 0
+            self.spinYFace = 0
+            self.model_position.set(0, 0, 0)
+        self.update()
+        super().keyPressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        if self.rotate and event.buttons() == Qt.LeftButton:
+            position = event.position()
+            diff_x = position.x() - self.original_x_rotation
+            diff_y = position.y() - self.original_y_rotation
+            self.spin_x_face += int(0.5 * diff_y)
+            self.spin_y_face += int(0.5 * diff_x)
+            self.original_x_rotation = position.x()
+            self.original_y_rotation = position.y()
+            self.update()
+        elif self.translate and event.buttons() == Qt.RightButton:
+            position = event.position()
+            diff_x = int(position.x() - self.original_x_pos)
+            diff_y = int(position.y() - self.original_y_pos)
+            self.original_x_pos = position.x()
+            self.original_y_pos = position.y()
+            self.model_position.x += self.INCREMENT * diff_x
+            self.model_position.y -= self.INCREMENT * diff_y
+            self.update()
+
+    def mousePressEvent(self, event) -> None:
+        position = event.position()
+        if event.button() == Qt.LeftButton:
+            self.original_x_rotation = position.x()
+            self.original_y_rotation = position.y()
+            self.rotate = True
+        elif event.button() == Qt.RightButton:
+            self.original_x_pos = position.x()
+            self.original_y_pos = position.y()
+            self.translate = True
+
+    def mouseReleaseEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton:
+            self.rotate = False
+        elif event.button() == Qt.RightButton:
+            self.translate = False
+
+    def wheelEvent(self, event) -> None:
+        num_pixels = event.angleDelta()
+        if num_pixels.x() > 0:
+            self.model_position.z += self.ZOOM
+        elif num_pixels.x() < 0:
+            self.model_position.z -= self.ZOOM
+        self.update()
+
+
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+        logger.info("Running in full debug mode")
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
+if __name__ == "__main__":
+    format: QSurfaceFormat = QSurfaceFormat()
+    format.setSamples(4)
+    format.setMajorVersion(4)
+    format.setMinorVersion(1)
+    format.setProfile(QSurfaceFormat.CoreProfile)
+    format.setDepthBufferSize(24)
+    QSurfaceFormat.setDefaultFormat(format)
+
+    smoketest = "--smoketest" in sys.argv
+    if "--debug" in sys.argv:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
+    window = MainWindow()
+    window.resize(1024, 720)
+    window.show()
+
+    if smoketest:
+        QTimer.singleShot(200, lambda: (print("SMOKETEST OK"), app.quit()))
+
+    sys.exit(app.exec())
