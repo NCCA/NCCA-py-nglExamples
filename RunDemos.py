@@ -22,9 +22,11 @@ from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
+    QLineEdit,
     QMainWindow,
     QPushButton,
     QScrollArea,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -69,10 +71,21 @@ class DemoRunner(QMainWindow):
         scroll_area.setWidgetResizable(True)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
+        # A search box sits above the scroll area to filter demos by name.
+        self.search_box = QLineEdit()
+        self.search_box.setPlaceholderText("Search demos...")
+        self.search_box.textChanged.connect(self.filter_demos)
+
+        search_container = QWidget()
+        search_layout = QVBoxLayout(search_container)
+        search_layout.setContentsMargins(0, 0, 0, 0)
+        search_layout.addWidget(self.search_box)
+        search_layout.addWidget(scroll_area)
+
         # The .ui file has a placeholder QWidget called 'demo_list'.
-        # We replace this placeholder with our new scroll area.
+        # We replace this placeholder with our search box + scroll area.
         parent_layout = self.demo_list.parentWidget().layout()
-        parent_layout.replaceWidget(self.demo_list, scroll_area)
+        parent_layout.replaceWidget(self.demo_list, search_container)
         # The original demo_list widget is now managed by the scroll area
         scroll_area.setWidget(self.demo_list)
 
@@ -110,6 +123,7 @@ class DemoRunner(QMainWindow):
         exclude_dirs = {
             ".venv",
             ".git",
+            ".worktrees",
             "__pycache__",
             ".ruff_cache",
             ".mypy_cache",
@@ -136,14 +150,24 @@ class DemoRunner(QMainWindow):
                     if os.access(p, os.X_OK):
                         yield p
 
+        scripts = [p for p in walk(root) if p.stem != "RunDemos"]
+
+        # Folders with more than one executable script would otherwise produce
+        # several buttons with the same label (the folder name); disambiguate
+        # those with the script filename appended.
+        counts: dict[str, int] = {}
+        for p in scripts:
+            counts[p.parent.name] = counts.get(p.parent.name, 0) + 1
+
         self.executables = []
-        for p in walk(root):
-            # The script name "RunDemos.py" is also excluded here as a safeguard.
-            if p.stem == "RunDemos":
-                continue
-            # Create a Demo object and add it to our list
+        for p in scripts:
+            folder_name = p.parent.name
+            if counts[folder_name] > 1:
+                button_name = f"{folder_name} — {p.name}"
+            else:
+                button_name = folder_name
             demo = Demo(
-                button_name=p.parent.name,
+                button_name=button_name,
                 root_path=str(p.parent),
                 app_full_path=str(p),
             )
@@ -189,6 +213,18 @@ class DemoRunner(QMainWindow):
                 shell=True,
                 cwd=self.active_demo.root_path,
             )
+
+    def filter_demos(self, text: str) -> None:
+        """
+        Shows only the demo buttons whose name contains the search text
+        (case-insensitive), hiding the rest.
+
+        Args:
+            text: The current contents of the search box.
+        """
+        needle = text.lower()
+        for button in self.button_group.buttons():
+            button.setVisible(needle in button.objectName().lower())
 
     def _load_image(self, path: str) -> None:
         """
@@ -258,7 +294,7 @@ class DemoRunner(QMainWindow):
             event: The key event.
         """
         key = event.key()
-        buttons = self.button_group.buttons()
+        buttons = [b for b in self.button_group.buttons() if b.isVisible()]
         if not buttons:
             return
 
