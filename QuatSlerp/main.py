@@ -231,8 +231,10 @@ class MainWindow(QMainWindow):
         self.centralWidget().layout().addWidget(self.scene, 0, 0)
 
         self.start_rotation_widget.set_range(-360.0, 360.0)
+        self.start_rotation_widget.set_single_step(1.0)
         self.start_rotation_widget.set_value(self.scene.start_rotation)
         self.end_rotation_widget.set_range(-360.0, 360.0)
+        self.end_rotation_widget.set_single_step(1.0)
         self.end_rotation_widget.set_value(self.scene.end_rotation)
 
         self.start_rotation_widget.valueChanged.connect(self._start_rotation_changed)
