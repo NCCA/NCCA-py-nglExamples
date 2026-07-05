@@ -8,8 +8,8 @@ flat in float frameOffset[];
 flat out float texID;
 out vec2 texCoord;
 
-uniform mat4 MVP;
-uniform vec3 cameraPos;
+uniform mat4 MV;
+uniform mat4 projection;
 uniform float time;
 
 const float bbWidth = 0.5;
@@ -18,10 +18,11 @@ const float spriteOffset = 0.1;
 
 void main()
 {
-    vec3 pos = gl_in[0].gl_Position.xyz;
-    vec3 toCamera = normalize(cameraPos - pos);
-    vec3 up = vec3(0.0, 1.0, 0.0);
-    vec3 right = cross(toCamera, up);
+    // Billboard in view space, where "facing the camera" is just the XY
+    // plane -- this stays correct under any scene rotation/zoom (MV), unlike
+    // computing a facing vector from a world-space camera position and then
+    // letting MV rotate the already-built quad out of alignment.
+    vec4 viewPos = MV * vec4(gl_in[0].gl_Position.xyz, 1.0);
 
     float ctime = floor(time + frameOffset[0]);
     float u0 = ctime * spriteOffset;
@@ -29,23 +30,23 @@ void main()
 
     texID = whichTexture[0];
 
-    vec3 p0 = pos - right * bbWidth;
-    gl_Position = MVP * vec4(p0, 1.0);
+    vec4 p0 = viewPos + vec4(-bbWidth, 0.0, 0.0, 0.0);
+    gl_Position = projection * p0;
     texCoord = vec2(u0, 0.0);
     EmitVertex();
 
-    vec3 p1 = pos - right * bbWidth + up * bbHeight;
-    gl_Position = MVP * vec4(p1, 1.0);
+    vec4 p1 = viewPos + vec4(-bbWidth, bbHeight, 0.0, 0.0);
+    gl_Position = projection * p1;
     texCoord = vec2(u0, 1.0);
     EmitVertex();
 
-    vec3 p2 = pos + right * bbWidth;
-    gl_Position = MVP * vec4(p2, 1.0);
+    vec4 p2 = viewPos + vec4(bbWidth, 0.0, 0.0, 0.0);
+    gl_Position = projection * p2;
     texCoord = vec2(u1, 0.0);
     EmitVertex();
 
-    vec3 p3 = pos + right * bbWidth + up * bbHeight;
-    gl_Position = MVP * vec4(p3, 1.0);
+    vec4 p3 = viewPos + vec4(bbWidth, bbHeight, 0.0, 0.0);
+    gl_Position = projection * p3;
     texCoord = vec2(u1, 1.0);
     EmitVertex();
 

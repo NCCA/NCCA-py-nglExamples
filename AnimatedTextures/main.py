@@ -151,9 +151,9 @@ class MainWindow(QOpenGLWindow):
         self.mouse_global_tx[3, 2] = self.model_position.z
 
         ShaderLib.use("Billboard")
-        mvp = self.project @ self.view @ self.mouse_global_tx
-        ShaderLib.set_uniform("MVP", mvp)
-        ShaderLib.set_uniform("cameraPos", 0.0, 4.0, 20.0)
+        mv = self.view @ self.mouse_global_tx
+        ShaderLib.set_uniform("MV", mv)
+        ShaderLib.set_uniform("projection", self.project)
         ShaderLib.set_uniform("time", self.time)
 
         for i, tex_id in enumerate(self.texture_ids):
