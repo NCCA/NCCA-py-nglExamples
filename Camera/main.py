@@ -11,6 +11,7 @@ from ncca.ngl import (
     Primitives,
     Prims,
     ShaderLib,
+    Text,
     Transform,
     Vec3,
     logger,
@@ -97,6 +98,8 @@ class MainWindow(QOpenGLWindow):
         Primitives.load_default_primitives()
         Primitives.create(Prims.TRIANGLE_PLANE, "ground", 30, 30, 20, 20, Vec3(0, 1, 0))
 
+        Text.add_font("Arial", "Arial.ttf", 18)
+
     def _update_lights(self) -> None:
         for i in range(3):
             c = 100.0 if self.light_on[i] else 0.0
@@ -129,7 +132,7 @@ class MainWindow(QOpenGLWindow):
         self._update_lights()
 
         tx = Transform()
-        tx.set_position(0, -1, 0)
+        tx.set_position(0, -0.5, 0)
         tx.set_scale(15, 1, 15)
         self.load_matrices(camera, tx)
         Primitives.draw("ground")
@@ -140,19 +143,63 @@ class MainWindow(QOpenGLWindow):
         Primitives.draw("teapot")
 
         tx.reset()
-        tx.set_position(-3, 0.5, 0)
+        tx.set_position(-3, 0.25, 0)
         tx.set_rotation(0, self.rotation, 0)
         self.load_matrices(camera, tx)
         Primitives.draw("cube")
 
         tx.reset()
         tx.set_position(3, 0, 0)
-        tx.set_scale(0.05, 0.05, 0.05)
+        tx.set_scale(0.5, 0.5, 0.5)
         self.load_matrices(camera, tx)
         Primitives.draw("football")
 
+        self._draw_help_text(camera)
+
         self.rotation = (self.rotation + 1.0) % 360.0
         self.update()
+
+    def _draw_help_text(self, camera: UVNCamera) -> None:
+        yellow = Vec3(1.0, 1.0, 0.0)
+        white = Vec3(1.0, 1.0, 1.0)
+
+        y = 20
+        for line in (
+            "Arrow keys : move active camera's eye",
+            "1-4 : switch active camera",
+            "r / y / p : roll / yaw / pitch active camera",
+            "z / x / c : toggle lights 0 / 1 / 2",
+            "+ / - : adjust field of view",
+        ):
+            Text.render_text("Arial", 10, y, line, white)
+            y += 20
+
+        y += 10
+        Text.render_text(
+            "Arial",
+            10,
+            y,
+            f"Active camera {self.camera_index}  FOV {camera.fov:.1f}",
+            yellow,
+        )
+        y += 24
+        Text.render_text("Arial", 10, y, "View Matrix", white)
+        for row in range(4):
+            y += 20
+            r = camera.view[row]
+            Text.render_text(
+                "Arial",
+                10,
+                y,
+                f"[ {r[0]:+0.4f} {r[1]:+0.4f} {r[2]:+0.4f} {r[3]:+0.4f} ]",
+                yellow,
+            )
+
+        y += 24
+        lights = " ".join(
+            f"L{i}:{'On' if on else 'Off'}" for i, on in enumerate(self.light_on)
+        )
+        Text.render_text("Arial", 10, y, lights, white)
 
     def resizeGL(self, w: int, h: int) -> None:
         self.window_width = int(w * self.devicePixelRatio())
@@ -160,6 +207,7 @@ class MainWindow(QOpenGLWindow):
         aspect = float(w) / h
         for camera in self.cameras:
             camera.set_shape(camera.fov, aspect, camera.near, camera.far)
+        Text.set_screen_size(self.window_width, self.window_height)
 
     def keyPressEvent(self, event) -> None:
         key = event.key()
