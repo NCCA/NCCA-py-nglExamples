@@ -30,24 +30,27 @@ void main()
 
     texID = whichTexture[0];
 
+    // v is flipped (1.0 at the bottom, 0.0 at the top): PIL/ncca.ngl's Image
+    // loads rows top-to-bottom, so row 0 (the sprite's top row) lands at
+    // texture v=0 -- matching NormalMapping.py's "flip V for OpenGL" convention.
     vec4 p0 = viewPos + vec4(-bbWidth, 0.0, 0.0, 0.0);
     gl_Position = projection * p0;
-    texCoord = vec2(u0, 0.0);
+    texCoord = vec2(u0, 1.0);
     EmitVertex();
 
     vec4 p1 = viewPos + vec4(-bbWidth, bbHeight, 0.0, 0.0);
     gl_Position = projection * p1;
-    texCoord = vec2(u0, 1.0);
+    texCoord = vec2(u0, 0.0);
     EmitVertex();
 
     vec4 p2 = viewPos + vec4(bbWidth, 0.0, 0.0, 0.0);
     gl_Position = projection * p2;
-    texCoord = vec2(u1, 0.0);
+    texCoord = vec2(u1, 1.0);
     EmitVertex();
 
     vec4 p3 = viewPos + vec4(bbWidth, bbHeight, 0.0, 0.0);
     gl_Position = projection * p3;
-    texCoord = vec2(u1, 1.0);
+    texCoord = vec2(u1, 0.0);
     EmitVertex();
 
     EndPrimitive();
