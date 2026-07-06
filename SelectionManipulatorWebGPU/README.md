@@ -53,9 +53,46 @@ OpenGL redraws selected objects with `glPolygonMode(GL_LINE)` and a negative
 polygon offset. WebGPU has no polygon-line mode, so `ObjectShader.wgsl` draws
 the fill and the wireframe in **one pass**: the geometry is a non-indexed
 triangle soup, so `vertex_index % 3` identifies each triangle corner and emits
-a barycentric coordinate `(1,0,0)/(0,1,0)/(0,0,1)`. In the fragment shader the
-smallest barycentric component is the distance to the nearest edge; `fwidth`
-keeps the line ~1px wide and anti-aliased. No extra vertex buffer is needed.
+a barycentric coordinate `(1,0,0)/(0,1,0)/(0,0,1)`. These interpolate across the
+triangle, and the **smallest** of the three components is the (barycentric)
+distance to the nearest edge — zero on an edge, largest at the centroid. No
+extra vertex buffer is needed.
+
+### Adaptive wireframe (thin lines for dense meshes)
+
+A naïve `edge < constant` test draws lines that are thick where a triangle is
+big on screen and thin where it is small — and for a dense mesh (the teapot has
+~14k triangles) every triangle is smaller than a pixel, so *every* fragment is
+within one line-width of an edge and the object washes out to solid white. The
+shader fixes both problems with two screen-space quantities derived from the
+edge distance:
+
+1. **Constant-thickness lines.** `fwidth(edge)` is how fast the edge distance
+   changes per pixel, so
+
+   ```wgsl
+   let dist_px = edge / fwidth(edge);   // distance to the edge, in pixels
+   var wire = 1.0 - smoothstep(thickness, thickness + 1.0, dist_px);
+   ```
+
+   makes the line a fixed `thickness` pixels wide (plus one pixel of
+   anti-aliasing) regardless of how far away or foreshortened the triangle is —
+   a near face and a far face of the same object get the same line weight.
+
+2. **Density fade.** `1.0 / fwidth(edge)` approximates how many pixels the
+   triangle spans on screen. When that extent drops to only a few pixels the
+   triangle can no longer show a readable line, so the wire is faded out:
+
+   ```wgsl
+   let extent_px = 1.0 / fwidth(edge);
+   wire = wire * smoothstep(4.0, 14.0, extent_px);   // 0 below ~4px, full by ~14px
+   ```
+
+The result: coarse meshes (cube, dodecahedron, sphere) keep a crisp thin
+wireframe, while dense meshes (teapot, troll) keep their shaded surface and only
+show wireframe on the larger triangles near their silhouette — so a selection is
+still visible without the object turning into a white blob. The `4/14`px
+thresholds and the `0.6`px `thickness` are the two knobs to tune.
 
 ### `glReadPixels` picking → offscreen render + readback
 
