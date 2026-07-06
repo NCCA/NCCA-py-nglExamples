@@ -13,12 +13,18 @@
 // ties on distance resolve to the smaller ID deterministically. The block
 // gives a few pixels of slop so near-misses on thin geometry still pick.
 //
+// Gizmo handles carry reserved IDs at the top of the range (>= PRIORITY_BASE)
+// and are treated as distance zero, so a handle anywhere in the block beats
+// every object - the integer equivalent of the colour-ID demo scanning for
+// gizmo colours before object colours.
+//
 // result must be initialised to NO_HIT (0xffffffff) before every dispatch.
 
 const BLOCK : i32 = 9;          // must match PICK_BLOCK on the CPU side
 const HALF : i32 = BLOCK / 2;
 const ID_BITS : u32 = 20u;      // low bits hold the id -> up to ~1M objects
 const ID_MASK : u32 = (1u << ID_BITS) - 1u;
+const PRIORITY_BASE : u32 = 0xFFF00u;  // must match GIZMO_ID_BASE in Manipulator.py
 
 struct PickParams {
     pos : vec2<i32>,            // mouse position in texture pixels
@@ -39,6 +45,13 @@ fn pick_main(@builtin(local_invocation_id) lid : vec3<u32>) {
     if (id == 0u) {             // 0 is background
         return;
     }
-    let d2 = u32(offset.x * offset.x + offset.y * offset.y);
+    // objects pack with distance + 1 so their smallest possible key
+    // (1 << ID_BITS) is still larger than any gizmo key (distance 0):
+    // a handle anywhere in the block wins even against an object under
+    // the exact click pixel
+    var d2 = u32(offset.x * offset.x + offset.y * offset.y) + 1u;
+    if (id >= PRIORITY_BASE) {  // gizmo handles always beat objects
+        d2 = 0u;
+    }
     atomicMin(&result, (d2 << ID_BITS) | (id & ID_MASK));
 }

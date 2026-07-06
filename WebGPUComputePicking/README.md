@@ -1,7 +1,8 @@
 # Compute-Shader Picking (WebGPU)
 
 An alternative to the colour-ID picking used in
-[`SelectionManipulatorWebGPU`](../SelectionManipulatorWebGPU). Objects still
+[`SelectionManipulatorWebGPU`](../SelectionManipulatorWebGPU), with the same
+scene and Maya-style transform gizmos. Objects and gizmo handles still
 render into an offscreen ID target on click, but the ID is a **real integer
 in an `r32uint` texture** rather than a float colour, and the whole-image
 readback is replaced by a **compute-shader reduction** that hands the CPU
@@ -11,12 +12,18 @@ exactly 4 bytes.
 uv run main.py          # or ./main.py
 ```
 
-## Controls
+## Controls (Maya-style)
 
 | Input | Action |
 |---|---|
+| `Q` | Select mode (gizmo hidden) |
+| `W` | Translate mode (arrows) |
+| `E` | Rotate mode (rings) |
+| `R` | Scale mode (boxes) |
 | Left click | Select the object under the cursor (replaces selection) |
 | `Ctrl` + click | Toggle an object in / out of the selection (multi-select) |
+| Drag an axis handle | Transform **all** selected objects along that axis |
+| Drag the centre cube | Free screen-plane move (translate) / uniform scale (scale) |
 | `Alt` + LMB drag | Tumble the camera |
 | `Alt` + RMB drag | Pan the camera |
 | Mouse wheel | Dolly in / out |
@@ -45,6 +52,12 @@ bind group). That's no loss: "antialiasing" object IDs would be meaningless.
 The ID texture has `TEXTURE_BINDING` usage and **no `COPY_SRC`** — it never
 leaves the GPU.
 
+The **gizmo handles** join the same ID pass through a second tiny pipeline
+(`GizmoPipeline`): each handle part is drawn flat with a **reserved ID**
+from the top of the 20-bit range (`GIZMO_ID_BASE + 1..4` for X / Y / Z /
+centre — see `Manipulator.py`), on top of the objects with the depth buffer
+cleared, exactly as the colour demo reserved special pick colours.
+
 ### 2. Compute reduction (`PickCompute.wgsl`, `PickResolver`)
 
 One dispatch of a single `9x9` workgroup (matching the pick-block slop the
@@ -59,6 +72,18 @@ into a `u32` and `atomicMin`s it into a storage buffer — a textbook
 parallel argmin. Because the ID sits in the low bits, the nearest hit
 always wins and distance ties resolve deterministically to the lowest ID.
 The buffer is seeded with `0xffffffff` ("no hit") before each dispatch.
+
+Two refinements encode the pick *policy* in the packing itself:
+
+* **objects** pack with `distance² + 1`, so their smallest possible key is
+  `1 << 20`;
+* **gizmo handles** (`id >= PRIORITY_BASE`) pack with distance `0`, keeping
+  their keys below `1 << 20`.
+
+A handle anywhere in the block therefore beats an object even directly
+under the click pixel — the integer version of the colour demo scanning
+its block for gizmo colours before object colours, but resolved in one
+atomic reduction instead of a CPU loop.
 
 ### 3. Readback
 

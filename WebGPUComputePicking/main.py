@@ -1,14 +1,15 @@
 #!/usr/bin/env -S uv run --script
 """
-Object selection demo using GPU compute-based picking (WebGPU).
+Object selection and manipulation demo using GPU compute-based picking (WebGPU).
 
-An alternative to the colour-ID picking used in ``SelectionManipulatorWebGPU``.
-Objects still render into an offscreen ID target on click, but the ID is a
-real integer written to an ``r32uint`` texture rather than a float colour,
-and the readback is radically smaller: a compute shader inspects the 9x9
-pixel block around the click on the GPU, atomicMin-reduces it to a single
-u32 (nearest hit to the click centre wins) and the CPU maps back exactly
-4 bytes instead of a whole image.
+An alternative to the colour-ID picking used in ``SelectionManipulatorWebGPU``:
+the same scene and Maya-style gizmos, but picking is done with integer object
+IDs and a compute shader. On click everything pickable renders into an
+``r32uint`` ID target - objects with sequential IDs, gizmo handles with
+reserved priority IDs - then a compute shader inspects the 9x9 pixel block
+around the click on the GPU, atomicMin-reduces it to a single u32 (gizmo
+handles first, then nearest object) and the CPU maps back exactly 4 bytes
+instead of a whole image.
 
     click -> ID render pass (r32uint) -> compute reduce -> 4-byte readback
 
@@ -16,9 +17,14 @@ Compared with colour-ID picking this removes the float->byte ID encoding
 (and its 16.7M-object ceiling and reserved-colour bookkeeping), and the
 readback no longer scales with window size.
 
-Controls:
+Controls (matching Maya):
+    Q            select mode (no gizmo)
+    W            translate mode
+    E            rotate mode
+    R            scale mode
     Left click   select object (replaces selection)
     Ctrl+click   toggle object in/out of the selection (multi-select)
+    Drag handle  transform every selected object
     Alt+LMB      tumble camera
     Alt+RMB      pan camera
     Wheel        dolly camera
@@ -30,9 +36,10 @@ import sys
 
 import numpy as np
 import wgpu
+from Manipulator import CENTER, GIZMO_ID_BASE, Axis, ManipMode, Manipulator
 from ncca.ngl import Mat4, PerspMode, PrimData, Prims, Vec3, Vec4, look_at, perspective
 from ncca.ngl.webgpu import PipelineFactory, PipelineType
-from ObjectPipeline import ObjectPipeline, PickResolver
+from ObjectPipeline import GizmoPipeline, ObjectPipeline, PickResolver
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
@@ -74,6 +81,9 @@ class WebGPUScene(WebGPUWidget):
         self.INCREMENT = 0.01
         self.ZOOM = 0.1
 
+        self.mode = ManipMode.TRANSLATE
+        self.dragging = False
+
         # offscreen ID targets (created in resizeWebGPU)
         self.id_texture_view = None
         self.id_depth_view = None
@@ -83,10 +93,12 @@ class WebGPUScene(WebGPUWidget):
         self._create_id_buffer()
 
         self.object_pipeline = ObjectPipeline(self.device)
+        self.gizmo_pipeline = GizmoPipeline(self.device)
         self.pick_resolver = PickResolver(self.device)
         self.grid_pipeline = PipelineFactory.create_pipeline(
             self.device, PipelineType.SINGLE_COLOUR_LINES
         )
+        self.manipulator = Manipulator(self.device)
 
         self._build_geometry()
 
@@ -161,6 +173,16 @@ class WebGPUScene(WebGPUWidget):
     def selected_objects(self) -> list[SelectionObject]:
         return [o for o in self.objects if o.selected]
 
+    def update_pivot(self) -> None:
+        """Place the gizmo at the centroid of the selection."""
+        selected = self.selected_objects()
+        if not selected:
+            return
+        centre = Vec3(0.0, 0.0, 0.0)
+        for obj in selected:
+            centre += obj.position
+        self.manipulator.position = centre * (1.0 / len(selected))
+
     def scene_global_tx(self) -> Mat4:
         rot_x = Mat4().rotate_x(self.spin_x_face)
         rot_y = Mat4().rotate_y(self.spin_y_face)
@@ -173,6 +195,52 @@ class WebGPUScene(WebGPUWidget):
     # ------------------------------------------------------------------
     # rendering
     # ------------------------------------------------------------------
+    def _gizmo_visible(self) -> bool:
+        return bool(self.selected_objects()) and self.mode != ManipMode.SELECT
+
+    def _draw_gizmo_parts(self, draws, render_id: bool) -> None:
+        """Draw each gizmo part on top of the scene (clears depth on the first).
+
+        One tiny pass per part: mvp and colour/ID live in a single uniform
+        buffer that must be rewritten (and its write submitted) between draws.
+        """
+        for i, (buf, count, mvp, value) in enumerate(draws):
+            if render_id:
+                self.gizmo_pipeline.set_part(mvp, pick_id=value)
+            else:
+                self.gizmo_pipeline.set_part(mvp, colour=value)
+            encoder = self.device.create_command_encoder()
+            if render_id:
+                colour_attachment = {
+                    "view": self.id_texture_view,
+                    "load_op": wgpu.LoadOp.load,
+                    "store_op": wgpu.StoreOp.store,
+                }
+                depth_view = self.id_depth_view
+            else:
+                colour_attachment = {
+                    "view": self.multisample_texture_view,
+                    "resolve_target": self.colour_buffer_texture_view,
+                    "load_op": wgpu.LoadOp.load,
+                    "store_op": wgpu.StoreOp.store,
+                }
+                depth_view = self.depth_buffer_view
+            render_pass = encoder.begin_render_pass(
+                color_attachments=[colour_attachment],
+                depth_stencil_attachment={
+                    "view": depth_view,
+                    "depth_load_op": wgpu.LoadOp.clear if i == 0 else wgpu.LoadOp.load,
+                    "depth_store_op": wgpu.StoreOp.store,
+                    "depth_clear_value": 1.0,
+                },
+            )
+            if render_id:
+                self.gizmo_pipeline.render_id(render_pass, buf, count)
+            else:
+                self.gizmo_pipeline.render(render_pass, buf, count)
+            render_pass.end()
+            self.device.queue.submit([encoder.finish()])
+
     def paintWebGPU(self) -> None:
         global_tx = self.scene_global_tx()
 
@@ -208,14 +276,21 @@ class WebGPUScene(WebGPUWidget):
         render_pass.end()
         self.device.queue.submit([encoder.finish()])
 
+        # gizmo on top
+        if self._gizmo_visible():
+            draws = self.manipulator.part_draws(
+                self.mode, global_tx, self.view, self.project
+            )
+            self._draw_gizmo_parts(draws, render_id=False)
+
         self._update_colour_buffer()
 
         num = len(self.selected_objects())
         self.render_text(
             10,
             -18,
-            f"Compute picking   selected {num}   "
-            "click select, ctrl+click multi, alt+mouse camera, space reset",
+            f"Compute picking  Mode [{self.mode.value}]  selected {num}   "
+            "Q select W translate E rotate R scale | click select, ctrl+click multi, alt+mouse camera",
             14,
             "Arial",
             QColor(255, 255, 255),
@@ -224,8 +299,9 @@ class WebGPUScene(WebGPUWidget):
     # ------------------------------------------------------------------
     # picking
     # ------------------------------------------------------------------
-    def pick(self, x: float, y: float) -> SelectionObject | None:
-        """Render the integer ID pass, reduce it on the GPU, return the object."""
+    def pick(self, x: float, y: float):
+        """Render the integer ID pass, reduce it on the GPU and return
+        ('axis', Axis/CENTER) or ('object', obj) or None."""
         global_tx = self.scene_global_tx()
 
         # ID pass: every object flat in its integer ID, background clears to 0
@@ -253,11 +329,27 @@ class WebGPUScene(WebGPUWidget):
         render_pass.end()
         self.device.queue.submit([encoder.finish()])
 
+        # gizmo handles in their reserved IDs, on top (depth cleared); the
+        # compute kernel gives IDs >= GIZMO_ID_BASE priority over objects
+        if self._gizmo_visible():
+            draws = self.manipulator.id_draws(
+                self.mode, global_tx, self.view, self.project
+            )
+            self._draw_gizmo_parts(draws, render_id=True)
+
         # compute reduce + 4-byte readback
         pick_id = self.pick_resolver.resolve(self.id_texture_view, int(x), int(y))
         if pick_id is None:
             return None
-        return self.objects_by_id.get(pick_id)
+        if pick_id >= GIZMO_ID_BASE:
+            axis = Manipulator.axis_for_pick_id(pick_id)
+            if axis is not None:
+                return ("axis", axis)
+            return None
+        obj = self.objects_by_id.get(pick_id)
+        if obj is not None:
+            return ("object", obj)
+        return None
 
     # ------------------------------------------------------------------
     # events
@@ -266,6 +358,14 @@ class WebGPUScene(WebGPUWidget):
         key = event.key()
         if key == Qt.Key_Escape:
             self.close()
+        elif key == Qt.Key_Q:
+            self.mode = ManipMode.SELECT
+        elif key == Qt.Key_W:
+            self.mode = ManipMode.TRANSLATE
+        elif key == Qt.Key_E:
+            self.mode = ManipMode.ROTATE
+        elif key == Qt.Key_R:
+            self.mode = ManipMode.SCALE
         elif key == Qt.Key_Space:
             self.spin_x_face = 0
             self.spin_y_face = 0
@@ -293,23 +393,72 @@ class WebGPUScene(WebGPUWidget):
             return
 
         ratio = self.devicePixelRatio()
-        obj = self.pick(position.x() * ratio, position.y() * ratio)
+        hit = self.pick(position.x() * ratio, position.y() * ratio)
 
-        if obj is not None:
+        if hit is not None and hit[0] == "axis" and self.mode != ManipMode.SELECT:
+            self.manipulator.start_drag(
+                hit[1],
+                position.x() * ratio,
+                position.y() * ratio,
+                self.scene_global_tx(),
+                self.view,
+                self.project,
+                self.texture_size[0],
+                self.texture_size[1],
+            )
+            self.dragging = True
+        elif hit is not None and hit[0] == "object":
+            obj = hit[1]
             if modifiers & Qt.ControlModifier:
                 obj.selected = not obj.selected
             else:
                 for other in self.objects:
                     other.selected = False
                 obj.selected = True
+            self.update_pivot()
         elif not modifiers & Qt.ControlModifier:
-            for other in self.objects:
-                other.selected = False
+            for obj in self.objects:
+                obj.selected = False
         self.update()
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         position = event.position()
-        if self.rotate_camera and event.buttons() == Qt.LeftButton:
+        if self.dragging:
+            ratio = self.devicePixelRatio()
+            x, y = position.x() * ratio, position.y() * ratio
+            if self.mode == ManipMode.TRANSLATE:
+                if self.manipulator.active_axis == CENTER:
+                    delta = self.manipulator.drag_free_translate(x, y)
+                else:
+                    delta = self.manipulator.drag_translate(x, y)
+                for obj in self.selected_objects():
+                    obj.position += delta
+                self.manipulator.position += delta
+            elif self.mode == ManipMode.SCALE:
+                if self.manipulator.active_axis == CENTER:
+                    factors = self.manipulator.drag_uniform_scale(x, y)
+                else:
+                    factors = self.manipulator.drag_scale(x, y)
+                for obj in self.selected_objects():
+                    obj.scale = Vec3(
+                        obj.scale.x * factors.x,
+                        obj.scale.y * factors.y,
+                        obj.scale.z * factors.z,
+                    )
+            elif self.mode == ManipMode.ROTATE:
+                angle = self.manipulator.drag_rotate(x, y)
+                axis = self.manipulator.active_axis
+                if axis is not None:
+                    for obj in self.selected_objects():
+                        rot = obj.rotation
+                        if axis == Axis.X:
+                            rot.x += angle
+                        elif axis == Axis.Y:
+                            rot.y += angle
+                        else:
+                            rot.z += angle
+            self.update()
+        elif self.rotate_camera and event.buttons() == Qt.LeftButton:
             diff_x = position.x() - self.original_x_rotation
             diff_y = position.y() - self.original_y_rotation
             self.spin_x_face += int(0.5 * diff_y)
@@ -328,6 +477,9 @@ class WebGPUScene(WebGPUWidget):
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.LeftButton:
+            if self.dragging:
+                self.dragging = False
+                self.manipulator.end_drag()
             self.rotate_camera = False
         elif event.button() == Qt.RightButton:
             self.translate_camera = False

@@ -19,6 +19,14 @@ PickResolver
     pixel block around the click in the ID texture and atomicMin-reduces it
     to one u32. The CPU reads back 4 bytes instead of a whole image, and the
     IDs are real integers rather than IDs smuggled through float colours.
+
+GizmoPipeline
+    Flat single-colour pipeline for the manipulator handles, with a sibling
+    ID pipeline that writes a uniform u32 into the r32uint pick target so
+    the handles take part in the same compute pick as the objects (with
+    reserved priority IDs, see Manipulator.py / PickCompute.wgsl). Each
+    handle part is one tiny pass because the mvp/colour/ID live in a single
+    uniform buffer that is rewritten between parts.
 """
 
 from pathlib import Path
@@ -240,6 +248,144 @@ class ObjectPipeline:
 
     def render_ids(self, render_pass: wgpu.GPURenderPassEncoder) -> None:
         self._draw(render_pass, self.pick_pipeline)
+
+
+_GIZMO_SHADER = """
+// Flat colour / flat integer-ID rendering for the manipulator handles.
+// One uniform block per part: mvp, display colour and pick ID.
+
+struct Uniforms {
+    mvp : mat4x4<f32>,
+    colour : vec4<f32>,
+    pick_id : vec4<u32>,        // x = id
+};
+
+@group(0) @binding(0) var<uniform> uniforms : Uniforms;
+
+@vertex
+fn vertex_main(@location(0) position : vec3<f32>) -> @builtin(position) vec4<f32> {
+    return uniforms.mvp * vec4<f32>(position, 1.0);
+}
+
+@fragment
+fn fragment_colour() -> @location(0) vec4<f32> {
+    return uniforms.colour;
+}
+
+@fragment
+fn fragment_id() -> @location(0) vec4<u32> {
+    return vec4<u32>(uniforms.pick_id.x, 0u, 0u, 1u);
+}
+"""
+
+_GIZMO_UNIFORM_DTYPE = np.dtype(
+    [
+        ("mvp", "float32", (4, 4)),
+        ("colour", "float32", (4,)),
+        ("pick_id", "uint32", (4,)),
+    ]
+)
+
+
+class GizmoPipeline:
+    """Flat-colour + integer-ID pipelines for the manipulator handle parts."""
+
+    def __init__(self, device: wgpu.GPUDevice) -> None:
+        self.device = device
+        self.uniform_data = np.zeros((), dtype=_GIZMO_UNIFORM_DTYPE)
+        self.uniform_buffer = device.create_buffer(
+            size=self.uniform_data.nbytes,
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+            label="gizmo_uniforms",
+        )
+
+        shader = device.create_shader_module(code=_GIZMO_SHADER)
+        bind_layout = device.create_bind_group_layout(
+            entries=[
+                {
+                    "binding": 0,
+                    "visibility": wgpu.ShaderStage.VERTEX | wgpu.ShaderStage.FRAGMENT,
+                    "buffer": {"type": wgpu.BufferBindingType.uniform},
+                },
+            ],
+        )
+        self.bind_group = device.create_bind_group(
+            layout=bind_layout,
+            entries=[{"binding": 0, "resource": {"buffer": self.uniform_buffer}}],
+        )
+        layout = device.create_pipeline_layout(bind_group_layouts=[bind_layout])
+
+        vertex_state = {
+            "module": shader,
+            "entry_point": "vertex_main",
+            "buffers": [
+                {
+                    # interleaved (pos, normal, uv) prim data; only pos is used
+                    "array_stride": _STRIDE,
+                    "attributes": [
+                        {"shader_location": 0, "offset": 0, "format": "float32x3"},
+                    ],
+                }
+            ],
+        }
+        primitive_state = {
+            "topology": wgpu.PrimitiveTopology.triangle_list,
+            "cull_mode": wgpu.CullMode.none,
+        }
+        depth_state = {
+            "format": wgpu.TextureFormat.depth24plus,
+            "depth_write_enabled": True,
+            "depth_compare": wgpu.CompareFunction.less,
+        }
+
+        self.pipeline = device.create_render_pipeline(
+            label="gizmo_colour_pipeline",
+            layout=layout,
+            vertex=vertex_state,
+            fragment={
+                "module": shader,
+                "entry_point": "fragment_colour",
+                "targets": [{"format": wgpu.TextureFormat.rgba8unorm}],
+            },
+            primitive=primitive_state,
+            depth_stencil=depth_state,
+            multisample={"count": 4},
+        )
+        self.id_pipeline = device.create_render_pipeline(
+            label="gizmo_id_pipeline",
+            layout=layout,
+            vertex=vertex_state,
+            fragment={
+                "module": shader,
+                "entry_point": "fragment_id",
+                "targets": [{"format": wgpu.TextureFormat.r32uint}],
+            },
+            primitive=primitive_state,
+            depth_stencil=depth_state,
+            multisample={"count": 1},
+        )
+
+    def set_part(self, mvp: np.ndarray, colour=None, pick_id: int = 0) -> None:
+        """Upload one part's uniforms (call before that part's render pass)."""
+        self.uniform_data["mvp"] = mvp
+        if colour is not None:
+            self.uniform_data["colour"] = (*colour, 1.0)
+        self.uniform_data["pick_id"] = (pick_id, 0, 0, 0)
+        self.device.queue.write_buffer(
+            self.uniform_buffer, 0, self.uniform_data.tobytes()
+        )
+
+    def _render(self, render_pass, pipeline, vertex_buffer, count) -> None:
+        render_pass.set_pipeline(pipeline)
+        render_pass.set_bind_group(0, self.bind_group)
+        render_pass.set_vertex_buffer(0, vertex_buffer)
+        render_pass.draw(count, 1, 0, 0)
+
+    def render(self, render_pass, vertex_buffer, count) -> None:
+        self._render(render_pass, self.pipeline, vertex_buffer, count)
+
+    def render_id(self, render_pass, vertex_buffer, count) -> None:
+        self._render(render_pass, self.id_pipeline, vertex_buffer, count)
 
 
 class PickResolver:
