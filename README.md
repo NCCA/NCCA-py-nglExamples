@@ -2,6 +2,146 @@
 
 This is work in progress examples for the new all python version of the NGL library.
 
-Whilst I will mainly be using WebGP for my teaching I thought It would be good to also have an OpenGL example for quick demos and easier coding in some cases.
+Whilst I will mainly be using WebGPU for my teaching I thought it would be good to also have an OpenGL example for quick demos and easier coding in some cases.
 
 The Py-NGL library is being developed at the same time as this at present but will be on PyPi once everything is fully developed and I will document it all properly then.
+
+Each demo lives in its own folder with a `README.md` explaining it. Click a preview or demo name below to open that folder.
+
+## Contents
+
+- [Getting Started / Templates](#getting-started--templates)
+- [OpenGL Fundamentals](#opengl-fundamentals)
+- [Vertex Array Objects](#vertex-array-objects)
+- [Geometry &amp; Meshes](#geometry--meshes)
+- [Textures &amp; Materials](#textures--materials)
+- [Curves &amp; Interpolation](#curves--interpolation)
+- [Selection &amp; Picking](#selection--picking)
+- [Framebuffers &amp; Post Processing](#framebuffers--post-processing)
+- [Lighting &amp; Shadows](#lighting--shadows)
+- [Compute Shaders](#compute-shaders)
+- [WebGPU](#webgpu)
+- [Particles &amp; Points](#particles--points)
+- [GUI](#gui)
+
+## Getting Started / Templates
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="BlankPySide6NGL"><img src="BlankPySide6NGL/BlankPySideNGL.png" width="220"></a> | [BlankPySide6NGL](BlankPySide6NGL) | Minimal PySide6 + NGL OpenGL window template |
+| <a href="BlankPySDL3"><img src="BlankPySDL3/BlankPySDL3.png" width="220"></a> | [BlankPySDL3](BlankPySDL3) | Minimal PySDL3 + NGL OpenGL window template |
+| <a href="BlankWebGPU"><img src="BlankWebGPU/BlankWebGPU.png" width="220"></a> | [BlankWebGPU](BlankWebGPU) | Minimal WebGPU window template |
+| <a href="SimplePyNGL"><img src="SimplePyNGL/PySDL3NGLDemo.png" width="220"></a> | [SimplePyNGL](SimplePyNGL) | Simple first PyNGL examples |
+| <a href="SimpleWebGPU"><img src="SimpleWebGPU/WebGPUNGL.png" width="220"></a> | [SimpleWebGPU](SimpleWebGPU) | Simple first WebGPU example |
+
+## OpenGL Fundamentals
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="2DDrawingOpenGL"><img src="2DDrawingOpenGL/2D.png" width="220"></a> | [2DDrawingOpenGL](2DDrawingOpenGL) | 2D drawing with OpenGL |
+| <a href="Camera"><img src="Camera/Camera.png" width="220"></a> | [Camera](Camera) | Camera / view and projection setup |
+| <a href="Lights"><img src="Lights/Lights.png" width="220"></a> | [Lights](Lights) | Basic lighting |
+| <a href="ShadingModels"><img src="ShadingModels/ShadingModels.png" width="220"></a> | [ShadingModels](ShadingModels) | Comparison of shading models |
+| <a href="ScreenTri"><img src="ScreenTri/ScreenTri.png" width="220"></a> | [ScreenTri](ScreenTri) | Full-screen triangle technique |
+| <a href="OpenGLPrimRestart"><img src="OpenGLPrimRestart/PrimRestart.png" width="220"></a> | [OpenGLPrimRestart](OpenGLPrimRestart) | Primitive restart index |
+| <a href="FrustumCull"><img src="FrustumCull/FrustumCull.png" width="220"></a> | [FrustumCull](FrustumCull) | View frustum culling |
+| <a href="FontRendering"><img src="FontRendering/FontRender.png" width="220"></a> | [FontRendering](FontRendering) | Text / font rendering |
+
+## Vertex Array Objects
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="VAOPrimitives"><img src="VAOPrimitives/VAOPrimitives.png" width="220"></a> | [VAOPrimitives](VAOPrimitives) | Built-in VAO primitives |
+| <a href="VertexArrayObject/Sphere"><img src="VertexArrayObject/Sphere/Sphere.png" width="220"></a> | [VertexArrayObject/Sphere](VertexArrayObject/Sphere) | Generating a sphere VAO |
+| <a href="VertexArrayObject/Boid"><img src="VertexArrayObject/Boid/Boid.png" width="220"></a> | [VertexArrayObject/Boid](VertexArrayObject/Boid) | Simple Boid VAO |
+| <a href="VertexArrayObject/BoidShaded"><img src="VertexArrayObject/BoidShaded/BoidShaded.png" width="220"></a> | [VertexArrayObject/BoidShaded](VertexArrayObject/BoidShaded) | Shaded Boid VAO |
+| <a href="VertexArrayObject/ChangingVAO"><img src="VertexArrayObject/ChangingVAO/ChangingVAO.png" width="220"></a> | [VertexArrayObject/ChangingVAO](VertexArrayObject/ChangingVAO) | Updating VAO data |
+| <a href="VertexArrayObject/ChangingVAOMultiBuffer"><img src="VertexArrayObject/ChangingVAOMultiBuffer/ChangingVAO.png" width="220"></a> | [VertexArrayObject/ChangingVAOMultiBuffer](VertexArrayObject/ChangingVAOMultiBuffer) | Updating a multi-buffer VAO |
+| <a href="VertexArrayObject/MultiBufferVAO"><img src="VertexArrayObject/MultiBufferVAO/MBBoid.png" width="220"></a> | [VertexArrayObject/MultiBufferVAO](VertexArrayObject/MultiBufferVAO) | Multi-buffer VAO |
+| <a href="VertexArrayObject/SimpleIndexVAOFactory"><img src="VertexArrayObject/SimpleIndexVAOFactory/IndexVAO.png" width="220"></a> | [VertexArrayObject/SimpleIndexVAOFactory](VertexArrayObject/SimpleIndexVAOFactory) | Indexed VAO factory |
+| <a href="VertexArrayObject/ExtendedVAOFactory"><img src="VertexArrayObject/ExtendedVAOFactory/ExtendedVAO.png" width="220"></a> | [VertexArrayObject/ExtendedVAOFactory](VertexArrayObject/ExtendedVAOFactory) | Custom / extended VAO factory |
+
+## Geometry &amp; Meshes
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="ObjViewer"><img src="ObjViewer/ObjDemo.png" width="220"></a> | [ObjViewer](ObjViewer) | Load and view Obj meshes |
+| <a href="ColourObj"><img src="ColourObj/ColourObj.png" width="220"></a> | [ColourObj](ColourObj) | Obj mesh with per-vertex colour |
+| <a href="Obj2Numpy"><img src="Obj2Numpy/Obj2Numpy.png" width="220"></a> | [Obj2Numpy](Obj2Numpy) | Convert Obj data to NumPy arrays |
+| <a href="KleinBottle"><img src="KleinBottle/KleinBottle.png" width="220"></a> | [KleinBottle](KleinBottle) | Procedural Klein bottle |
+
+## Textures &amp; Materials
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="SimpleTexture"><img src="SimpleTexture/Texture.png" width="220"></a> | [SimpleTexture](SimpleTexture) | Basic texture mapping |
+| <a href="AnimatedTextures"><img src="AnimatedTextures/AnimatedTextures.png" width="220"></a> | [AnimatedTextures](AnimatedTextures) | Animated / scrolling textures |
+| <a href="ShowMipmap"><img src="ShowMipmap/MipMap.png" width="220"></a> | [ShowMipmap](ShowMipmap) | Visualising mipmap levels |
+| <a href="ImageHeightMap"><img src="ImageHeightMap/ImageHeightMap.png" width="220"></a> | [ImageHeightMap](ImageHeightMap) | Displacement from a height map image |
+| <a href="NormalMapping"><img src="NormalMapping/NormalMapping.png" width="220"></a> | [NormalMapping](NormalMapping) | Tangent-space normal mapping |
+| <a href="PBR/SimplePBR"><img src="PBR/SimplePBR/SimplePBR.png" width="220"></a> | [PBR/SimplePBR](PBR/SimplePBR) | Simple physically based rendering |
+| <a href="PBR/PBRTexture"><img src="PBR/PBRTexture/PBRTexture.png" width="220"></a> | [PBR/PBRTexture](PBR/PBRTexture) | Textured physically based rendering |
+
+## Curves &amp; Interpolation
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="CurveDemos"><img src="CurveDemos/CurveDemos.png" width="220"></a> | [CurveDemos](CurveDemos) | Curve types and evaluation |
+| <a href="Interpolation"><img src="Interpolation/Interpolation.png" width="220"></a> | [Interpolation](Interpolation) | Interpolation techniques |
+| <a href="QuatSlerp"><img src="QuatSlerp/QuatSlerp.png" width="220"></a> | [QuatSlerp](QuatSlerp) | Quaternion spherical interpolation |
+
+## Selection &amp; Picking
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="ColourSelectionOpenGL"><img src="ColourSelectionOpenGL/ColourSelect.png" width="220"></a> | [ColourSelectionOpenGL](ColourSelectionOpenGL) | Unique colour-ID picking |
+| <a href="RayPickingSelection"><img src="RayPickingSelection/RayPickingSelection.png" width="220"></a> | [RayPickingSelection](RayPickingSelection) | Ray-cast selection and manipulation |
+| <a href="SelectionManipulator"><img src="SelectionManipulator/SelectionManipulator.png" width="220"></a> | [SelectionManipulator](SelectionManipulator) | Maya-style manipulator (OpenGL) |
+| <a href="SelectionManipulatorWebGPU"><img src="SelectionManipulatorWebGPU/SelectionManipulatorWebGPU.png" width="220"></a> | [SelectionManipulatorWebGPU](SelectionManipulatorWebGPU) | Manipulator (WebGPU) |
+| <a href="WebGPUComputePicking"><img src="WebGPUComputePicking/WebGPUPick.png" width="220"></a> | [WebGPUComputePicking](WebGPUComputePicking) | Compute-shader picking (WebGPU) |
+
+## Framebuffers &amp; Post Processing
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="FBODemos/SimpleFBO"><img src="FBODemos/SimpleFBO/SimpleFBO.png" width="220"></a> | [FBODemos/SimpleFBO](FBODemos/SimpleFBO) | Simple framebuffer object |
+| <a href="FBODemos/Blit"><img src="FBODemos/Blit/Blit.png" width="220"></a> | [FBODemos/Blit](FBODemos/Blit) | Blitting between framebuffers |
+| <a href="FBODemos/DOF"><img src="FBODemos/DOF/DOF.png" width="220"></a> | [FBODemos/DOF](FBODemos/DOF) | Depth of field |
+| <a href="FBODemos/WebGPURenderToTexture"><img src="FBODemos/WebGPURenderToTexture/WebGPURenderToTexture.png" width="220"></a> | [FBODemos/WebGPURenderToTexture](FBODemos/WebGPURenderToTexture) | Render to texture (WebGPU) |
+
+## Lighting &amp; Shadows
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="DefferedLighting"><img src="DefferedLighting/WebGPUNGL.png" width="220"></a> | [DefferedLighting](DefferedLighting) | Deferred lighting (WebGPU) |
+| <a href="WebGPUShadows"><img src="WebGPUShadows/WebGPUShadows.png" width="220"></a> | [WebGPUShadows](WebGPUShadows) | PCF shadow mapping (WebGPU) |
+
+## Compute Shaders
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="SimpleComputeWebGPU"><img src="SimpleComputeWebGPU/SimpleComputeWebGPU.png" width="220"></a> | [SimpleComputeWebGPU](SimpleComputeWebGPU) | Simple compute shader (WebGPU) |
+| <a href="WebGPUCompute/SpatialHash2D"><img src="WebGPUCompute/SpatialHash2D/SpatialHash2D.png" width="220"></a> | [WebGPUCompute/SpatialHash2D](WebGPUCompute/SpatialHash2D) | 2D spatial hashing on the GPU |
+| <a href="WebGPUCompute/SpatialHash3D"><img src="WebGPUCompute/SpatialHash3D/SpatialHash3D.png" width="220"></a> | [WebGPUCompute/SpatialHash3D](WebGPUCompute/SpatialHash3D) | 3D spatial hashing on the GPU |
+
+## WebGPU
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="WebGPUMultiGeo"><img src="WebGPUMultiGeo/WebGPUMulti.png" width="220"></a> | [WebGPUMultiGeo](WebGPUMultiGeo) | Multiple geometry in one WebGPU scene |
+
+## Particles &amp; Points
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="Particles/ParticleQuads"><img src="Particles/ParticleQuads/ParticleQuads.png" width="220"></a> | [Particles/ParticleQuads](Particles/ParticleQuads) | Billboarded particle quads |
+| <a href="PointCloud"><img src="PointCloud/PointCloud.png" width="220"></a> | [PointCloud](PointCloud) | Rendering a point cloud |
+| <a href="Voxels"><img src="Voxels/Voxels.png" width="220"></a> | [Voxels](Voxels) | Voxel rendering |
+
+## GUI
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="GUIDemos/PySideGUIOpenGL"><img src="GUIDemos/PySideGUIOpenGL/PySideGUI.png" width="220"></a> | [GUIDemos/PySideGUIOpenGL](GUIDemos/PySideGUIOpenGL) | PySide GUI driving an OpenGL widget |
+| <a href="GUIDemos/NGLWidgetsOpenGL"><img src="GUIDemos/NGLWidgetsOpenGL/PySideGUI.png" width="220"></a> | [GUIDemos/NGLWidgetsOpenGL](GUIDemos/NGLWidgetsOpenGL) | NGL widgets with OpenGL |
+| <a href="GUIDemos/WebGPUGUI"><img src="GUIDemos/WebGPUGUI/WebGPUGUI.png" width="220"></a> | [GUIDemos/WebGPUGUI](GUIDemos/WebGPUGUI) | GUI driving a WebGPU widget |
