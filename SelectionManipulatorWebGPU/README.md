@@ -21,7 +21,8 @@ uv run main.py          # or ./main.py
 | `R` | Scale mode (boxes) |
 | Left click | Select the object under the cursor (replaces selection) |
 | `Ctrl` + click | Toggle an object in / out of the selection (multi-select) |
-| Drag a handle | Transform **all** selected objects along that axis |
+| Drag an axis handle | Transform **all** selected objects along that axis |
+| Drag the centre cube | Free screen-plane move (translate) / uniform scale (scale) |
 | `Alt` + LMB drag | Tumble the camera |
 | `Alt` + RMB drag | Pan the camera |
 | Mouse wheel | Dolly in / out |
@@ -120,7 +121,5 @@ objects draw in a single pass — the same pattern as the `WebGPUMultiGeo` demo.
 
 ## Possible extensions
 
-* A centre handle on the scale gizmo for uniform scaling.
-* Screen-aligned free-move handle for translate.
 * Marquee (rubber-band) selection.
 * Fold the gizmo parts into the instanced pipeline to avoid the per-part passes.

@@ -41,11 +41,17 @@ class Axis(Enum):
     Z = 2
 
 
+# the centre handle: a cube at the pivot. In translate mode it drags freely in
+# the screen plane, in scale mode it scales all three axes uniformly. It is not
+# an Axis (it has no direction) so it gets its own sentinel/colours.
+CENTER = "center"
+
 AXIS_COLOURS = {
     Axis.X: (0.9, 0.15, 0.15),
     Axis.Y: (0.15, 0.8, 0.15),
     Axis.Z: (0.2, 0.35, 0.95),
 }
+CENTER_COLOUR = (0.85, 0.85, 0.85)
 ACTIVE_COLOUR = (1.0, 1.0, 0.2)
 
 # reserved picking ID colours, far away from the sequential object IDs
@@ -54,6 +60,7 @@ PICK_COLOURS = {
     Axis.Y: (255, 200, 20),
     Axis.Z: (255, 200, 30),
 }
+CENTER_PICK_COLOUR = (255, 200, 40)
 
 AXIS_DIRECTIONS = {
     Axis.X: Vec3(1.0, 0.0, 0.0),
@@ -127,6 +134,11 @@ class Manipulator:
         self._last_mouse = None
         self._last_angle = 0.0
         self._rotation_sign = 1.0
+        # centre-handle state (free translate / uniform scale)
+        self._center_right = np.array([1.0, 0.0, 0.0], np.float32)
+        self._center_up = np.array([0.0, 1.0, 0.0], np.float32)
+        self._center_pixels_per_unit = 1.0
+        self._last_distance = 0.0
 
     # ------------------------------------------------------------------
     # geometry / part matrices
@@ -164,6 +176,10 @@ class Manipulator:
                 yield "box", axis, rot @ box
             elif mode == ManipMode.ROTATE:
                 yield "ring", axis, rot @ Mat4().scale(s, s, s)
+        # centre cube: free translate / uniform scale handle
+        if mode in (ManipMode.TRANSLATE, ManipMode.SCALE):
+            centre = Mat4().scale(s * 0.16, s * 0.16, s * 0.16)
+            yield "box", CENTER, centre
 
     def _part_draws(self, mode, global_tx, view, project, colour_for_axis):
         """Build the list of (buffer, num_verts, mvp_np, colour) for the parts."""
@@ -182,22 +198,26 @@ class Manipulator:
     def part_draws(self, mode, global_tx, view, project):
         """Draws for on-screen rendering (axis colours, active axis highlighted)."""
 
-        def colour(axis: Axis):
-            return ACTIVE_COLOUR if axis == self.active_axis else AXIS_COLOURS[axis]
+        def colour(axis):
+            if axis == self.active_axis:
+                return ACTIVE_COLOUR
+            return CENTER_COLOUR if axis == CENTER else AXIS_COLOURS[axis]
 
         return self._part_draws(mode, global_tx, view, project, colour)
 
     def pick_draws(self, mode, global_tx, view, project):
         """Draws for the picking pass (each handle in its reserved ID colour)."""
 
-        def colour(axis: Axis):
-            r, g, b = PICK_COLOURS[axis]
+        def colour(axis):
+            r, g, b = CENTER_PICK_COLOUR if axis == CENTER else PICK_COLOURS[axis]
             return (r / 255.0, g / 255.0, b / 255.0)
 
         return self._part_draws(mode, global_tx, view, project, colour)
 
     @staticmethod
     def axis_for_pick_colour(pixel: tuple):
+        if tuple(pixel) == CENTER_PICK_COLOUR:
+            return CENTER
         for axis, colour in PICK_COLOURS.items():
             if tuple(pixel) == colour:
                 return axis
@@ -219,6 +239,11 @@ class Manipulator:
     ) -> None:
         self.active_axis = axis
         mvp = (project @ view @ global_tx).to_numpy()
+        if axis == CENTER:
+            self._start_center_drag(
+                mvp, view, global_tx, mouse_x, mouse_y, width, height
+            )
+            return
         direction = AXIS_DIRECTIONS[axis]
         origin = self.position
         tip = origin + direction
@@ -282,6 +307,55 @@ class Manipulator:
         if self.active_axis is not None:
             factors[self.active_axis.value] = factor
         return Vec3(*factors)
+
+    def _start_center_drag(
+        self, mvp, view: Mat4, global_tx: Mat4, mouse_x, mouse_y, width, height
+    ) -> None:
+        """Set up screen-plane basis and scale reference for the centre handle."""
+        # columns of the model-view 3x3 are the object-space directions that map
+        # to view +X / +Y, i.e. screen right / up at the pivot
+        mv3 = (view @ global_tx).to_numpy()[:3, :3]
+        self._center_right = np.ascontiguousarray(mv3[:, 0], np.float32)
+        self._center_up = np.ascontiguousarray(mv3[:, 1], np.float32)
+
+        self._screen_origin = _world_to_screen(self.position, mvp, width, height)
+        tip = self.position + Vec3(*self._center_right)
+        screen_tip = _world_to_screen(tip, mvp, width, height)
+        self._center_pixels_per_unit = 1.0
+        if self._screen_origin is not None and screen_tip is not None:
+            length = float(np.linalg.norm(screen_tip - self._screen_origin))
+            self._center_pixels_per_unit = max(1e-3, length)
+
+        self._last_mouse = np.array([mouse_x, mouse_y], np.float32)
+        if self._screen_origin is not None:
+            self._last_distance = float(
+                np.linalg.norm(self._last_mouse - self._screen_origin)
+            )
+        else:
+            self._last_distance = 0.0
+
+    def drag_free_translate(self, mouse_x: float, mouse_y: float) -> Vec3:
+        """World-space translation delta from screen-plane mouse motion."""
+        if self._last_mouse is None:
+            return Vec3(0.0, 0.0, 0.0)
+        mouse = np.array([mouse_x, mouse_y], np.float32)
+        dpx = mouse - self._last_mouse
+        self._last_mouse = mouse
+        wx = float(dpx[0]) / self._center_pixels_per_unit
+        wy = -float(dpx[1]) / self._center_pixels_per_unit  # screen y is down
+        delta = Vec3(*self._center_right) * wx + Vec3(*self._center_up) * wy
+        return delta
+
+    def drag_uniform_scale(self, mouse_x: float, mouse_y: float) -> Vec3:
+        """Uniform scale factor (same on all axes) from distance to the pivot."""
+        if self._screen_origin is None:
+            return Vec3(1.0, 1.0, 1.0)
+        mouse = np.array([mouse_x, mouse_y], np.float32)
+        distance = float(np.linalg.norm(mouse - self._screen_origin))
+        step = distance - self._last_distance
+        self._last_distance = distance
+        factor = max(0.01, 1.0 + step * 0.01)
+        return Vec3(factor, factor, factor)
 
     def drag_rotate(self, mouse_x: float, mouse_y: float) -> float:
         """Rotation delta in degrees around the active axis for this move."""

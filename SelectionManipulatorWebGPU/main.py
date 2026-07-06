@@ -35,7 +35,7 @@ import sys
 
 import numpy as np
 import wgpu
-from Manipulator import Axis, ManipMode, Manipulator
+from Manipulator import CENTER, Axis, ManipMode, Manipulator
 from ncca.ngl import Mat4, PerspMode, PrimData, Prims, Vec3, Vec4, look_at, perspective
 from ncca.ngl.webgpu import PipelineFactory, PipelineType
 from ObjectPipeline import ObjectPipeline
@@ -479,12 +479,18 @@ class WebGPUScene(WebGPUWidget):
             ratio = self.devicePixelRatio()
             x, y = position.x() * ratio, position.y() * ratio
             if self.mode == ManipMode.TRANSLATE:
-                delta = self.manipulator.drag_translate(x, y)
+                if self.manipulator.active_axis == CENTER:
+                    delta = self.manipulator.drag_free_translate(x, y)
+                else:
+                    delta = self.manipulator.drag_translate(x, y)
                 for obj in self.selected_objects():
                     obj.position += delta
                 self.manipulator.position += delta
             elif self.mode == ManipMode.SCALE:
-                factors = self.manipulator.drag_scale(x, y)
+                if self.manipulator.active_axis == CENTER:
+                    factors = self.manipulator.drag_uniform_scale(x, y)
+                else:
+                    factors = self.manipulator.drag_scale(x, y)
                 for obj in self.selected_objects():
                     obj.scale = Vec3(
                         obj.scale.x * factors.x,

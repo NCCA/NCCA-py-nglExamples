@@ -21,7 +21,8 @@ uv run main.py --debug  # re-raise exceptions swallowed by Qt event handlers
 | `R` | Scale mode (boxes) |
 | Left click | Select the object under the cursor (replaces selection) |
 | `Ctrl` + click | Toggle an object in / out of the selection (multi-select) |
-| Drag a handle | Transform **all** selected objects along that axis |
+| Drag an axis handle | Transform **all** selected objects along that axis |
+| Drag the centre cube | Free screen-plane move (translate) / uniform scale (scale) |
 | `Alt` + LMB drag | Tumble the camera |
 | `Alt` + RMB drag | Pan the camera |
 | Mouse wheel | Dolly in / out |
@@ -67,6 +68,11 @@ Dragging works in *screen space*:
   dotted with the projected axis direction and divided by its pixels-per-
   world-unit length, giving a world-space delta along the axis.
 * **Scale** — the same projected motion drives a per-axis multiply factor.
+* **Free translate** (centre cube) — mouse motion is converted to a world
+  delta in the camera's screen plane, using the model-view basis vectors that
+  map to screen right / up at the pivot, so the selection tracks the cursor.
+* **Uniform scale** (centre cube) — the change in the mouse's distance from
+  the projected pivot drives a single factor applied equally to all axes.
 * **Rotate** — the angle of the mouse around the projected gizmo centre is
   tracked (`atan2`), and its per-event change is applied around the handle
   axis, with the sign flipped when the axis points away from the camera so
@@ -78,7 +84,5 @@ each object's own pivot).
 
 ## Possible extensions
 
-* A centre handle on the scale gizmo for uniform scaling.
-* Screen-aligned free-move handle for translate.
 * Rotating multiple objects about the shared pivot rather than their own.
 * Marquee (rubber-band) selection.
