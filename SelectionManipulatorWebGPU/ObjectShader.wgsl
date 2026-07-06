@@ -90,14 +90,32 @@ fn fragment_main(input : VertexOutput) -> @location(0) vec4<f32> {
     let diffuse = max(dot(N, L), 0.0);
     var colour = input.colour.rgb * (0.15 + globals.light_diffuse.rgb * diffuse);
 
-    // Wireframe overdraw for selected objects: distance to the nearest
-    // triangle edge is the smallest barycentric coordinate. fwidth gives a
-    // screen-space derivative so the line stays ~1px wide and anti-aliased.
+    // Wireframe overdraw for selected objects. See the README ("Adaptive
+    // wireframe") for the derivation; briefly:
+    //   * edge  = smallest barycentric coord = barycentric distance to the
+    //             nearest triangle edge.
+    //   * deriv = its screen-space rate of change (fwidth). edge / deriv is
+    //             therefore the distance to the edge measured in *pixels*, so
+    //             the line keeps a constant thickness however far away or
+    //             foreshortened the triangle is.
+    //   * 1 / deriv approximates the triangle's on-screen extent in pixels; we
+    //             fade the wire out for triangles only a few pixels across so a
+    //             dense mesh keeps its shaded surface instead of washing out to
+    //             solid white.
     if (input.selected > 0.5) {
         let edge = min(min(input.bary.x, input.bary.y), input.bary.z);
-        let aa = fwidth(edge) * 1.5;
-        let line = 1.0 - smoothstep(0.0, aa, edge);
-        colour = mix(colour, vec3<f32>(1.0, 1.0, 1.0), line);
+        let deriv = max(fwidth(edge), 1e-5);
+
+        let thickness = 0.6;  // line half-width in pixels
+        let dist_px = edge / deriv;
+        var wire = 1.0 - smoothstep(thickness, thickness + 1.0, dist_px);
+
+        // dense-mesh thinning: extent_px is roughly how many pixels the
+        // triangle spans; below ~4px it cannot show a readable line, so fade.
+        let extent_px = 1.0 / deriv;
+        wire = wire * smoothstep(4.0, 14.0, extent_px);
+
+        colour = mix(colour, vec3<f32>(1.0, 1.0, 1.0), wire);
     }
 
     return vec4<f32>(colour, 1.0);
