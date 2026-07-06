@@ -24,19 +24,10 @@ import sys
 import traceback
 from pathlib import Path
 
-import numpy as np
 import OpenGL.GL as gl
 from Manipulator import Axis, ManipMode, Manipulator
 from ncca.ngl import Mat4, Prims, Vec3, Vec4, logger, look_at, perspective
-from ncca.ngl.opengl import (
-    DefaultShader,
-    Primitives,
-    ShaderLib,
-    Text,
-    VAOFactory,
-    VAOType,
-    VertexData,
-)
+from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib, Text
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
@@ -124,28 +115,11 @@ class MainWindow(QOpenGLWindow):
 
         Primitives.load_default_primitives()
         Primitives.create(Prims.SPHERE, "selSphere", 1.0, 40)
-        self.grid_vao = self._make_grid(20.0, 20)
+        Primitives.create(Prims.LINE_GRID, "grid", 20.0, 20.0, 20)
         Manipulator.create_geometry()
         Text.add_font(
             "Arial", str(Path(__file__).parent.parent / "font" / "Arial.ttf"), 20
         )
-
-    @staticmethod
-    def _make_grid(width: float, steps: int):
-        """Build a GL_LINES ground grid VAO (positions only)."""
-        half = width / 2.0
-        step = width / steps
-        verts = []
-        for i in range(steps + 1):
-            v = -half + i * step
-            verts += [[-half, 0.0, v], [half, 0.0, v], [v, 0.0, -half], [v, 0.0, half]]
-        data = np.array(verts, dtype=np.float32).flatten()
-        vao = VAOFactory.create_vao(VAOType.SIMPLE, gl.GL_LINES)
-        with vao:
-            vao.set_data(VertexData(data=data.data, size=data.size))
-            vao.set_vertex_attribute_pointer(0, 3, gl.GL_FLOAT, 0, 0)
-            vao.set_num_indices(data.size // 3)
-        return vao
 
     def scene_global_tx(self) -> Mat4:
         rot_x = Mat4().rotate_x(self.spin_x_face)
@@ -165,8 +139,7 @@ class MainWindow(QOpenGLWindow):
         ShaderLib.use(DefaultShader.COLOUR)
         ShaderLib.set_uniform("MVP", self.project @ self.view @ self.mouse_global_tx)
         ShaderLib.set_uniform("Colour", 0.6, 0.6, 0.6, 1.0)
-        with self.grid_vao:
-            self.grid_vao.draw()
+        Primitives.draw("grid")
 
         for obj in self.objects:
             obj.draw(self.mouse_global_tx, self.view, self.project)
