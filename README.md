@@ -1,10 +1,14 @@
 # Py-NGL Demos
 
-This is work in progress examples for the new all python version of the NGL library.
+This is work in progress examples for the new all python version of the NGL library. As well as a Demo Launcher / Runner. 
+
+It is expected you will use uv to run all the python applications. All demos can be launched by running the RunDemos.py file.
+
+![](DemoApp.png)
 
 Whilst I will mainly be using WebGPU for my teaching I thought it would be good to also have an OpenGL example for quick demos and easier coding in some cases.
 
-The Py-NGL library is being developed at the same time as this at present but will be on PyPi once everything is fully developed and I will document it all properly then.
+You can see the Source for the [PyNGL](https://github.com/NCCA/PyNGL) on GitHub and it can be installed via [PyPi](https://pypi.org/project/ncca-ngl/) Full details of PyNGL and how to use it can be found at [https://ncca.github.io/PyNGL/](https://ncca.github.io/PyNGL/)
 
 Each demo lives in its own folder with a `README.md` explaining it. Click a preview or demo name below to open that folder.
 
