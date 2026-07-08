@@ -20,6 +20,11 @@ interop counterpart to `GUIDemos/QMLFloatingWidgets`.
   `GUIDemos/QMLFloatingWidgets`, where this is automatic because everything
   lives in one Qt Quick scene graph.
 - There is no mouse-drag camera; `LookAtWidget` is the only camera control.
+  This means the forward-to-scene path is demonstrated (clicks in empty
+  space really do get delivered to `PyNGLScene`) but currently inert —
+  `PyNGLScene` has no mouse handlers of its own to react to them. The panel
+  hit-test path (the one that actually matters for interacting with the
+  demo) is unaffected.
 
 ### Files
 

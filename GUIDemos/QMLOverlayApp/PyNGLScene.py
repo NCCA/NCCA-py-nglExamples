@@ -36,7 +36,7 @@ class PyNGLScene(QOpenGLWidget):
         gl.glClearColor(0.4, 0.4, 0.4, 1.0)
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_MULTISAMPLE)
-        self.project = perspective(45.0, self.width() / self.height(), 0.1, 100.0)
+        self.project = perspective(45.0, self.width() / self.height(), 0.01, 350.0)
         ShaderLib.use(DefaultShader.DIFFUSE)
         ShaderLib.set_uniform("lightPos", 1.0, 1.0, 1.0)
         ShaderLib.set_uniform("lightDiffuse", 1.0, 1.0, 1.0, 1.0)
