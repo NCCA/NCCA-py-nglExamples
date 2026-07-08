@@ -10,7 +10,13 @@ Item {
     TransformWidget {
         id: transformWidget
         name: "Transform"
-        onValueChanged: pyNGLScene.set_model_matrix(model.get_matrix())
+        // NOTE: use the "matrix" Property, not the get_matrix() Slot call.
+        // Calling a @Slot(result=Mat4)-decorated method from QML JS and
+        // re-passing its return value into another Python @Slot(Mat4)
+        // argument fails PySide6's copy-conversion ("Cannot copy-convert
+        // ... (Mat4) to C++"), silently delivering None. Property access
+        // marshals correctly.
+        onValueChanged: pyNGLScene.set_model_matrix(model.matrix)
     }
     DraggablePanel {
         panelId: "transform"
@@ -23,10 +29,7 @@ Item {
     RGBColourWidget {
         id: rgbWidget
         name: "Colour"
-        onColourChanged: {
-            var c = model.get_value()
-            pyNGLScene.set_colour(c.x, c.y, c.z)
-        }
+        onColourChanged: pyNGLScene.set_colour(model.r, model.g, model.b)
     }
     DraggablePanel {
         panelId: "colour"
@@ -39,7 +42,7 @@ Item {
     LookAtWidget {
         id: lookAtWidget
         name: "Camera"
-        onValueChanged: pyNGLScene.set_view_matrix(model.get_matrix())
+        onValueChanged: pyNGLScene.set_view_matrix(model.matrix)
     }
     DraggablePanel {
         panelId: "camera"
@@ -50,9 +53,8 @@ Item {
     }
 
     Component.onCompleted: {
-        pyNGLScene.set_model_matrix(transformWidget.model.get_matrix())
-        pyNGLScene.set_view_matrix(lookAtWidget.model.get_matrix())
-        var c = rgbWidget.model.get_value()
-        pyNGLScene.set_colour(c.x, c.y, c.z)
+        pyNGLScene.set_model_matrix(transformWidget.model.matrix)
+        pyNGLScene.set_view_matrix(lookAtWidget.model.matrix)
+        pyNGLScene.set_colour(rgbWidget.model.r, rgbWidget.model.g, rgbWidget.model.b)
     }
 }
