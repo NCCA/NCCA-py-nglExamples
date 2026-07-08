@@ -9,8 +9,8 @@ Frame {
     property string title: ""
     default property alias content: contentArea.children
 
-    width: contentArea.implicitWidth + 16
-    height: contentArea.implicitHeight + titleBar.height + 24
+    width: contentArea.width + 16
+    height: contentArea.height + titleBar.height + 24
     opacity: 0.92
 
     background: Rectangle {
@@ -66,7 +66,7 @@ Frame {
 
         Item {
             id: contentArea
-            width: parent.width
+            width: childrenRect.width
             height: childrenRect.height
         }
     }
