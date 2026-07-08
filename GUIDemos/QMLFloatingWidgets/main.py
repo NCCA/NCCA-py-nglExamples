@@ -8,10 +8,18 @@ import teapot_view  # noqa: F401  (import registers TeapotView)
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
+from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 from PySide6.QtQuickControls2 import QQuickStyle
 
 
 def main() -> int:
+    # QQuickFramebufferObject (used by TeapotView) only works with Qt Quick's
+    # OpenGL scene graph backend. Qt 6's default backend is RHI/Metal on
+    # macOS, under which QQuickFramebufferObject.Renderer is never
+    # instantiated at all (createRenderer()/synchronize()/render() are
+    # silently never called) — force OpenGL explicitly, before the
+    # application is constructed.
+    QQuickWindow.setGraphicsApi(QSGRendererInterface.GraphicsApi.OpenGL)
     QQuickStyle.setStyle("Fusion")
     app = QGuiApplication(sys.argv)
     engine = QQmlApplicationEngine()

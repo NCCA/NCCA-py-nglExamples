@@ -75,9 +75,7 @@ class TeapotRenderer(QQuickFramebufferObject.Renderer):
 
     def createFramebufferObject(self, size: QSize) -> QOpenGLFramebufferObject:
         fmt = QOpenGLFramebufferObjectFormat()
-        fmt.setAttachment(
-            QOpenGLFramebufferObjectFormat.Attachment.CombinedDepthStencil
-        )
+        fmt.setAttachment(QOpenGLFramebufferObject.Attachment.CombinedDepthStencil)
         fmt.setSamples(4)
         self._aspect = size.width() / max(size.height(), 1)
         return QOpenGLFramebufferObject(size, fmt)
