@@ -13,7 +13,7 @@
 - Use **uv** exclusively: `uv run <script.py>`, `uv run pytest`, `uv run ruff check .`, `uv run ruff format .`.
 - Each demo script is directly executable: shebang `#!/usr/bin/env -S uv run --script` as the first line (see `GUIDemos/WebGPUGUI/main.py:1`), `chmod +x`.
 - Follow existing GUIDemos conventions: `README.md` + a `.png` screenshot per demo folder, and a new row added to the root `README.md` demo table (same table that already lists `GUIDemos/PySideGUIOpenGL`, `GUIDemos/NGLWidgetsOpenGL`, `GUIDemos/WebGPUGUI` at `README.md:149-151`).
-- No changes to the separate PyNGL repo (`/Volumes/teaching/Code/PyNGL`) — only consume its existing public API (`ncca.ngl`, `ncca.ngl.qml`, `ncca.ngl.opengl`).
+- No changes to the separate PyNGL repo (`/Volumes/teaching/Code/PyNGL`) — only consume its existing public API (`ncca.ngl`, `ncca.ngl.qml`, `ncca.ngl.opengl`). **Amended during Task 3:** a genuine library-level packaging gap (missing `qmldir`, see Task 3's note) required a one-line additive `qmldir` file in PyNGL, added with explicit user approval and merged to PyNGL's `Version1.0`. This is the only sanctioned exception; it does not reopen this constraint for anything else.
 - `ruff check --select I --fix` and `ruff format` must pass on every new `.py` file before it's committed.
 - Per this repo's global git workflow: work happens in a worktree/branch (`agent/qml-floating-widgets`), never commit directly to `main`/`master`/`Version1.0`, run tests before each commit.
 
@@ -372,7 +372,10 @@ from PySide6.QtQml import QQmlApplicationEngine
 def main() -> int:
     app = QGuiApplication(sys.argv)
     engine = QQmlApplicationEngine()
-    engine.addImportPath(str(Path(ncca.ngl.qml.__file__).parent))
+    # ncca.ngl.qml's qmldir declares module "ncca.ngl.qml", so the import path
+    # must be the directory that CONTAINS the ncca/ package root (four levels
+    # up from ncca/ngl/qml/__init__.py), not the qml/ leaf directory itself.
+    engine.addImportPath(str(Path(ncca.ngl.qml.__file__).parent.parent.parent.parent))
     engine.load(QUrl.fromLocalFile(str(Path(__file__).parent / "main.qml")))
     if not engine.rootObjects():
         return -1
@@ -382,6 +385,16 @@ def main() -> int:
 if __name__ == "__main__":
     sys.exit(main())
 ```
+
+> **Note (discovered during implementation):** this requires a `qmldir` file at
+> `ncca/ngl/qml/qmldir` in the separate PyNGL repo declaring the composite
+> widget types (`TransformWidget`, `LookAtWidget`, `RGBColourWidget`, etc.) as
+> module `ncca.ngl.qml` version 1.0. Without it, those types only resolve via
+> Qt's implicit same-directory import, which works for PyNGL's own bundled
+> demo (`main.qml` lives in that same directory) but not for a `main.qml` in a
+> different directory, like this one. This was added to PyNGL directly (with
+> explicit user approval, merged to `Version1.0` there) since it's a
+> library-level packaging gap, not a demo-level issue.
 
 - [ ] **Step 2: Replace `main.qml` with the full scene**
 
