@@ -23,10 +23,8 @@ def main() -> int:
     QQuickStyle.setStyle("Fusion")
     app = QGuiApplication(sys.argv)
     engine = QQmlApplicationEngine()
-    # ncca.ngl.qml's qmldir declares module "ncca.ngl.qml", so the import path
-    # must be the directory that CONTAINS the ncca/ package root (four levels
-    # up from ncca/ngl/qml/__init__.py), not the qml/ leaf directory itself.
-    engine.addImportPath(str(Path(ncca.ngl.qml.__file__).parent.parent.parent.parent))
+    # Let the QML engine resolve `import ncca.ngl.qml 1.0` in main.qml.
+    ncca.ngl.qml.add_import_path(engine)
     engine.load(QUrl.fromLocalFile(str(Path(__file__).parent / "main.qml")))
     if not engine.rootObjects():
         return -1

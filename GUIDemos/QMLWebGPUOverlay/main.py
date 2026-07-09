@@ -20,18 +20,8 @@ class OverlayQuickWidget(QQuickWidget):
         super().__init__(parent)
         self._scene = scene
         self._registry = registry
-        # ncca.ngl.qml's qmldir declares module "ncca.ngl.qml", so the import path
-        # must be the directory that CONTAINS the ncca/ package root (four levels
-        # up from ncca/ngl/qml/__init__.py), not the qml/ leaf directory itself.
-        # Without this, QQuickWidget's QML engine cannot reliably resolve the
-        # file-based components (TransformWidget.qml, RGBColourWidget.qml,
-        # LookAtWidget.qml), causing intermittent "<Type> is not a type" errors.
-        # addImportPath wants the directory that CONTAINS the ncca/ package.
-        # ncca itself is a namespace package (no __init__.py, so ncca.__file__
-        # is None), hence deriving the root from a real module file instead:
-        # parents[3] walks qml -> ngl -> ncca -> the containing dir.
-        ncca_root = Path(ncca.ngl.qml.__file__).parents[3]
-        self.engine().addImportPath(str(ncca_root))
+        # Let the QML engine resolve `import ncca.ngl.qml 1.0` in main.qml.
+        ncca.ngl.qml.add_import_path(self.engine())
         self.setAttribute(Qt.WidgetAttribute.WA_AlwaysStackOnTop)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setClearColor(Qt.GlobalColor.transparent)
