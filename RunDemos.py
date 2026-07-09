@@ -67,7 +67,8 @@ class DemoRunner(QMainWindow):
         self.load_ui()
 
         # Create a scroll area for the demo list to handle many demos
-        scroll_area = QScrollArea()
+        self.demo_scroll_area = QScrollArea()
+        scroll_area = self.demo_scroll_area
         scroll_area.setWidgetResizable(True)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
@@ -305,11 +306,13 @@ class DemoRunner(QMainWindow):
             new_index = (current_index - 1) % len(buttons)
             buttons[new_index].setChecked(True)
             buttons[new_index].setFocus()
+            self.demo_scroll_area.ensureWidgetVisible(buttons[new_index])
         elif key == Qt.Key.Key_Down:
             # Move selection down
             new_index = (current_index + 1) % len(buttons)
             buttons[new_index].setChecked(True)
             buttons[new_index].setFocus()
+            self.demo_scroll_area.ensureWidgetVisible(buttons[new_index])
         elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             # Run the currently selected demo
             self.on_demo_clicked()
