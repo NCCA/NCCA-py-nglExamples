@@ -733,7 +733,9 @@ class WebGPUScene3D(WebGPUWidget):
         handled = False
 
         if key == Qt.Key.Key_Escape:
-            self.close()
+            # Close the top-level window (the GUI main window when embedded,
+            # the widget itself when run standalone) so the whole app exits.
+            self.window().close()
             handled = True
         elif key == Qt.Key.Key_A:
             self.animate = not self.animate
