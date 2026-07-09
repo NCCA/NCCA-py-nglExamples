@@ -93,11 +93,17 @@ class WebGPUScene3D(WebGPUWidget):
         self.grid_lines = np.array(grid_lines, dtype=np.float32)
 
     def gen_points(self, num_points: int, distribution: str = "random") -> None:
+        # WGSL vec3 fields in storage buffers are 16-byte aligned, so the
+        # Particle struct has a 32-byte stride - pad each vec3 to 16 bytes to
+        # match, otherwise the shader reads one particle's velocity from the
+        # next particle's position.
         self.particle_data = np.zeros(
             num_points,
             dtype=[
                 ("pos", "float32", 3),
+                ("_pad0", "float32"),
                 ("vel", "float32", 3),
+                ("_pad1", "float32"),
             ],
         )
 
@@ -403,6 +409,11 @@ class WebGPUScene3D(WebGPUWidget):
                     "visibility": wgpu.ShaderStage.COMPUTE,
                     "buffer": {"type": wgpu.BufferBindingType.storage},
                 },
+                {
+                    "binding": 5,
+                    "visibility": wgpu.ShaderStage.COMPUTE,
+                    "buffer": {"type": wgpu.BufferBindingType.storage},
+                },
             ]
         )
 
@@ -501,6 +512,14 @@ class WebGPUScene3D(WebGPUWidget):
                         "buffer": self.cell_particle_count_buffer,
                         "offset": 0,
                         "size": self.total_cells * 4,
+                    },
+                },
+                {
+                    "binding": 5,
+                    "resource": {
+                        "buffer": self.particle_buffer,
+                        "offset": 0,
+                        "size": self.particle_buffer.size,
                     },
                 },
             ],
@@ -636,18 +655,11 @@ class WebGPUScene3D(WebGPUWidget):
             )
 
             render_pass.end()
-            # Update position buffer for rendering from compute results
-            if self.animate:
-                command_encoder2 = self.device.create_command_encoder()
-                command_encoder2.copy_buffer_to_buffer(
-                    self.compute_particle_buffer,
-                    0,
-                    self.particle_buffer,
-                    0,
-                    self.particle_buffer.size,
-                )
-                self.device.queue.submit([command_encoder2.finish()])
-
+            # No copy-back needed: the update_physics compute pass writes the
+            # packed render positions straight into particle_buffer (binding 5).
+            # A direct copy from compute_particle_buffer would be wrong anyway -
+            # its Particle stride is 32 bytes (padded vec3s) while the render
+            # vertex buffer is tightly packed 12-byte positions.
             self.device.queue.submit([command_encoder.finish()])
         except Exception as e:
             print(f"Failed to paint WebGPU content: {e}")
