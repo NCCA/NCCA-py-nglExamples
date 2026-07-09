@@ -21,7 +21,7 @@ PARTICLE_RADIUS = 8.0
 # radius so collisions and wall bounces happen exactly when spheres appear
 # to touch.
 SPHERE_RENDER_RADIUS = PARTICLE_RADIUS
-SPHERE_PRECISION = 10
+SPHERE_PRECISION = 40
 
 
 class WebGPUScene3D(WebGPUWidget):
@@ -165,7 +165,6 @@ class WebGPUScene3D(WebGPUWidget):
                 colours=self.colour_buffer,
                 geometry_data=self.sphere_geometry_buffer,
             )
-            print(f"DEBUG: Sphere pipeline created: {self.sphere_pipeline}")
 
             self.line_pipeline = PipelineFactory.create_pipeline(
                 self.device,
@@ -201,23 +200,15 @@ class WebGPUScene3D(WebGPUWidget):
             | wgpu.BufferUsage.VERTEX
             | wgpu.BufferUsage.COPY_DST,
         )
-        print(
-            f"DEBUG: Position data shape: {position_data.shape}, min: {position_data.min()}, max: {position_data.max()}"
-        )
-        print(
-            f"DEBUG: Position extents - X: [{position_data[:, 0].min():.2f}, {position_data[:, 0].max():.2f}]"
-        )
-        print(
-            f"DEBUG: Position extents - Y: [{position_data[:, 1].min():.2f}, {position_data[:, 1].max():.2f}]"
-        )
-        print(
-            f"DEBUG: Position extents - Z: [{position_data[:, 2].min():.2f}, {position_data[:, 2].max():.2f}]"
-        )
-        print(
-            f"DEBUG: Simulation bounds: width={SIM_WIDTH}, height={SIM_HEIGHT}, depth={SIM_DEPTH}"
-        )
-        print(f"DEBUG: Grid cell size: {GRID_CELL_SIZE}")
-        print(f"DEBUG: Particle radius: {PARTICLE_RADIUS}")
+        # print(
+        #     f"DEBUG: Position data shape: {position_data.shape}, min: {position_data.min()}, max: {position_data.max()}"
+        # )
+        # print(f"DEBUG: Position extents - X: [{position_data[:, 0].min():.2f}, {position_data[:, 0].max():.2f}]")
+        # print(f"DEBUG: Position extents - Y: [{position_data[:, 1].min():.2f}, {position_data[:, 1].max():.2f}]")
+        # print(f"DEBUG: Position extents - Z: [{position_data[:, 2].min():.2f}, {position_data[:, 2].max():.2f}]")
+        # print(f"DEBUG: Simulation bounds: width={SIM_WIDTH}, height={SIM_HEIGHT}, depth={SIM_DEPTH}")
+        # print(f"DEBUG: Grid cell size: {GRID_CELL_SIZE}")
+        # print(f"DEBUG: Particle radius: {PARTICLE_RADIUS}")
 
         # Instanced sphere geometry pipeline expects per-instance colour as a
         # tightly packed Vec3 (no padding), unlike the old points pipeline.
@@ -246,9 +237,7 @@ class WebGPUScene3D(WebGPUWidget):
             data=self.grid_lines.tobytes(),
             usage=wgpu.BufferUsage.VERTEX,
         )
-        print(
-            f"Grid: {self.grid_width}x{self.grid_height}x{self.grid_depth} = {self.total_cells} cells"
-        )
+        # print(f"Grid: {self.grid_width}x{self.grid_height}x{self.grid_depth} = {self.total_cells} cells")
 
         self.cell_particle_count_buffer = self.device.create_buffer(
             size=self.total_cells * 4,
@@ -372,7 +361,7 @@ class WebGPUScene3D(WebGPUWidget):
         )
         self.colour_buffer_texture_view = self.colour_buffer_texture.create_view()
 
-        print(f"Textures initialized: {self.texture_size}")
+        # print(f"Textures initialized: {self.texture_size}")
 
     def _create_compute_pipeline(self) -> None:
         with open("CollisionCompute3D.wgsl", "r") as f:
@@ -549,58 +538,56 @@ class WebGPUScene3D(WebGPUWidget):
             command_encoder = self.device.create_command_encoder()
 
             if self.animate:
-                print("DEBUG: Running compute pass")
+                # print("DEBUG: Running compute pass")
                 self.update_simulation_params()
 
                 particle_workgroups = (self.num_points + 63) // 64
                 cell_workgroups = (self.total_cells + 63) // 64
-                print(
-                    f"DEBUG: Workgroups - particles: {particle_workgroups}, cells: {cell_workgroups}"
-                )
+                # print(f"DEBUG: Workgroups - particles: {particle_workgroups}, cells: {cell_workgroups}")
 
-                print("DEBUG: Clear grid")
+                # print("DEBUG: Clear grid")
                 compute_pass = command_encoder.begin_compute_pass()
                 compute_pass.set_pipeline(self.clear_grid_pipeline)
                 compute_pass.set_bind_group(0, self.compute_bind_group, [], 0, 999999)
                 compute_pass.dispatch_workgroups(cell_workgroups, 1, 1)
                 compute_pass.end()
 
-                print("DEBUG: Count particles")
+                # print("DEBUG: Count particles")
                 compute_pass = command_encoder.begin_compute_pass()
                 compute_pass.set_pipeline(self.count_particles_pipeline)
                 compute_pass.set_bind_group(0, self.compute_bind_group, [], 0, 999999)
                 compute_pass.dispatch_workgroups(particle_workgroups, 1, 1)
                 compute_pass.end()
 
-                print("DEBUG: Build offsets")
+                # print("DEBUG: Build offsets")
                 compute_pass = command_encoder.begin_compute_pass()
                 compute_pass.set_pipeline(self.build_offsets_pipeline)
                 compute_pass.set_bind_group(0, self.compute_bind_group, [], 0, 999999)
                 compute_pass.dispatch_workgroups(1, 1, 1)
                 compute_pass.end()
 
-                print("DEBUG: Fill grid")
+                # print("DEBUG: Fill grid")
                 compute_pass = command_encoder.begin_compute_pass()
                 compute_pass.set_pipeline(self.fill_grid_pipeline)
                 compute_pass.set_bind_group(0, self.compute_bind_group, [], 0, 999999)
                 compute_pass.dispatch_workgroups(particle_workgroups, 1, 1)
                 compute_pass.end()
 
-                print("DEBUG: Detect collisions")
+                # print("DEBUG: Detect collisions")
                 compute_pass = command_encoder.begin_compute_pass()
                 compute_pass.set_pipeline(self.detect_collisions_pipeline)
                 compute_pass.set_bind_group(0, self.compute_bind_group, [], 0, 999999)
                 compute_pass.dispatch_workgroups(particle_workgroups, 1, 1)
                 compute_pass.end()
 
-                print("DEBUG: Update physics")
+                # print("DEBUG: Update physics")
                 compute_pass = command_encoder.begin_compute_pass()
                 compute_pass.set_pipeline(self.update_physics_pipeline)
                 compute_pass.set_bind_group(0, self.compute_bind_group, [], 0, 999999)
                 compute_pass.dispatch_workgroups(particle_workgroups, 1, 1)
                 compute_pass.end()
 
-                print("DEBUG: Compute pass completed")
+                # print("DEBUG: Compute pass completed")
             self.device.queue.submit([command_encoder.finish()])
         except Exception as e:
             print(f"Failed to run compute pass: {e}")
@@ -667,7 +654,7 @@ class WebGPUScene3D(WebGPUWidget):
             traceback.print_exc()
 
     def paintWebGPU(self) -> None:
-        print("Painting WebGPU content")
+        # print("Painting WebGPU content")
         current_time = self.timer.elapsed() / 1000.0
         self.dt = current_time - self.last_time
         self.last_time = current_time
@@ -678,13 +665,6 @@ class WebGPUScene3D(WebGPUWidget):
             f" Spheres {self.num_points}  Wind [{self.wind[0]:.02f}, {self.wind[1]:.02f}, {self.wind[2]:.02f}] dt: {self.dt:.4f} FPS: {1.0 / self.dt if self.dt > 0 else 0:.2f}",
             size=20,
             colour=Qt.yellow,
-        )
-        self.render_text(
-            10,
-            50,
-            f" Camera: Distance={self.camera_distance:.0f} RotX={self.rotation_x:.0f}° RotY={self.rotation_y:.0f}°",
-            size=16,
-            colour=Qt.cyan,
         )
 
         self._compute_pass()
@@ -839,7 +819,7 @@ class WebGPUScene3D(WebGPUWidget):
             self.update()
 
     def timerEvent(self, event: QTimerEvent) -> None:
-        print("Update")
+        # print("Update")
         self.update()
 
 
