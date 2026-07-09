@@ -9,6 +9,7 @@ from PyNGLScene import PyNGLScene
 from PySide6.QtCore import QEvent, Qt, QUrl
 from PySide6.QtGui import QMouseEvent, QSurfaceFormat
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
+from PySide6.QtQuickControls2 import QQuickStyle
 from PySide6.QtQuickWidgets import QQuickWidget
 from PySide6.QtWidgets import QApplication, QMainWindow
 
@@ -98,6 +99,12 @@ def main() -> int:
     # graph is forced onto the OpenGL backend too, before QApplication is
     # constructed.
     QQuickWindow.setGraphicsApi(QSGRendererInterface.GraphicsApi.OpenGL)
+    # The native macOS QtQuickControls2 style doesn't support Frame
+    # background customization (DraggablePanel.qml's dark background/border)
+    # and gives ncca.ngl.qml's widgets (spin boxes, combo boxes) a light,
+    # native appearance that doesn't match. Fusion supports both consistently
+    # — same fix already applied in the sibling QMLFloatingWidgets demo.
+    QQuickStyle.setStyle("Fusion")
     app = QApplication(sys.argv)
     fmt = QSurfaceFormat()
     fmt.setSamples(4)

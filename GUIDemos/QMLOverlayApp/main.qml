@@ -35,7 +35,7 @@ Item {
         panelId: "colour"
         title: "Colour"
         x: 30
-        y: 300
+        y: 335
         content: [rgbWidget]
     }
 
@@ -48,7 +48,7 @@ Item {
         panelId: "camera"
         title: "Camera"
         x: 30
-        y: 400
+        y: 445
         content: [lookAtWidget]
     }
 
