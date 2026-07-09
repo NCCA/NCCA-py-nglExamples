@@ -24,6 +24,13 @@ Frame {
     // the handler outright removes the ambiguity instead of depending on it.
     property bool dragEnabled: true
 
+    // The smallest this panel can be dragged to: content's own natural
+    // size (contentArea never itself resizes) plus the 16px chrome margin
+    // baked into the width/height bindings below. Resize handles (added in
+    // a later change) clamp against these so content never clips.
+    readonly property real minimumWidth: contentArea.width + 16
+    readonly property real minimumHeight: contentArea.height + 16
+
     // Frame/Pane applies its own implicit padding around contentItem by
     // default, which insets everything declared inside it - including the
     // DragHandler below - away from the panel's outer edge. Zero it out so
@@ -48,7 +55,17 @@ Frame {
     onYChanged: reportRect()
     onWidthChanged: reportRect()
     onHeightChanged: reportRect()
-    Component.onCompleted: reportRect()
+    Component.onCompleted: {
+        // Only assign (which would break the width/height content-size
+        // bindings) if a persisted value from a previous run undershoots
+        // what the content now needs - e.g. a panel gained a new control
+        // since the size was last saved. On a fresh panel this is a no-op:
+        // width/height already equal minimumWidth/minimumHeight, so the
+        // strict "<" leaves the live binding intact.
+        if (width < minimumWidth) width = minimumWidth
+        if (height < minimumHeight) height = minimumHeight
+        reportRect()
+    }
 
     function raiseToFront() {
         var p = root.parent
@@ -83,7 +100,10 @@ Frame {
 
     Item {
         id: contentArea
-        anchors.centerIn: parent
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.leftMargin: 8
+        anchors.topMargin: 8
         width: childrenRect.width
         height: childrenRect.height
     }
