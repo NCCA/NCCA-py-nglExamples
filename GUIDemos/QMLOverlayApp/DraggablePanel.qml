@@ -9,7 +9,7 @@ Frame {
     property string title: ""
     default property alias content: contentArea.children
 
-    width: contentArea.width + 16
+    width: contentArea.width + 24
     height: contentArea.height + titleBar.height + 24
     opacity: 0.92
 

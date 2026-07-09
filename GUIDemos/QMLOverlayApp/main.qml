@@ -22,7 +22,7 @@ Item {
     }
     DraggablePanel {
         panelId: "transform"
-        title: "Transform"
+        title: ""
         x: 30
         y: 30
         content: [transformWidget]
@@ -35,7 +35,7 @@ Item {
     }
     DraggablePanel {
         panelId: "colour"
-        title: "Colour"
+        title: ""
         x: 30
         y: 335
         content: [rgbWidget]
@@ -48,7 +48,7 @@ Item {
     }
     DraggablePanel {
         panelId: "camera"
-        title: "Camera"
+        title: ""
         x: 30
         y: 445
         content: [lookAtWidget]
