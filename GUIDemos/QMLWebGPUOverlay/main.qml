@@ -121,12 +121,26 @@ Item {
         name: "Look At"
         onValueChanged: pyNGLScene.set_view_matrix(model.matrix)
     }
+    PerspectiveWidget {
+        id: perspectiveWidget
+        // Aspect is driven by the surface size on resize (see
+        // PyNGLScene.resizeWebGPU), not by this widget, so a manual edit
+        // here would just be overwritten - fov/near/far are the only params
+        // read.
+        name: "Perspective"
+        onValueChanged: pyNGLScene.set_perspective_params(model.fov, model.near, model.far)
+    }
     ThemedPanel {
         id: cameraPanel
         panelId: "camera"
         x: 30
         y: 445
-        content: [lookAtWidget]
+        content: [
+            Column {
+                spacing: 8
+                children: [lookAtWidget, perspectiveWidget]
+            }
+        ]
     }
 
     Row {
@@ -193,5 +207,8 @@ Item {
         pyNGLScene.set_model_matrix(transformWidget.model.matrix)
         pyNGLScene.set_view_matrix(lookAtWidget.model.matrix)
         pyNGLScene.set_colour(rgbWidget.model.r, rgbWidget.model.g, rgbWidget.model.b)
+        pyNGLScene.set_perspective_params(
+            perspectiveWidget.model.fov, perspectiveWidget.model.near, perspectiveWidget.model.far
+        )
     }
 }

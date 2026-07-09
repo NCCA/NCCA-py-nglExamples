@@ -20,6 +20,7 @@ class TeapotView(QQuickFramebufferObject):
         self._transform_model: QObject | None = None
         self._look_at_model: QObject | None = None
         self._colour_model: QObject | None = None
+        self._perspective_model: QObject | None = None
 
     def get_transform_model(self) -> QObject | None:
         return self._transform_model
@@ -57,6 +58,18 @@ class TeapotView(QQuickFramebufferObject):
 
     colourModel = Property(QObject, get_colour_model, set_colour_model)
 
+    def get_perspective_model(self) -> QObject | None:
+        return self._perspective_model
+
+    def set_perspective_model(self, model: QObject) -> None:
+        if self._perspective_model is not None:
+            self._perspective_model.valueChanged.disconnect(self.update)
+        self._perspective_model = model
+        model.valueChanged.connect(self.update)
+        self.update()
+
+    perspectiveModel = Property(QObject, get_perspective_model, set_perspective_model)
+
     def createRenderer(self) -> "TeapotRenderer":
         return TeapotRenderer()
 
@@ -85,11 +98,20 @@ class TeapotRenderer(QQuickFramebufferObject.Renderer):
             item.transformModel is None
             or item.lookAtModel is None
             or item.colourModel is None
+            or item.perspectiveModel is None
         ):
             return
         model_matrix = item.transformModel.get_matrix()
         view_matrix = item.lookAtModel.get_matrix()
-        project = perspective(45.0, self._aspect, 0.1, 100.0)
+        # Aspect always comes from the framebuffer's own size (set in
+        # createFramebufferObject), not the PerspectiveWidget panel, so the
+        # view is never distorted by it.
+        project = perspective(
+            item.perspectiveModel.fov,
+            self._aspect,
+            item.perspectiveModel.near,
+            item.perspectiveModel.far,
+        )
         mv = view_matrix @ model_matrix
         self._mvp = project @ mv
         self._mv = mv

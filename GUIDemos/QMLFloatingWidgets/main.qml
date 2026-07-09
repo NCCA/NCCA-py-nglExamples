@@ -20,6 +20,7 @@ ApplicationWindow {
         transformModel: transformWidget.model
         lookAtModel: lookAtWidget.model
         colourModel: rgbWidget.model
+        perspectiveModel: perspectiveWidget.model
     }
 
     TransformWidget {
@@ -48,10 +49,23 @@ ApplicationWindow {
         id: lookAtWidget
         name: "" // DraggablePanel's title bar already reads "Camera"
     }
+    PerspectiveWidget {
+        id: perspectiveWidget
+        name: "" // DraggablePanel's title bar already reads "Camera"
+        // Aspect is driven by the framebuffer's own size (see
+        // TeapotRenderer.createFramebufferObject), not by this widget, so a
+        // manual edit here would just be overwritten - fov/near/far are the
+        // only params read.
+    }
     DraggablePanel {
         title: "Camera"
         x: 30
         y: 360
-        content: [lookAtWidget]
+        content: [
+            Column {
+                spacing: 6
+                children: [lookAtWidget, perspectiveWidget]
+            }
+        ]
     }
 }

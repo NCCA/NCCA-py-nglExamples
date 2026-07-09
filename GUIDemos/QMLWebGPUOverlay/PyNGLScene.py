@@ -27,9 +27,18 @@ class PyNGLScene(WebGPUWidget):
         self._view_matrix = look_at(Vec3(0, 2, 4), Vec3(0, 0, 0), Vec3(0, 1, 0))
         self._colour = Vec3(1.0, 1.0, 0.0)
         self.light_pos = Vec3(1.0, 1.0, 1.0)
+        # Aspect always comes from the surface's own size (resizeWebGPU), not
+        # the PerspectiveWidget panel, so the view is never distorted by it.
+        self._fov = 45.0
+        self._near = 0.1
+        self._far = 350.0
 
         self.project = perspective(
-            45.0, self.width() / max(self.height(), 1), 0.1, 350.0, PerspMode.WebGPU
+            self._fov,
+            self.width() / max(self.height(), 1),
+            self._near,
+            self._far,
+            PerspMode.WebGPU,
         )
         self.device = get_default_device()
         self._create_render_buffer()
@@ -53,6 +62,20 @@ class PyNGLScene(WebGPUWidget):
         self._colour = Vec3(r, g, b)
         self.update()
 
+    @Slot(float, float, float)
+    def set_perspective_params(self, fov: float, near: float, far: float) -> None:
+        self._fov = fov
+        self._near = near
+        self._far = far
+        self.project = perspective(
+            self._fov,
+            self.width() / max(self.height(), 1),
+            self._near,
+            self._far,
+            PerspMode.WebGPU,
+        )
+        self.update()
+
     def paintWebGPU(self) -> None:
         self.pipeline.update_uniform_buffers(
             self._model_matrix, self._view_matrix, self.project, self._colour
@@ -65,7 +88,11 @@ class PyNGLScene(WebGPUWidget):
 
     def resizeWebGPU(self, width: int, height: int) -> None:
         self.project = perspective(
-            45.0, width / max(height, 1), 0.1, 350.0, PerspMode.WebGPU
+            self._fov,
+            width / max(height, 1),
+            self._near,
+            self._far,
+            PerspMode.WebGPU,
         )
         # The base resizeEvent recreates the render buffers around this call;
         # keep the pipeline's viewport in step with the new size.
