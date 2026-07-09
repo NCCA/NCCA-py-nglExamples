@@ -17,6 +17,11 @@ SIM_HEIGHT = 800
 SIM_DEPTH = 800
 GRID_CELL_SIZE = 50.0
 PARTICLE_RADIUS = 1.0
+# Purely visual radius for the rendered sphere mesh - independent of
+# PARTICLE_RADIUS (the tiny physics/collision radius), so particles stay
+# comfortably visible while the camera is far enough back to see the whole
+# SIM_WIDTH x SIM_HEIGHT x SIM_DEPTH cube at once.
+SPHERE_RENDER_RADIUS = 8.0
 SPHERE_PRECISION = 10
 
 
@@ -43,7 +48,7 @@ class WebGPUScene3D(WebGPUWidget):
         self.last_time = 0.0
 
         # 3D camera controls
-        self.camera_distance = 500.0  # Much closer for debugging
+        self.camera_distance = 1500.0  # far enough to fit the 800-unit sim cube in view
         self.rotation_x = 30.0
         self.rotation_y = 45.0
         self.is_rotating = False
@@ -216,9 +221,10 @@ class WebGPUScene3D(WebGPUWidget):
             usage=wgpu.BufferUsage.VERTEX,
         )
 
-        # Sphere geometry shared by every particle instance, sized to PARTICLE_RADIUS
+        # Sphere geometry shared by every particle instance, sized for visibility
+        # (see SPHERE_RENDER_RADIUS) rather than the tiny physics collision radius
         sphere_data = PrimData.sphere(
-            radius=PARTICLE_RADIUS, precision=SPHERE_PRECISION
+            radius=SPHERE_RENDER_RADIUS, precision=SPHERE_PRECISION
         )
         self.sphere_geometry_buffer = self.device.create_buffer_with_data(
             data=sphere_data.tobytes(),
