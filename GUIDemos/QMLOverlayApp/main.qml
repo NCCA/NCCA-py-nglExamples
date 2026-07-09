@@ -9,7 +9,9 @@ Item {
 
     TransformWidget {
         id: transformWidget
-        name: "Transform"
+        // name left blank: DraggablePanel's own title bar already reads
+        // "Transform" - avoid showing the same label twice.
+        name: ""
         // NOTE: use the "matrix" Property, not the get_matrix() Slot call.
         // Calling a @Slot(result=Mat4)-decorated method from QML JS and
         // re-passing its return value into another Python @Slot(Mat4)
@@ -28,7 +30,7 @@ Item {
 
     RGBColourWidget {
         id: rgbWidget
-        name: "Colour"
+        name: ""
         onColourChanged: pyNGLScene.set_colour(model.r, model.g, model.b)
     }
     DraggablePanel {
@@ -41,7 +43,7 @@ Item {
 
     LookAtWidget {
         id: lookAtWidget
-        name: "Camera"
+        name: ""
         onValueChanged: pyNGLScene.set_view_matrix(model.matrix)
     }
     DraggablePanel {

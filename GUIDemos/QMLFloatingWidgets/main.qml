@@ -24,7 +24,7 @@ ApplicationWindow {
 
     TransformWidget {
         id: transformWidget
-        name: "Transform"
+        name: "" // DraggablePanel's title bar already reads "Transform"
     }
     DraggablePanel {
         title: "Transform"
@@ -35,7 +35,7 @@ ApplicationWindow {
 
     RGBColourWidget {
         id: rgbWidget
-        name: "Colour"
+        name: "" // DraggablePanel's title bar already reads "Colour"
     }
     DraggablePanel {
         title: "Colour"
@@ -46,7 +46,7 @@ ApplicationWindow {
 
     LookAtWidget {
         id: lookAtWidget
-        name: "Camera"
+        name: "" // DraggablePanel's title bar already reads "Camera"
     }
     DraggablePanel {
         title: "Camera"
