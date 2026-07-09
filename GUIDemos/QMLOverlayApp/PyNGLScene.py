@@ -15,6 +15,11 @@ class PyNGLScene(QOpenGLWidget):
         self._model_matrix = Mat4()
         self._view_matrix = Mat4()
         self._colour = Vec3(1.0, 1.0, 0.0)
+        # Aspect always comes from the widget's own size (resizeGL), not the
+        # PerspectiveWidget panel, so the view is never distorted by it.
+        self._fov = 45.0
+        self._near = 0.01
+        self._far = 350.0
 
     @Slot(Mat4)
     def set_model_matrix(self, matrix: Mat4) -> None:
@@ -31,12 +36,24 @@ class PyNGLScene(QOpenGLWidget):
         self._colour = Vec3(r, g, b)
         self.update()
 
+    @Slot(float, float, float)
+    def set_perspective_params(self, fov: float, near: float, far: float) -> None:
+        self._fov = fov
+        self._near = near
+        self._far = far
+        self.project = perspective(
+            self._fov, self.width() / self.height(), self._near, self._far
+        )
+        self.update()
+
     def initializeGL(self) -> None:
         self.makeCurrent()
         gl.glClearColor(0.4, 0.4, 0.4, 1.0)
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_MULTISAMPLE)
-        self.project = perspective(45.0, self.width() / self.height(), 0.01, 350.0)
+        self.project = perspective(
+            self._fov, self.width() / self.height(), self._near, self._far
+        )
         ShaderLib.use(DefaultShader.DIFFUSE)
         ShaderLib.set_uniform("lightPos", 1.0, 1.0, 1.0)
         ShaderLib.set_uniform("lightDiffuse", 1.0, 1.0, 1.0, 1.0)
@@ -63,4 +80,4 @@ class PyNGLScene(QOpenGLWidget):
     def resizeGL(self, w: int, h: int) -> None:
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
-        self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
+        self.project = perspective(self._fov, float(w) / h, self._near, self._far)

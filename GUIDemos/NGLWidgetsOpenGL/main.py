@@ -3,7 +3,12 @@
 import sys
 
 from ncca.ngl import Vec3
-from ncca.ngl.widgets import LookAtWidget, RGBColourWidget, TransformWidget
+from ncca.ngl.widgets import (
+    LookAtWidget,
+    PerspectiveWidget,
+    RGBColourWidget,
+    TransformWidget,
+)
 from PyNGLScene import PyNGLScene
 from PySide6.QtCore import QFile, Qt, Signal
 from PySide6.QtGui import QKeyEvent, QSurfaceFormat
@@ -19,6 +24,8 @@ class Loader(QUiLoader):
             return TransformWidget(parent)
         elif class_name == "LookAtWidget":
             return LookAtWidget(parent)
+        elif class_name == "PerspectiveWidget":
+            return PerspectiveWidget(parent)
         return super().createWidget(class_name, parent, name)
 
 
@@ -49,6 +56,7 @@ class MainWindow(QMainWindow):
         self.lookat_widget.set_eye(Vec3(0.0, 1.0, 4.0))
         self.lookat_widget.set_name("Look At")
         self.transform_widget.set_name("Model Transform")
+        self.perspective_widget.set_name("Perspective")
         self.scene = PyNGLScene()
         self.centralWidget().layout().addWidget(self.scene, 0, 0, 6, 1)
 
@@ -62,14 +70,19 @@ class MainWindow(QMainWindow):
         self.transform_widget.valueChanged.connect(self.scene.set_transform)
         self.lookat_widget.valueChanged.connect(self.scene.set_camera)
         self.colour.colourChanged.connect(self.scene.set_colour)
-        self.fov.valueChanged.connect(self.update_perspective)
-        self.near.valueChanged.connect(self.update_perspective)
-        self.far.valueChanged.connect(self.update_perspective)
+        self.perspective_widget.valueChanged.connect(self.update_perspective)
 
     def update_perspective(self) -> None:
-        """Update the perspective projection matrix."""
+        """Update the perspective projection matrix.
+
+        Aspect always comes from the scene's own size (PyNGLScene.resizeGL),
+        not the PerspectiveWidget, so the view is never distorted by it -
+        only fov/near/far are read here.
+        """
         self.scene.update_perspective(
-            self.fov.value(), self.near.value(), self.far.value()
+            self.perspective_widget.get_fov(),
+            self.perspective_widget.get_near(),
+            self.perspective_widget.get_far(),
         )
         self.update()
 
