@@ -12,6 +12,7 @@ This demo extends the 2D spatial hashing collision detection system to 3D, showc
 - **Real-time Performance**: GPU-accelerated compute shaders for parallel processing
 
 ### Visual Features
+- **Instanced Diffuse Spheres**: Every particle is an instanced, diffuse-lit sphere (single draw call via `MULTI_COLOURED_INSTANCED_GEOMETRY`) rather than a flat point sprite
 - **3D Grid Visualization**: Toggle-able grid showing spatial hash structure
 - **Particle Colors**: Randomly colored particles for easy tracking
 - **3D Perspective**: Proper perspective projection for 3D rendering
@@ -35,7 +36,7 @@ This demo extends the 2D spatial hashing collision detection system to 3D, showc
 ### Application Changes
 1. **Camera System**: Full 3D camera with perspective projection
 2. **Mouse Controls**: Left-drag rotation, scroll wheel zoom
-3. **Rendering**: 3D point rendering with depth buffer
+3. **Rendering**: Instanced, diffuse-lit sphere rendering with depth buffer (a single shared sphere mesh, generated via `PrimData.sphere()`, drawn once per particle)
 4. **UI Controls**: Additional controls for Z-axis wind and camera distance
 
 ## Running the Demo
@@ -92,7 +93,7 @@ The GUI version provides comprehensive controls for:
 
 ### Display Parameters
 - Grid visibility
-- Point size adjustment
+- Sphere scale adjustment
 
 ### Camera Controls
 - Camera distance
@@ -136,7 +137,7 @@ The simulation uses 6 compute passes:
 ## Extensions
 
 Possible extensions to explore:
-- Different particle shapes (spheres, boxes)
+- Different particle shapes (boxes, capsules)
 - Variable particle sizes
 - Force fields and attractions
 - Obstacle collision

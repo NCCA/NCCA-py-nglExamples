@@ -5,7 +5,7 @@ import traceback
 
 import numpy as np
 import wgpu
-from ncca.ngl import Mat4, PerspMode, Vec3, look_at, perspective
+from ncca.ngl import Mat4, PerspMode, PrimData, Vec3, look_at, perspective
 from ncca.ngl.webgpu import PipelineFactory, PipelineType, WebGPUWidget
 from PySide6.QtCore import QElapsedTimer, Qt, QTimerEvent
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
@@ -17,6 +17,7 @@ SIM_HEIGHT = 800
 SIM_DEPTH = 800
 GRID_CELL_SIZE = 50.0
 PARTICLE_RADIUS = 1.0
+SPHERE_PRECISION = 10
 
 
 class WebGPUScene3D(WebGPUWidget):
@@ -145,16 +146,16 @@ class WebGPUScene3D(WebGPUWidget):
             self._init_buffers()
             self._create_compute_pipeline()
 
-            # Try basic points pipeline
-            print(
-                f"DEBUG: Available pipeline types: {[attr for attr in dir(PipelineType) if not attr.startswith('_')]}"
-            )
-            self.point_pipeline = PipelineFactory.create_pipeline(
+            self.sphere_pipeline = PipelineFactory.create_pipeline(
                 self.device,
-                PipelineType.MULTI_COLOURED_POINTS,
-                stride=24,  # Position data (3 floats = 12 bytes)
+                PipelineType.MULTI_COLOURED_INSTANCED_GEOMETRY,
             )
-            print(f"DEBUG: Point pipeline created: {self.point_pipeline}")
+            self.sphere_pipeline.set_data(
+                positions=self.particle_buffer,
+                colours=self.colour_buffer,
+                geometry_data=self.sphere_geometry_buffer,
+            )
+            print(f"DEBUG: Sphere pipeline created: {self.sphere_pipeline}")
 
             self.line_pipeline = PipelineFactory.create_pipeline(
                 self.device,
@@ -208,19 +209,19 @@ class WebGPUScene3D(WebGPUWidget):
         print(f"DEBUG: Grid cell size: {GRID_CELL_SIZE}")
         print(f"DEBUG: Particle radius: {PARTICLE_RADIUS}")
 
-        padded_colours = np.zeros((self.num_points, 4), dtype=np.float32)
-        padded_colours[:, :3] = self.colours
-
+        # Instanced sphere geometry pipeline expects per-instance colour as a
+        # tightly packed Vec3 (no padding), unlike the old points pipeline.
         self.colour_buffer = self.device.create_buffer_with_data(
-            data=padded_colours.tobytes(),
+            data=self.colours.astype(np.float32).tobytes(),
             usage=wgpu.BufferUsage.VERTEX,
         )
 
-        padded_colours = np.zeros((self.num_points, 4), dtype=np.float32)
-        padded_colours[:, :3] = self.colours
-
-        self.colour_buffer = self.device.create_buffer_with_data(
-            data=padded_colours.tobytes(),
+        # Sphere geometry shared by every particle instance, sized to PARTICLE_RADIUS
+        sphere_data = PrimData.sphere(
+            radius=PARTICLE_RADIUS, precision=SPHERE_PRECISION
+        )
+        self.sphere_geometry_buffer = self.device.create_buffer_with_data(
+            data=sphere_data.tobytes(),
             usage=wgpu.BufferUsage.VERTEX,
         )
 
@@ -620,9 +621,13 @@ class WebGPUScene3D(WebGPUWidget):
             if self.show_grid:
                 self.line_pipeline.set_data(positions=self.grid_buffer)
                 self.line_pipeline.render(render_pass=render_pass)
-            # Single colour pipeline only needs positions
-            self.point_pipeline.set_data(positions=self.particle_buffer)
-            self.point_pipeline.render(render_pass=render_pass)
+            # particle_buffer is mutated in place by the compute pass, and set_data
+            # was already bound once in _initialize_web_gpu; re-calling it here with
+            # the same GPUBuffer objects would destroy them (pipeline.set_data
+            # destroys any previously bound buffer before rebinding).
+            self.sphere_pipeline.render(
+                render_pass=render_pass, num_instances=self.num_points
+            )
 
             render_pass.end()
             # Update position buffer for rendering from compute results
@@ -653,7 +658,7 @@ class WebGPUScene3D(WebGPUWidget):
         self.render_text(
             10,
             25,
-            f" Points {self.num_points}  Wind [{self.wind[0]:.02f}, {self.wind[1]:.02f}, {self.wind[2]:.02f}] dt: {self.dt:.4f} FPS: {1.0 / self.dt if self.dt > 0 else 0:.2f}",
+            f" Spheres {self.num_points}  Wind [{self.wind[0]:.02f}, {self.wind[1]:.02f}, {self.wind[2]:.02f}] dt: {self.dt:.4f} FPS: {1.0 / self.dt if self.dt > 0 else 0:.2f}",
             size=20,
             colour=Qt.yellow,
         )
@@ -733,10 +738,17 @@ class WebGPUScene3D(WebGPUWidget):
         # View matrix for other elements (grid lines) - keep full view transform
         self.view_matrix = self.view.to_numpy().astype(np.float32)
 
-        self.point_pipeline.update_uniforms(
+        # point_size doubles as a sphere scale multiplier (6.0 == neutral, no rescale)
+        sphere_scale = self.point_size / 6.0
+        instance_transform = (
+            Mat4.scale(sphere_scale, sphere_scale, sphere_scale)
+            .to_numpy()
+            .astype(np.float32)
+        )
+        self.sphere_pipeline.update_uniforms(
             mvp=self.mvp_matrix,
             view_matrix=self.view_matrix,
-            point_size=self.point_size,
+            instance_transform=instance_transform,
         )
         self.line_pipeline.update_uniforms(mvp=self.mvp_matrix)
 

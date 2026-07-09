@@ -181,7 +181,7 @@ class WebGPUControlPanel3D(QWidget):
         display_layout.addWidget(self.show_grid_checkbox, 0, 1)
 
         # Point size
-        display_layout.addWidget(QLabel("Point Size:"), 1, 0)
+        display_layout.addWidget(QLabel("Sphere Scale:"), 1, 0)
         self.point_size_slider = QSlider(Qt.Orientation.Horizontal)
         self.point_size_slider.setRange(1, 500)
         self.point_size_slider.setValue(int(self.webgpu_widget.point_size))
