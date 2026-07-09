@@ -2,8 +2,7 @@
 import sys
 import traceback
 
-import numpy as np
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QApplication,

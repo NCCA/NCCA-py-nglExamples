@@ -226,6 +226,43 @@ fn wrap_boundaries(p_pos: vec3<f32>, half_width: f32, half_height: f32, half_dep
     return pos;
 }
 
+fn bounce_boundaries_damped(p_pos: vec3<f32>, p_vel: ptr<function, vec3<f32>>,
+                            half_width: f32, half_height: f32, half_depth: f32) -> vec3<f32> {
+    var pos = p_pos;
+    let damping = 0.8; // Lose 20% velocity on bounce
+    // Reflect off the wall when the sphere surface touches it
+    let r = params.particle_radius;
+
+    // Bounce X with damping
+    if (pos.x < -half_width + r) {
+        pos.x = -half_width + r;
+        (*p_vel).x = -(*p_vel).x * damping;
+    } else if (pos.x > half_width - r) {
+        pos.x = half_width - r;
+        (*p_vel).x = -(*p_vel).x * damping;
+    }
+
+    // Bounce Y with damping
+    if (pos.y < -half_height + r) {
+        pos.y = -half_height + r;
+        (*p_vel).y = -(*p_vel).y * damping;
+    } else if (pos.y > half_height - r) {
+        pos.y = half_height - r;
+        (*p_vel).y = -(*p_vel).y * damping;
+    }
+
+    // Bounce Z with damping
+    if (pos.z < -half_depth + r) {
+        pos.z = -half_depth + r;
+        (*p_vel).z = -(*p_vel).z * damping;
+    } else if (pos.z > half_depth - r) {
+        pos.z = half_depth - r;
+        (*p_vel).z = -(*p_vel).z * damping;
+    }
+
+    return pos;
+}
+
 // Phase 6: Update physics (movement and boundary collision)
 @compute @workgroup_size(64)
 fn update_physics(@builtin(global_invocation_id) global_id: vec3<u32>) {
@@ -245,7 +282,8 @@ fn update_physics(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let effective_velocity = p.vel + wind;
     p.pos += effective_velocity * params.dt;
 
-    p.pos = wrap_boundaries(p.pos, half_width, half_height, half_depth);
+    //p.pos = wrap_boundaries(p.pos, half_width, half_height, half_depth);
+    p.pos = bounce_boundaries_damped(p.pos, &p.vel, half_width, half_height, half_depth);
 
     particles[index] = p;
 

@@ -16,12 +16,11 @@ SIM_WIDTH = 800
 SIM_HEIGHT = 800
 SIM_DEPTH = 800
 GRID_CELL_SIZE = 50.0
-PARTICLE_RADIUS = 1.0
-# Purely visual radius for the rendered sphere mesh - independent of
-# PARTICLE_RADIUS (the tiny physics/collision radius), so particles stay
-# comfortably visible while the camera is far enough back to see the whole
-# SIM_WIDTH x SIM_HEIGHT x SIM_DEPTH cube at once.
-SPHERE_RENDER_RADIUS = 8.0
+PARTICLE_RADIUS = 8.0
+# The rendered sphere mesh uses the same radius as the physics collision
+# radius so collisions and wall bounces happen exactly when spheres appear
+# to touch.
+SPHERE_RENDER_RADIUS = PARTICLE_RADIUS
 SPHERE_PRECISION = 10
 
 
