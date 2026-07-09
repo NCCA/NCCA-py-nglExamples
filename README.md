@@ -150,3 +150,4 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="GUIDemos/NGLWidgetsOpenGL"><img src="GUIDemos/NGLWidgetsOpenGL/PySideGUI.png" width="220"></a> | [GUIDemos/NGLWidgetsOpenGL](GUIDemos/NGLWidgetsOpenGL) | NGL widgets with OpenGL |
 | <a href="GUIDemos/WebGPUGUI"><img src="GUIDemos/WebGPUGUI/WebGPUGUI.png" width="220"></a> | [GUIDemos/WebGPUGUI](GUIDemos/WebGPUGUI) | GUI driving a WebGPU widget |
 | <a href="GUIDemos/QMLOverlayApp"><img src="GUIDemos/QMLOverlayApp/QMLOverlayApp.png" width="220"></a> | [GUIDemos/QMLOverlayApp](GUIDemos/QMLOverlayApp) | QWidget OpenGL viewport with a transparent QQuickWidget overlay of floating ncca.ngl.qml panels |
+| <a href="GUIDemos/QMLWebGPUOverlay"><img src="GUIDemos/QMLWebGPUOverlay/QMLWebGPUOverlay.png" width="220"></a> | [GUIDemos/QMLWebGPUOverlay](GUIDemos/QMLWebGPUOverlay) | WebGPU (offscreen) viewport with a transparent QQuickWidget overlay of floating ncca.ngl.qml panels |
