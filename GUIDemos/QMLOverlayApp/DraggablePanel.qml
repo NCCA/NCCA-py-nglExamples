@@ -6,16 +6,37 @@ Frame {
     id: root
 
     property string panelId: ""
-    property string title: ""
     default property alias content: contentArea.children
 
-    width: contentArea.width + 24
-    height: contentArea.height + titleBar.height + 24
+    // Panel chrome colours, exposed so a theme can restyle the panel body to
+    // match the palette applied to its child controls (see main.qml's
+    // stylePresets - e.g. the Dear ImGui themes pair a dark/blue panel body
+    // with matching control colours). Defaults reproduce the original look.
+    property color panelColor: "#2b2b2b"
+    property color panelBorder: "#555555"
+
+    // Callers with a popup-bearing child (e.g. a ComboBox) should bind this
+    // to false while that popup is open. grabPermissions below reduces the
+    // odds of the DragHandler stealing a click meant for the popup, but a
+    // popup's contents are reparented into the window's Overlay layer - a
+    // separate branch from this panel's own children - so it isn't reliably
+    // covered by the normal "descendant grabs first" arbitration. Disabling
+    // the handler outright removes the ambiguity instead of depending on it.
+    property bool dragEnabled: true
+
+    // Frame/Pane applies its own implicit padding around contentItem by
+    // default, which insets everything declared inside it - including the
+    // DragHandler below - away from the panel's outer edge. Zero it out so
+    // the drag area covers the full panel, edge to edge.
+    padding: 0
+
+    width: contentArea.width + 16
+    height: contentArea.height + 16
     opacity: 0.92
 
     background: Rectangle {
-        color: "#2b2b2b"
-        border.color: "#555555"
+        color: root.panelColor
+        border.color: root.panelBorder
         radius: 6
     }
 
@@ -38,36 +59,32 @@ Frame {
         }
     }
 
-    Column {
-        anchors.fill: parent
-        anchors.margins: 8
-        spacing: 6
+    // DragHandler (not a plain MouseArea) so it participates in Qt Quick's
+    // pointer grab arbitration: it only wins the drag if no descendant
+    // control (spin box, combo box, colour swatch...) already grabbed the
+    // press first, so the whole panel - background, labels, padding - is
+    // draggable without stealing clicks from interactive child widgets.
+    DragHandler {
+        target: root
+        enabled: root.dragEnabled
+        // Default threshold comes from the platform's drag-start distance
+        // (often 10-15px), which reads as sluggish for a small floating
+        // panel - shrink the dead zone so the drag catches immediately.
+        dragThreshold: 2
+        // Belt-and-braces alongside dragEnabled above: never take over a
+        // grab another item/handler already holds (e.g. a spin box mid
+        // drag), only ever grab when nothing else wants the press.
+        grabPermissions: PointerHandler.TakeOverForbidden
+        onActiveChanged: if (active) root.raiseToFront()
+    }
+    TapHandler {
+        onTapped: root.raiseToFront()
+    }
 
-        Rectangle {
-            id: titleBar
-            width: parent.width
-            height: 24
-            color: "#3c3c3c"
-            radius: 4
-
-            Text {
-                anchors.centerIn: parent
-                text: root.title
-                color: "white"
-                font.bold: true
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                drag.target: root
-                onPressed: root.raiseToFront()
-            }
-        }
-
-        Item {
-            id: contentArea
-            width: childrenRect.width
-            height: childrenRect.height
-        }
+    Item {
+        id: contentArea
+        anchors.centerIn: parent
+        width: childrenRect.width
+        height: childrenRect.height
     }
 }

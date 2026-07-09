@@ -39,3 +39,18 @@ interop counterpart to `GUIDemos/QMLFloatingWidgets`.
 - Transform panel: teapot position/rotation/scale.
 - Colour panel: teapot colour.
 - Camera panel: camera eye/look/world-up (drives the view matrix directly).
+- Style panel: pick a theme from the combo box. Each theme restyles every
+  panel live by setting Qt Quick Controls palette roles plus the panel body
+  colour/border. Included themes reproduce Dear ImGui's dark (blue `#4296fa`
+  accent), classic blue-purple, and light looks alongside the defaults. The
+  app starts on the ImGui Classic theme by default.
+
+### Persistence
+
+Panel positions and the selected theme are saved on exit and restored on the
+next launch, using the QML-native `Settings` type (`import QtCore`) — the same
+`QSettings` store as the C++/Python API, but with two-way property aliases so
+no explicit save-on-close handler is needed. The storage path comes from the
+organization/application name set in `main.py`
+(`~/Library/Preferences/com.ncca.QMLOverlayApp.plist` on macOS). Delete that
+file to reset to the default layout.

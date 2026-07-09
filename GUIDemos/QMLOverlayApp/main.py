@@ -106,6 +106,12 @@ def main() -> int:
     # — same fix already applied in the sibling QMLFloatingWidgets demo.
     QQuickStyle.setStyle("Fusion")
     app = QApplication(sys.argv)
+    # main.qml's Settings element (import QtCore) persists panel positions and
+    # the selected theme via QSettings. QSettings derives its storage path from
+    # the organization/application name, so set them before any Settings is
+    # created or it falls back to an unnamed store and warns.
+    app.setOrganizationName("NCCA")
+    app.setApplicationName("QMLOverlayApp")
     fmt = QSurfaceFormat()
     fmt.setSamples(4)
     fmt.setMajorVersion(4)
