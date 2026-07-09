@@ -194,12 +194,20 @@ Item {
         property alias styleIndex: overlayRoot.styleIndex
         property alias transformX: transformPanel.x
         property alias transformY: transformPanel.y
+        property alias transformWidth: transformPanel.width
+        property alias transformHeight: transformPanel.height
         property alias colourX: colourPanel.x
         property alias colourY: colourPanel.y
+        property alias colourWidth: colourPanel.width
+        property alias colourHeight: colourPanel.height
         property alias cameraX: cameraPanel.x
         property alias cameraY: cameraPanel.y
+        property alias cameraWidth: cameraPanel.width
+        property alias cameraHeight: cameraPanel.height
         property alias styleX: stylePanel.x
         property alias styleY: stylePanel.y
+        property alias styleWidth: stylePanel.width
+        property alias styleHeight: stylePanel.height
     }
 
     Component.onCompleted: {
