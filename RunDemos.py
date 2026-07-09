@@ -102,6 +102,10 @@ class DemoRunner(QMainWindow):
             button.setCheckable(True)
             button.setFlat(True)  # Flat style for a cleaner list look
             button.setStyleSheet("QPushButton { text-align: left; padding: 5px; }")
+            # Keep keyboard focus on the main window so its keyPressEvent
+            # (arrow-key navigation) isn't hijacked by native button focus
+            # traversal, which stops our custom handler from firing again.
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             self.button_group.addButton(button)
             layout.addWidget(button)
 
@@ -305,13 +309,11 @@ class DemoRunner(QMainWindow):
             # Move selection up
             new_index = (current_index - 1) % len(buttons)
             buttons[new_index].setChecked(True)
-            buttons[new_index].setFocus()
             self.demo_scroll_area.ensureWidgetVisible(buttons[new_index])
         elif key == Qt.Key.Key_Down:
             # Move selection down
             new_index = (current_index + 1) % len(buttons)
             buttons[new_index].setChecked(True)
-            buttons[new_index].setFocus()
             self.demo_scroll_area.ensureWidgetVisible(buttons[new_index])
         elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             # Run the currently selected demo
