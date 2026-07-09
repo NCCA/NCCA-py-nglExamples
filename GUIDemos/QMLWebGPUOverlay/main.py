@@ -26,9 +26,9 @@ class OverlayQuickWidget(QQuickWidget):
         # Without this, QQuickWidget's QML engine cannot reliably resolve the
         # file-based components (TransformWidget.qml, RGBColourWidget.qml,
         # LookAtWidget.qml), causing intermittent "<Type> is not a type" errors.
-        self.engine().addImportPath(
-            str(Path(ncca.ngl.qml.__file__).parent.parent.parent.parent)
-        )
+        # parents[3]: qml -> ngl -> ncca -> the dir that CONTAINS ncca/.
+        ncca_root = Path(ncca.ngl.qml.__file__).parents[3]
+        self.engine().addImportPath(str(ncca_root))
         self.setAttribute(Qt.WidgetAttribute.WA_AlwaysStackOnTop)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setClearColor(Qt.GlobalColor.transparent)
