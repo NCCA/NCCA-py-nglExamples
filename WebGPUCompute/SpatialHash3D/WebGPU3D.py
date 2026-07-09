@@ -693,16 +693,6 @@ class WebGPUScene3D(WebGPUWidget):
         )
 
     def update_uniform_buffers(self) -> None:
-        # Simple orthographic projection for testing
-        half_w = SIM_WIDTH
-        half_h = SIM_HEIGHT
-
-        # Simple view matrix
-
-        # Create rotation matrices
-        rot_y_rad = Mat4.rotate_y(self.rotation_y)
-        rot_x_rad = Mat4.rotate_x(self.rotation_x)
-
         # Calculate camera position based on distance and rotation
         eye_x = (
             self.camera_distance
@@ -722,20 +712,9 @@ class WebGPUScene3D(WebGPUWidget):
             Vec3(0, 1, 0),
         )
 
-        # For proper billboarding, create MVP without camera rotation
-        # The view matrix should only contain translation, no rotation
-        view_translation_only = Mat4.identity()
-        view_translation_only[3][0] = self.view[3][0]  # X translation
-        view_translation_only[3][1] = self.view[3][1]  # Y translation
-        view_translation_only[3][2] = self.view[3][2]  # Z translation
-
-        # MVP matrix for points (with billboarding - no view rotation)
-        self.mvp_matrix = (
-            (self.project @ view_translation_only @ rot_y_rad @ rot_x_rad)
-            .to_numpy()
-            .astype(np.float32)
-        )
-        # View matrix for other elements (grid lines) - keep full view transform
+        # Spheres are real 3D geometry (not billboarded sprites), so use the
+        # full camera view/projection directly.
+        self.mvp_matrix = (self.project @ self.view).to_numpy().astype(np.float32)
         self.view_matrix = self.view.to_numpy().astype(np.float32)
 
         # point_size doubles as a sphere scale multiplier (6.0 == neutral, no rescale)
