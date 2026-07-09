@@ -98,6 +98,71 @@ Frame {
         onTapped: root.raiseToFront()
     }
 
+    // Thickness of the invisible edge/corner grab strips, in px.
+    property int handleSize: 8
+
+    // One reusable resize-handle definition, configured per instance below
+    // by which edge(s) it drags. Tracks the press position and the panel's
+    // x/y/width/height *at press time* in root.parent's (overlayRoot's)
+    // coordinate space, so each move event recomputes the new geometry
+    // from a fixed reference rather than accumulating per-event deltas -
+    // this stays correct even though left/top drags move `root` itself
+    // out from under the handle while dragging.
+    component ResizeHandle: MouseArea {
+        id: handle
+        property bool resizeLeft: false
+        property bool resizeRight: false
+        property bool resizeTop: false
+        property bool resizeBottom: false
+        property point pressGlobal
+        property real pressPanelX
+        property real pressPanelY
+        property real pressWidth
+        property real pressHeight
+
+        hoverEnabled: true
+        cursorShape: {
+            if ((resizeLeft && resizeTop) || (resizeRight && resizeBottom))
+                return Qt.SizeFDiagCursor
+            if ((resizeRight && resizeTop) || (resizeLeft && resizeBottom))
+                return Qt.SizeBDiagCursor
+            if (resizeLeft || resizeRight)
+                return Qt.SizeHorCursor
+            return Qt.SizeVerCursor
+        }
+
+        onPressed: (mouse) => {
+            pressGlobal = mapToItem(root.parent, mouse.x, mouse.y)
+            pressPanelX = root.x
+            pressPanelY = root.y
+            pressWidth = root.width
+            pressHeight = root.height
+            root.raiseToFront()
+        }
+        onPositionChanged: (mouse) => {
+            if (!pressed)
+                return
+            var current = mapToItem(root.parent, mouse.x, mouse.y)
+            var dx = current.x - pressGlobal.x
+            var dy = current.y - pressGlobal.y
+
+            if (resizeRight)
+                root.width = Math.max(root.minimumWidth, pressWidth + dx)
+            if (resizeBottom)
+                root.height = Math.max(root.minimumHeight, pressHeight + dy)
+            if (resizeLeft) {
+                var newWidth = Math.max(root.minimumWidth, pressWidth - dx)
+                root.x = pressPanelX + (pressWidth - newWidth)
+                root.width = newWidth
+            }
+            if (resizeTop) {
+                var newHeight = Math.max(root.minimumHeight, pressHeight - dy)
+                root.y = pressPanelY + (pressHeight - newHeight)
+                root.height = newHeight
+            }
+        }
+    }
+
     Item {
         id: contentArea
         anchors.left: parent.left
@@ -106,5 +171,77 @@ Frame {
         anchors.topMargin: 8
         width: childrenRect.width
         height: childrenRect.height
+    }
+
+    // Edges first, corners last: corners are declared later in the same
+    // Item so they win Qt Quick's topmost-hit-wins arbitration over the
+    // edge strips in the small squares where both would otherwise overlap.
+    ResizeHandle {
+        resizeTop: true
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: root.handleSize
+        anchors.rightMargin: root.handleSize
+        height: root.handleSize
+    }
+    ResizeHandle {
+        resizeBottom: true
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: root.handleSize
+        anchors.rightMargin: root.handleSize
+        height: root.handleSize
+    }
+    ResizeHandle {
+        resizeLeft: true
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.topMargin: root.handleSize
+        anchors.bottomMargin: root.handleSize
+        width: root.handleSize
+    }
+    ResizeHandle {
+        resizeRight: true
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.topMargin: root.handleSize
+        anchors.bottomMargin: root.handleSize
+        width: root.handleSize
+    }
+    ResizeHandle {
+        resizeLeft: true
+        resizeTop: true
+        anchors.left: parent.left
+        anchors.top: parent.top
+        width: root.handleSize
+        height: root.handleSize
+    }
+    ResizeHandle {
+        resizeRight: true
+        resizeTop: true
+        anchors.right: parent.right
+        anchors.top: parent.top
+        width: root.handleSize
+        height: root.handleSize
+    }
+    ResizeHandle {
+        resizeLeft: true
+        resizeBottom: true
+        anchors.left: parent.left
+        anchors.bottom: parent.bottom
+        width: root.handleSize
+        height: root.handleSize
+    }
+    ResizeHandle {
+        resizeRight: true
+        resizeBottom: true
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        width: root.handleSize
+        height: root.handleSize
     }
 }
