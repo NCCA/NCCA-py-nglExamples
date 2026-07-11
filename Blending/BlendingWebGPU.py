@@ -278,8 +278,10 @@ class WebGPUScene(WebGPUWidget):
     # ------------------------------------------------------------------
     def paintWebGPU(self) -> None:
         global_tx = self.scene_global_tx()
-        for obj in (self.teapot, self.floor):
-            obj.update(self.device, self.view, self.project, global_tx, 1.0)
+        # for obj in (self.teapot, self.floor):
+        self.teapot.update(self.device, self.view, self.project, global_tx, 1.0)
+        tx = Mat4().translate(0, -0.5, 0.0)
+        self.floor.update(self.device, self.view, self.project, global_tx @ tx, 1.0)
         for panel in self.panels:
             panel.update(self.device, self.view, self.project, global_tx, self.alpha)
 
