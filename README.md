@@ -19,6 +19,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 - [Vertex Array Objects](#vertex-array-objects)
 - [Geometry &amp; Meshes](#geometry--meshes)
 - [Textures &amp; Materials](#textures--materials)
+- [Blending &amp; Transparency](#blending--transparency)
 - [Curves &amp; Interpolation](#curves--interpolation)
 - [Selection &amp; Picking](#selection--picking)
 - [Framebuffers &amp; Post Processing](#framebuffers--post-processing)
@@ -85,6 +86,13 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="NormalMapping"><img src="NormalMapping/NormalMapping.png" width="220"></a> | [NormalMapping](NormalMapping) | Tangent-space normal mapping |
 | <a href="PBR/SimplePBR"><img src="PBR/SimplePBR/SimplePBR.png" width="220"></a> | [PBR/SimplePBR](PBR/SimplePBR) | Simple physically based rendering |
 | <a href="PBR/PBRTexture"><img src="PBR/PBRTexture/PBRTexture.png" width="220"></a> | [PBR/PBRTexture](PBR/PBRTexture) | Textured physically based rendering |
+
+## Blending &amp; Transparency
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="Blending"><img src="Blending/Blending.png" width="220"></a> | [Blending](Blending) | Alpha blending, depth write and sorting toggles (OpenGL + WebGPU) |
+| <a href="OITransparency"><img src="OITransparency/OIT.png" width="220"></a> | [OITransparency](OITransparency) | Weighted blended order-independent transparency (OpenGL + WebGPU) |
 
 ## Curves &amp; Interpolation
 
