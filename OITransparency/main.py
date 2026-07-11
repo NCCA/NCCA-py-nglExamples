@@ -287,7 +287,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
         ShaderLib.use(DefaultShader.COLOUR)
-        ShaderLib.set_uniform("MVP", self.project @ self.view @ global_tx)
+        tx = Mat4().translate(0.0, -0.5, 0.0)
+
+        ShaderLib.set_uniform("MVP", self.project @ self.view @ global_tx @ tx)
         ShaderLib.set_uniform("Colour", 0.6, 0.6, 0.6, 1.0)
         Primitives.draw("grid")
 

@@ -149,12 +149,11 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glViewport(0, 0, self.window_width, self.window_height)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         global_tx = self.scene_global_tx()
-        tx = Transform()
-        tx.set_position(0.0, -0.5, 0.0)
+        tx = Mat4().translate(0.0, -0.5, 0.0)
 
         # ---- 1. opaque pass: all solid geometry first, depth write on ----
         ShaderLib.use(DefaultShader.COLOUR)
-        ShaderLib.set_uniform("MVP", self.project @ self.view @ global_tx @ tx.matrix())
+        ShaderLib.set_uniform("MVP", self.project @ self.view @ global_tx @ tx)
         ShaderLib.set_uniform("Colour", 0.6, 0.6, 0.6, 1.0)
         Primitives.draw("grid")
 
