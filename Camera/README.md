@@ -12,3 +12,10 @@ matrix, and light on/off status, matching the original NGL9Demos/Camera's help t
 - `z` / `x` / `c` : toggle the 3 scene lights
 - `+` / `-` : adjust field of view
 - Left-drag : orbit scene, Right-drag : pan, Wheel : zoom, `space` : reset
+
+## References
+
+- [LearnOpenGL — Camera](https://learnopengl.com/Getting-started/Camera) — view matrices, eye/look/up and camera movement.
+- [OpenGL Camera (songho.ca)](https://www.songho.ca/opengl/gl_camera.html) — derivation of the lookAt matrix from the U,V,N basis vectors, as in `uvn_camera.py`.
+- [OGLdev — Camera Space](https://ogldev.org/www/tutorial13/tutorial13.html) — the classic UVN camera formulation.
+- [OpenGL Transformation (songho.ca)](https://www.songho.ca/opengl/gl_transform.html) — the full model/view/projection pipeline shown in the on-screen matrix overlay.

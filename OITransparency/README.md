@@ -43,3 +43,10 @@ The depth-dependent weight makes near fragments dominate the average, *approxima
 ```bash
 uv run pytest OITransparency/tests
 ```
+
+## References
+
+- M. McGuire & L. Bavoil, "Weighted Blended Order-Independent Transparency", JCGT 2(2), 2013 — [paper page](https://jcgt.org/published/0002/02/09/) — the technique behind mode `3`.
+- [Casual Effects — Weighted, Blended OIT](http://casual-effects.blogspot.com/2014/03/weighted-blended-order-independent.html) — McGuire's implementation notes and weight-function variants.
+- [MJP — Weighted Blended OIT](https://therealmjp.github.io/posts/weighted-blended-oit/) — analysis of where the approximation holds and breaks.
+- T. Porter & T. Duff, "Compositing Digital Images", SIGGRAPH 1984 — [ACM](https://dl.acm.org/doi/10.1145/800031.808606) — the OVER operator whose order dependence motivates all of this.

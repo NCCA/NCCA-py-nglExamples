@@ -100,3 +100,9 @@ rectangle, accumulate unique IDs into a bitset), hover highlighting every
 frame without stalls, or writing depth alongside the ID for a full
 world-space hit point, none of which are practical when every query means
 mapping the framebuffer.
+
+## References
+
+- [WebGPU Fundamentals — Compute Shader Basics](https://webgpufundamentals.org/webgpu/lessons/webgpu-compute-shaders.html) — the compute pass that reduces the ID texture to 4 bytes.
+- [WebGPU Specification — Texture Formats](https://www.w3.org/TR/webgpu/#texture-formats) — `r32uint` render targets for integer object IDs.
+- [opengl-tutorial — Picking with an OpenGL hack](http://www.opengl-tutorial.org/miscellaneous/clicking-on-objects/picking-with-an-opengl-hack/) — the float-colour ancestor of this technique.

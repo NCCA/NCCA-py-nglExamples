@@ -21,3 +21,8 @@ In this demo we will fill a buffer with values then bind to a texture to render 
 - a : toggle animation 
 - p : draw points mode
 - l : draw lines mode
+
+## References
+
+- [Rendering a Screen-Covering Triangle in OpenGL (Rauwendaal)](https://rauwendaal.net/2014/06/14/rendering-a-screen-covering-triangle-in-opengl/) — why one clipped triangle beats a two-triangle quad.
+- [OpenGL Wiki — Built-in Variable (GLSL): gl_VertexID](https://www.khronos.org/opengl/wiki/Built-in_Variable_(GLSL)) — the attributeless-rendering trick of generating positions from the vertex index.

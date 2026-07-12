@@ -66,3 +66,9 @@ uv run GUIDemos/QMLWebGPUOverlay/main.py
 - `GUIDemos/QMLOverlayApp` — the OpenGL version of this same overlay app
 - `GUIDemos/QMLFloatingWidgets` — the pure-QML attempt kept as a documented
   reference for the RHI limitation this demo avoids
+
+## References
+
+- [QQuickWidget (Qt for Python)](https://doc.qt.io/qtforpython-6/PySide6/QtQuickWidgets/QQuickWidget.html) — the transparent QML layer over the viewport.
+- [Qt QML Applications](https://doc.qt.io/qt-6/qmlapplications.html) — QML language and application structure.
+- [wgpu-py documentation](https://wgpu-py.readthedocs.io/) — offscreen rendering with the Python WebGPU binding.

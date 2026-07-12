@@ -20,3 +20,10 @@ supports 2D pan and zoom around the mouse position.
 - `a` : toggle animation
 - `space` : reset wind
 - `Esc` : quit
+
+## References
+
+- [WebGPU Fundamentals — Compute Shader Basics](https://webgpufundamentals.org/webgpu/lessons/webgpu-compute-shaders.html) — workgroups, dispatch and storage-buffer I/O as used in `Compute.wgsl`.
+- [WebGPU Fundamentals — Storage Buffers](https://webgpufundamentals.org/webgpu/lessons/webgpu-storage-buffers.html) — the read/write particle buffer shared between compute and render passes.
+- [WGSL Specification](https://www.w3.org/TR/WGSL/) — the shading language.
+- [wgpu-py documentation](https://wgpu-py.readthedocs.io/) — the Python WebGPU binding.

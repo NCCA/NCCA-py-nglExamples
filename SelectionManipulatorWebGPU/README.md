@@ -123,3 +123,10 @@ objects draw in a single pass — the same pattern as the `WebGPUMultiGeo` demo.
 
 * Marquee (rubber-band) selection.
 * Fold the gizmo parts into the instanced pipeline to avoid the per-part passes.
+
+## References
+
+- [opengl-tutorial — Picking with an OpenGL hack](http://www.opengl-tutorial.org/miscellaneous/clicking-on-objects/picking-with-an-opengl-hack/) — the colour-ID picking idea, here rendered into an offscreen WebGPU target.
+- [WebGPU Fundamentals](https://webgpufundamentals.org/) — render targets, buffer mapping and readback in WebGPU.
+- [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) — reference implementation of Maya-style transform gizmos.
+- See [`WebGPUComputePicking`](../WebGPUComputePicking) for the compute-reduction variant that avoids whole-image readback.

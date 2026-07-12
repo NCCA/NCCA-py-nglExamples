@@ -30,3 +30,9 @@ color_gen = color_id_generator()
 ```
 
 At present the background colour is not taken into account (128,128,128)
+
+## References
+
+- [opengl-tutorial — Picking with an OpenGL hack](http://www.opengl-tutorial.org/miscellaneous/clicking-on-objects/picking-with-an-opengl-hack/) — the classic colour-ID picking technique.
+- [glReadPixels — OpenGL Reference](https://registry.khronos.org/OpenGL-Refpages/gl4/html/glReadPixels.xhtml) — the readback call used to fetch the pixel under the cursor (note it stalls the pipeline).
+- See [`RayPickingSelection`](../RayPickingSelection) and [`WebGPUComputePicking`](../WebGPUComputePicking) in this repo for alternatives that avoid the readback stall.

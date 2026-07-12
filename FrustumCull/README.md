@@ -18,3 +18,9 @@ camera (eye / look / both / slide)
 `+`/`-` : widen / narrow the test camera's field of view
 `w`/`s` : wireframe / solid fill
 Left-drag : orbit, Right-drag : pan, Wheel : zoom, `space` : reset
+
+## References
+
+- G. Gribb & K. Hartmann, "Fast Extraction of Viewing Frustum Planes from the World-View-Projection Matrix", 2001 — [PDF](https://www.gamedevs.org/uploads/fast-extraction-viewing-frustum-planes-from-world-view-projection-matrix.pdf) — the 6-plane extraction method used here.
+- [Lighthouse3D — View Frustum Culling](https://www.lighthouse3d.com/tutorials/view-frustum-culling/) — geometric vs radar approaches, and the sphere/plane test.
+- [The ryg blog — Frustum planes from the projection matrix](https://fgiesen.wordpress.com/2012/08/31/frustum-planes-from-the-projection-matrix/) — why the row-combination trick works.

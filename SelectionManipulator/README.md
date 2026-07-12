@@ -86,3 +86,9 @@ each object's own pivot).
 
 * Rotating multiple objects about the shared pivot rather than their own.
 * Marquee (rubber-band) selection.
+
+## References
+
+- [opengl-tutorial — Picking with an OpenGL hack](http://www.opengl-tutorial.org/miscellaneous/clicking-on-objects/picking-with-an-opengl-hack/) — the colour-ID picking pass used for objects and gizmo handles.
+- [glReadPixels — OpenGL Reference](https://registry.khronos.org/OpenGL-Refpages/gl4/html/glReadPixels.xhtml) — the (stalling) readback; see [`RayPickingSelection`](../RayPickingSelection) for the analytic alternative.
+- [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) — a widely used open-source implementation of the same Maya-style translate/rotate/scale gizmos.

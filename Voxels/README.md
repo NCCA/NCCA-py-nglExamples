@@ -23,3 +23,10 @@ of the terrain.
 - `z` / `x` : change the texture of the voxel under the cursor
 - `d` : toggle debug view of the picking FBO
 - `Esc` : quit
+
+## References
+
+- [OpenGL Wiki — Buffer Texture](https://www.khronos.org/opengl/wiki/Buffer_Texture) — texture buffer objects, used to store per-voxel position/active/texture data.
+- [LearnOpenGL — Instancing](https://learnopengl.com/Advanced-OpenGL/Instancing) — drawing the whole terrain in one instanced call.
+- [0fps — Meshing in a Minecraft Game](https://0fps.net/2012/06/30/meshing-in-a-minecraft-game/) — the broader design space of voxel terrain rendering.
+- [LearnOpenGL — Framebuffers](https://learnopengl.com/Advanced-OpenGL/Framebuffers) — offscreen render targets, used here for the index/depth picking pass.

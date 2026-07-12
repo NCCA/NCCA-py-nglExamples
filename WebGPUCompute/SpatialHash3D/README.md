@@ -143,3 +143,11 @@ Possible extensions to explore:
 - Obstacle collision
 - Multi-threaded grid updates
 - Level-of-detail rendering for distant particles
+
+## References
+
+- S. Green, "Particle Simulation using CUDA", NVIDIA 2010 — [PDF](https://developer.download.nvidia.com/assets/cuda/files/particles.pdf) — the canonical uniform-grid GPU particle collision pipeline, in 3D as here.
+- M. Teschner et al., "Optimized Spatial Hashing for Collision Detection of Deformable Objects", VMV 2003 — [PDF](https://matthias-research.github.io/pages/publications/tetraederCollision.pdf) — the 3D spatial-hash function family.
+- [GPU Gems 3, Ch. 39 — Parallel Prefix Sum (Scan) with CUDA](https://developer.nvidia.com/gpugems/gpugems3/part-vi-gpu-computing/chapter-39-parallel-prefix-sum-scan-cuda) — the prefix-sum building block used for cell offsets.
+- [Ten Minute Physics (Matthias Müller)](https://matthias-research.github.io/pages/tenMinutePhysics/index.html) — spatial hashing explained from first principles.
+- [WebGPU Fundamentals — Compute Shader Basics](https://webgpufundamentals.org/webgpu/lessons/webgpu-compute-shaders.html) — workgroups and multi-pass compute pipelines.

@@ -54,3 +54,9 @@ no explicit save-on-close handler is needed. The storage path comes from the
 organization/application name set in `main.py`
 (`~/Library/Preferences/com.ncca.QMLOverlayApp.plist` on macOS). Delete that
 file to reset to the default layout.
+
+## References
+
+- [QQuickWidget (Qt for Python)](https://doc.qt.io/qtforpython-6/PySide6/QtQuickWidgets/QQuickWidget.html) — hosting QML inside a QWidget stack, with transparency for the overlay.
+- [Qt QML Applications](https://doc.qt.io/qt-6/qmlapplications.html) — QML language and application structure.
+- [QOpenGLWidget (Qt for Python)](https://doc.qt.io/qtforpython-6/PySide6/QtOpenGLWidgets/QOpenGLWidget.html) — the GL viewport beneath the overlay.

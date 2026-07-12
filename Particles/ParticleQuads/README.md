@@ -22,3 +22,9 @@ squares.
 - `c` : toggle circle / square particles
 - `u` : single-step the emitter and print debug info
 - `Esc` : quit
+
+## References
+
+- W. T. Reeves, "Particle Systems — A Technique for Modeling a Class of Fuzzy Objects", ACM TOG 1983 — [ACM](https://dl.acm.org/doi/10.1145/357318.357320) — the original particle-system paper (emission, lifetime, stochastic variation).
+- [opengl-tutorial — Billboards](http://www.opengl-tutorial.org/intermediate-tutorials/billboards-particles/billboards/) — expanding a point into a camera-facing quad, done here in the vertex shader.
+- [WebGPU Fundamentals — Storage Buffers](https://webgpufundamentals.org/webgpu/lessons/webgpu-storage-buffers.html) — feeding the per-particle data the quads are pulled from.

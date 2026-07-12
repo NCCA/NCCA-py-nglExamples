@@ -99,3 +99,10 @@ The picking maths is numpy-only and unit tested headless:
 ```bash
 uv run --group dev pytest RayPickingSelection/tests
 ```
+
+## References
+
+- T. Möller & B. Trumbore, "Fast, Minimum Storage Ray/Triangle Intersection", JGT 1997 — [ACM](https://dl.acm.org/doi/10.1080/10867651.1997.10487468) — the ray/triangle test used for mesh picking.
+- [Scratchapixel — Möller–Trumbore ray-triangle intersection](https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection.html) — worked derivation with code.
+- [Anton Gerdelan — Mouse Picking with Ray Casting](https://antongerdelan.net/opengl/raycasting.html) — unprojecting the cursor into a world-space ray.
+- C. Ericson, *Real-Time Collision Detection*, Morgan Kaufmann 2005 — [book site](https://realtimecollisiondetection.net/) — ray/sphere and ray/AABB tests and their numerical pitfalls.

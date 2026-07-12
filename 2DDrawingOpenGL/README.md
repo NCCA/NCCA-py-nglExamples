@@ -38,3 +38,9 @@ Initialization (`__init__` and `initializeGL`)**
 
 
 The Zoom version adds more control by storing the current mouse position and allowing the ortho window to be changed.
+
+## References
+
+- [OpenGL Projection Matrix](https://www.songho.ca/opengl/gl_projectionmatrix.html) — Song Ho Ahn's derivation of the orthographic (and perspective) projection matrix used here.
+- [LearnOpenGL — Coordinate Systems](https://learnopengl.com/Getting-started/Coordinate-Systems) — how NDC, projection and the viewport fit together.
+- [OpenGL Wiki — Buffer Object Streaming](https://www.khronos.org/opengl/wiki/Buffer_Object_Streaming) — strategies for updating VBO contents every frame, as done for the particle positions.

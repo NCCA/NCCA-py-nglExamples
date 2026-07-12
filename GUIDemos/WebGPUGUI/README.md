@@ -23,3 +23,10 @@ This is the WebGPU equivalent of the OpenGL GUI demos in `GUIDemos`.
 
 - Left-drag in the viewport : rotate camera, Right-drag : pan, Wheel : zoom
 - `Esc` : quit
+
+## References
+
+- [Qt Designer Manual](https://doc.qt.io/qt-6/qtdesigner-manual.html) — building `MainWindow.ui`.
+- [Qt for Python — Signals and Slots](https://doc.qt.io/qtforpython-6/tutorials/basictutorial/signals_and_slots.html) — wiring the controls to the scene.
+- [wgpu-py documentation](https://wgpu-py.readthedocs.io/) — the WebGPU widget the viewport is built on.
+- [LearnOpenGL — PBR Theory](https://learnopengl.com/PBR/Theory) — the metallic/roughness/AO parameters driven by the sliders.

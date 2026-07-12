@@ -13,3 +13,9 @@ Sets the index of the highest defined mipmap level. This is an integer value. Th
 
 To set the levels.
 
+
+## References
+
+- L. Williams, "Pyramidal Parametrics", SIGGRAPH 1983 — [ACM](https://dl.acm.org/doi/10.1145/964967.801126) — the paper that introduced mip-mapping.
+- [glTexParameter — OpenGL Reference](https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexParameter.xhtml) — `GL_TEXTURE_MIN_LOD` / `MAX_LOD` / `MAX_LEVEL` as used here.
+- [LearnOpenGL — Textures](https://learnopengl.com/Getting-started/Textures) — mipmap generation and the min-filter modes.

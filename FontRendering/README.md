@@ -28,3 +28,9 @@ Text.render_text("Arial", 10, 440, "To Render we call")
 ```
 
 With and optional colour parameter (default is white)
+
+## References
+
+- [LearnOpenGL — Text Rendering](https://learnopengl.com/In-Practice/Text-Rendering) — FreeType glyph rasterisation and textured-quad text, the approach behind `ncca.ngl.Text`.
+- [FreeType](https://freetype.org/) — the font engine used to rasterise the TrueType/OpenType glyphs.
+- [Texture atlas — Wikipedia](https://en.wikipedia.org/wiki/Texture_atlas) — packing all glyphs of a font into a single texture.

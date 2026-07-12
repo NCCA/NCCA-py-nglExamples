@@ -31,3 +31,9 @@ The program is structured into three main classes:
 2.  **Update**: Each frame, `WebGPUScene` updates the camera and light information. It then loops through its `scene_objects` list and calls `pipeline.update_mesh_storage_buffer()` for each object. This updates the object's transformation and colour in the host-side (CPU) storage array within `MeshData`.
 3.  **Render**: `pipeline.render()` is called. This method first uploads the entire updated storage array to the GPU storage buffer. It then begins a render pass, binds the consolidated vertex and storage buffers, and issues a single `draw()` command.
 4.  **Shader Execution**: The vertex shader uses `instance_index` (a built-in variable) to look up the correct transformation and colour for each instance from the storage buffer, allowing a single set of geometry to be rendered in multiple positions with different appearances.
+
+## References
+
+- [WebGPU Fundamentals — Storage Buffers](https://webgpufundamentals.org/webgpu/lessons/webgpu-storage-buffers.html) — per-instance transforms/colours in a storage buffer indexed in the shader.
+- [WebGPU Specification](https://www.w3.org/TR/webgpu/) — bind groups, buffer usage flags and draw calls.
+- [LearnOpenGL — Instancing](https://learnopengl.com/Advanced-OpenGL/Instancing) — the same consolidate-the-draw-calls idea in its OpenGL form.

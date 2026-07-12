@@ -6,3 +6,9 @@ sampled curve (white), its control polygon "hull" (red), and control points
 
 ## Controls
 Left-drag : orbit, Right-drag : pan, Wheel : zoom, `space` : reset
+
+## References
+
+- [A Primer on Bézier Curves (Pomax)](https://pomax.github.io/bezierinfo/) — a comprehensive, interactive treatment of Bézier maths: Bernstein form, de Casteljau, splitting, arc length and more.
+- [Bézier curves (Paul Bourke)](https://paulbourke.net/geometry/bezier/) — concise notes and code for the curve evaluation used here.
+- G. Farin, *Curves and Surfaces for CAGD: A Practical Guide*, 5th ed., Morgan Kaufmann 2002 — the standard text on Bézier/B-spline theory.

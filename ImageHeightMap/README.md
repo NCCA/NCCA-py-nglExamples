@@ -6,3 +6,8 @@ pixel's red channel, and the vertex is coloured by the pixel's RGB. Uses
 
 ## Controls
 Left-drag : orbit, Right-drag : pan, Wheel : zoom, `space` : reset
+
+## References
+
+- [LearnOpenGL — Height map](https://learnopengl.com/Guest-Articles/2021/Tessellation/Height-map) — building a terrain mesh by displacing grid vertices by image intensity.
+- [Heightmap — Wikipedia](https://en.wikipedia.org/wiki/Heightmap) — background on heightfield terrain representation.
