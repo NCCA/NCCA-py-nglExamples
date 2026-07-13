@@ -1,4 +1,4 @@
-#version 330 core
+#version 410 core
 
 // One triangle in, at most one line per vertex (3) or one line for the
 // whole face out -- either way that is <= 6 vertices (3 line segments).
