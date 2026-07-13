@@ -26,6 +26,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 - [Framebuffers &amp; Post Processing](#framebuffers--post-processing)
 - [Lighting &amp; Shadows](#lighting--shadows)
 - [Geometry &amp; Tessellation Shaders](#geometry--tessellation-shaders)
+- [Uniforms &amp; Buffers](#uniforms--buffers)
 - [Compute Shaders](#compute-shaders)
 - [WebGPU](#webgpu)
 - [Particles &amp; Points](#particles--points)
@@ -144,6 +145,12 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | Preview | Demo | Description |
 | :---: | :--- | :--- |
 | <a href="GeometryTessellation"><img src="GeometryTessellation/GeometryTessellation.png" width="220"></a> | [GeometryTessellation](GeometryTessellation) | Geometry-shader normal visualiser + distance-LOD tessellated noise plane (OpenGL) |
+
+## Uniforms &amp; Buffers
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="UBOStorageBuffers"><img src="UBOStorageBuffers/UBOStorageBuffers.png" width="220"></a> | [UBOStorageBuffers](UBOStorageBuffers) | UBO shared across two shader programs + std140 padding trap (OpenGL); runtime-sized storage-buffer point lights (WebGPU) |
 
 ## Compute Shaders
 
