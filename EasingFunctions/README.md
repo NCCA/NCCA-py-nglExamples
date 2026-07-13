@@ -5,7 +5,7 @@ Extends the [Interpolation](../Interpolation) demo to the full set of
 quint, expo, circ, back, elastic, and bounce, each with In / Out / InOut
 variants (30 in total).
 
-![](EasingFunctions.png)
+![](images/EasingFunctionsGraphs.png)
 
 Two teapots travel between the same start and end points:
 
@@ -39,13 +39,13 @@ uv run pytest EasingFunctions/tests/
 uv run EasingFunctions/main.py
 ```
 
-| Control | Action |
-|---|---|
-| Combo box | Select easing function (restarts the animation) |
-| Space / Pause button | Toggle animation |
-| Left / Right arrows | Scrub time when paused |
-| LMB drag | Rotate scene |
-| RMB drag | Pan scene |
-| Mouse wheel | Zoom |
-| W / S | Wireframe / solid |
-| Esc | Quit |
+| Control              | Action                                          |
+| -------------------- | ----------------------------------------------- |
+| Combo box            | Select easing function (restarts the animation) |
+| Space / Pause button | Toggle animation                                |
+| Left / Right arrows  | Scrub time when paused                          |
+| LMB drag             | Rotate scene                                    |
+| RMB drag             | Pan scene                                       |
+| Mouse wheel          | Zoom                                            |
+| W / S                | Wireframe / solid                               |
+| Esc                  | Quit                                            |
