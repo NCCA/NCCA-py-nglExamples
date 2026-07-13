@@ -7,6 +7,7 @@ textured cube. It includes standard mouse and keyboard controls for interacting
 with the 3D scene (rotate, pan, zoom).
 """
 
+import argparse
 import sys
 import traceback
 from typing import Optional
@@ -15,7 +16,7 @@ import numpy as np
 import wgpu
 import wgpu.utils
 from ncca.ngl import Image, Mat4, Vec3, look_at, perspective
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import QPoint, Qt, QTimer
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
 from WebGPUWidget import WebGPUWidget
@@ -450,15 +451,52 @@ class WebGPUTextureScene(WebGPUWidget):
         self.update()
 
 
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
 def main() -> None:
     """
     The main entry point for the application.
     Initializes the QApplication, creates the main window, and starts the event loop.
     """
-    app = QApplication(sys.argv)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
     win = WebGPUTextureScene()
     win.resize(1024, 720)
     win.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())
 
 

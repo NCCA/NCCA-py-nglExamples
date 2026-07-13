@@ -22,14 +22,16 @@ The WebGPU-specific points to notice compared to the OpenGL version:
 Reference: http://jcgt.org/published/0002/02/09/
 """
 
+import argparse
 import sys
+import traceback
 from pathlib import Path
 
 import numpy as np
 import wgpu
 from ncca.ngl import Mat4, PerspMode, PrimData, Prims, Vec3, look_at, perspective
 from oit_common import DEFAULT_ALPHA, PANEL_SIZE, PANELS, back_to_front
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
 from WebGPUWidget import WebGPUWidget
@@ -582,11 +584,48 @@ class WebGPUScene(WebGPUWidget):
         self.update()
 
 
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
 def main():
-    app = QApplication(sys.argv)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
     win = WebGPUScene()
     win.resize(1024, 720)
     win.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())
 
 
