@@ -45,6 +45,7 @@ import traceback
 from pathlib import Path
 
 import OpenGL.GL as gl
+from FrameBufferObject import FrameBufferObject
 from ncca.ngl import Mat3, Mat4, Prims, Vec3, logger, look_at, perspective
 from ncca.ngl.opengl import (
     DefaultShader,
@@ -57,6 +58,16 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
+from TextureTypes import (
+    GLAttachment,
+    GLTextureDataType,
+    GLTextureDepthFormats,
+    GLTextureFormat,
+    GLTextureInternalFormat,
+    GLTextureMagFilter,
+    GLTextureMinFilter,
+    GLTextureWrap,
+)
 
 SCENE_SHADER = "Scene"
 BRIGHT_SHADER = "BrightPass"
@@ -171,6 +182,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         # profile requires a VAO to be bound even with no attributes)
         self.screen_vao = gl.glGenVertexArrays(1)
 
+        FrameBufferObject.set_default_fbo(self.defaultFramebufferObject())
         self._create_fbos(self.window_width, self.window_height)
         Text.add_font(
             "Arial", str(Path(__file__).parent.parent / "font" / "Arial.ttf"), 20
@@ -179,19 +191,20 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
     # ------------------------------------------------------------------
     # FBOs
     # ------------------------------------------------------------------
-    def _create_texture(self, internal, fmt, dtype, width, height, linear=False) -> int:
-        tex = gl.glGenTextures(1)
-        gl.glBindTexture(gl.GL_TEXTURE_2D, tex)
-        filt = gl.GL_LINEAR if linear else gl.GL_NEAREST
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, filt)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, filt)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
-        gl.glTexImage2D(
-            gl.GL_TEXTURE_2D, 0, internal, width, height, 0, fmt, dtype, None
+    def _add_bloom_target(self, fbo: FrameBufferObject, name: str) -> None:
+        """Half/full-res single RGBA16F colour attachment, LINEAR filtered
+        (bright pass and blur both sample these at a different res)."""
+        fbo.add_colour_attachment(
+            name,
+            GLAttachment._0,
+            GLTextureFormat.RGBA,
+            GLTextureInternalFormat.RGBA16F,
+            GLTextureDataType.FLOAT,
+            GLTextureMinFilter.LINEAR,
+            GLTextureMagFilter.LINEAR,
+            GLTextureWrap.CLAMP_TO_EDGE,
+            GLTextureWrap.CLAMP_TO_EDGE,
         )
-        gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
-        return tex
 
     def _create_fbos(self, width: int, height: int) -> None:
         """(Re)build all four post-chain FBOs at this size -- called from
@@ -203,102 +216,45 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
         # pass 1: full-res HDR scene colour + depth. LINEAR filtering
         # because the bright pass samples this texture at half res.
-        self.textures["scene"] = self._create_texture(
-            gl.GL_RGBA16F, gl.GL_RGBA, gl.GL_FLOAT, width, height, linear=True
-        )
-        self.textures["scene_depth"] = self._create_texture(
-            gl.GL_DEPTH_COMPONENT24,
-            gl.GL_DEPTH_COMPONENT,
-            gl.GL_UNSIGNED_INT,
-            width,
-            height,
-        )
-        self.scene_fbo = gl.glGenFramebuffers(1)
-        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.scene_fbo)
-        gl.glFramebufferTexture2D(
-            gl.GL_FRAMEBUFFER,
-            gl.GL_COLOR_ATTACHMENT0,
-            gl.GL_TEXTURE_2D,
-            self.textures["scene"],
-            0,
-        )
-        gl.glFramebufferTexture2D(
-            gl.GL_FRAMEBUFFER,
-            gl.GL_DEPTH_ATTACHMENT,
-            gl.GL_TEXTURE_2D,
-            self.textures["scene_depth"],
-            0,
-        )
+        self.scene_fbo = FrameBufferObject.create(width, height)
+        with self.scene_fbo:
+            self._add_bloom_target(self.scene_fbo, "scene")
+            self.scene_fbo.add_depth_buffer(
+                GLTextureDepthFormats.DEPTH_COMPONENT24,
+                GLTextureMinFilter.NEAREST,
+                GLTextureMagFilter.NEAREST,
+                GLTextureWrap.CLAMP_TO_EDGE,
+                GLTextureWrap.CLAMP_TO_EDGE,
+            )
+            if not self.scene_fbo.is_complete():
+                logger.error("scene FBO incomplete")
+        self.textures["scene"] = self.scene_fbo.get_texture_id("scene")
 
         # pass 2: half-res bright pass target
-        self.textures["bright"] = self._create_texture(
-            gl.GL_RGBA16F,
-            gl.GL_RGBA,
-            gl.GL_FLOAT,
-            self.half_width,
-            self.half_height,
-            linear=True,
-        )
-        self.bright_fbo = gl.glGenFramebuffers(1)
-        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.bright_fbo)
-        gl.glFramebufferTexture2D(
-            gl.GL_FRAMEBUFFER,
-            gl.GL_COLOR_ATTACHMENT0,
-            gl.GL_TEXTURE_2D,
-            self.textures["bright"],
-            0,
-        )
+        self.bright_fbo = FrameBufferObject.create(self.half_width, self.half_height)
+        with self.bright_fbo:
+            self._add_bloom_target(self.bright_fbo, "bright")
+        self.textures["bright"] = self.bright_fbo.get_texture_id("bright")
 
         # pass 3: two half-res ping-pong blur targets
-        self.textures["blur_a"] = self._create_texture(
-            gl.GL_RGBA16F,
-            gl.GL_RGBA,
-            gl.GL_FLOAT,
-            self.half_width,
-            self.half_height,
-            linear=True,
-        )
-        self.blur_a_fbo = gl.glGenFramebuffers(1)
-        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.blur_a_fbo)
-        gl.glFramebufferTexture2D(
-            gl.GL_FRAMEBUFFER,
-            gl.GL_COLOR_ATTACHMENT0,
-            gl.GL_TEXTURE_2D,
-            self.textures["blur_a"],
-            0,
-        )
+        self.blur_a_fbo = FrameBufferObject.create(self.half_width, self.half_height)
+        with self.blur_a_fbo:
+            self._add_bloom_target(self.blur_a_fbo, "blur_a")
+        self.textures["blur_a"] = self.blur_a_fbo.get_texture_id("blur_a")
 
-        self.textures["blur_b"] = self._create_texture(
-            gl.GL_RGBA16F,
-            gl.GL_RGBA,
-            gl.GL_FLOAT,
-            self.half_width,
-            self.half_height,
-            linear=True,
-        )
-        self.blur_b_fbo = gl.glGenFramebuffers(1)
-        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.blur_b_fbo)
-        gl.glFramebufferTexture2D(
-            gl.GL_FRAMEBUFFER,
-            gl.GL_COLOR_ATTACHMENT0,
-            gl.GL_TEXTURE_2D,
-            self.textures["blur_b"],
-            0,
-        )
-
-        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.defaultFramebufferObject())
+        self.blur_b_fbo = FrameBufferObject.create(self.half_width, self.half_height)
+        with self.blur_b_fbo:
+            self._add_bloom_target(self.blur_b_fbo, "blur_b")
+        self.textures["blur_b"] = self.blur_b_fbo.get_texture_id("blur_b")
 
     def _delete_fbos(self) -> None:
-        if self.scene_fbo is not None:
-            gl.glDeleteFramebuffers(
-                4, [self.scene_fbo, self.bright_fbo, self.blur_a_fbo, self.blur_b_fbo]
-            )
-            gl.glDeleteTextures(len(self.textures), list(self.textures.values()))
-            self.textures.clear()
-            self.scene_fbo = None
-            self.bright_fbo = None
-            self.blur_a_fbo = None
-            self.blur_b_fbo = None
+        # Dropping the references lets FrameBufferObject.__del__ clean up
+        # the underlying framebuffer + texture GL objects.
+        self.scene_fbo = None
+        self.bright_fbo = None
+        self.blur_a_fbo = None
+        self.blur_b_fbo = None
+        self.textures.clear()
 
     # ------------------------------------------------------------------
     # helpers
@@ -335,8 +291,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
     def _scene_pass(self, global_tx: Mat4) -> None:
         """Pass 1: grid + teapot (lit) + emissive spheres into the HDR FBO."""
-        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.scene_fbo)
-        gl.glViewport(0, 0, self.window_width, self.window_height)
+        self.scene_fbo.bind()
+        self.scene_fbo.set_viewport()
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glClearColor(0.02, 0.02, 0.03, 1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
@@ -358,7 +314,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
                 "normalMatrix", Mat3.from_mat4(mv).inverse().transposed()
             )
 
-        teapot_tx = Mat4().translate(0.0, -0.2, 0.0)
+        teapot_tx = Mat4().translate(0.0, 0.0, 0.0)
         load_matrices(teapot_tx)
         ShaderLib.set_uniform("emissive", False)
         ShaderLib.set_uniform("Colour", 0.7, 0.7, 0.72)
@@ -372,8 +328,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
     def _bright_pass(self) -> None:
         """Pass 2: half-res max(colour - threshold, 0)."""
-        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.bright_fbo)
-        gl.glViewport(0, 0, self.half_width, self.half_height)
+        self.bright_fbo.bind()
+        self.bright_fbo.set_viewport()
         gl.glDisable(gl.GL_DEPTH_TEST)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
@@ -387,7 +343,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         """Pass 3: separable Gaussian, ping-ponged H/V between blur_a and
         blur_b for self.n_passes iterations. Returns the final bloom
         texture id (always blur_b, since every iteration ends there)."""
-        gl.glViewport(0, 0, self.half_width, self.half_height)
+        self.blur_a_fbo.set_viewport()
         texel_size = (1.0 / self.half_width, 1.0 / self.half_height)
         ShaderLib.use(BLUR_SHADER)
         ShaderLib.set_uniform("texelSize", *texel_size)
@@ -395,7 +351,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         source_tex = self.textures["bright"]
         for _ in range(self.n_passes):
             # horizontal: source -> blur_a
-            gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.blur_a_fbo)
+            self.blur_a_fbo.bind()
             gl.glClear(gl.GL_COLOR_BUFFER_BIT)
             ShaderLib.set_uniform("horizontal", True)
             gl.glActiveTexture(gl.GL_TEXTURE0)
@@ -403,7 +359,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             self._draw_full_screen_triangle()
 
             # vertical: blur_a -> blur_b
-            gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.blur_b_fbo)
+            self.blur_b_fbo.bind()
             gl.glClear(gl.GL_COLOR_BUFFER_BIT)
             ShaderLib.set_uniform("horizontal", False)
             gl.glActiveTexture(gl.GL_TEXTURE0)
@@ -415,7 +371,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
     def _tonemap_pass(self, bloom_tex: int) -> None:
         """Pass 4: scene + bloomStrength*bloom, exposure, operator, gamma."""
-        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.defaultFramebufferObject())
+        self.scene_fbo.unbind()
         gl.glViewport(0, 0, self.window_width, self.window_height)
         gl.glDisable(gl.GL_DEPTH_TEST)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
