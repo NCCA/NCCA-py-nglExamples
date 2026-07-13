@@ -208,12 +208,11 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
         if self.wireframe:
             gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
+        else:
+            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
 
         with self.patch_vao:
             self.patch_vao.draw()
-
-        if self.wireframe:
-            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
 
         self._draw_hud()
 

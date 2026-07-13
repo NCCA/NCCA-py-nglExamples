@@ -1,11 +1,6 @@
 # Geometry & Tessellation Shaders
 
 ![](GeometryTessellation.png)
-<!-- TODO(Jon): capture a screenshot of each entry script and save as
-     GeometryTessellation.png (a normals_main.py shot showing both smooth
-     and faceted normal lines would be ideal; a second shot of
-     tess_main.py's wireframe LOD is also useful but only one image is
-     wired into this README/the root README row). -->
 
 Two small, focused demos sharing one folder because they cover the two GL
 pipeline stages that only exist on desktop GL/Vulkan, not WebGPU:
