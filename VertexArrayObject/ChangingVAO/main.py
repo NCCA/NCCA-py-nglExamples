@@ -7,6 +7,7 @@ The vertex data changes over time, showing how to update a Vertex Array Object (
 User input allows for interactive rotation, translation, and zoom.
 """
 
+import argparse
 import sys
 import traceback
 
@@ -21,6 +22,7 @@ from ncca.ngl.opengl import (
     VAOType,
     VertexData,
 )
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -183,8 +185,28 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # Set up Qt application and OpenGL format
-    app = DebugApplication(sys.argv)
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
 
     format = QSurfaceFormat()
     format.setSamples(4)
@@ -198,4 +220,8 @@ if __name__ == "__main__":
     window.setFormat(format)
     window.resize(1024, 720)
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())

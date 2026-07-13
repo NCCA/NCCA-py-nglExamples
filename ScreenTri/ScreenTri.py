@@ -4,18 +4,17 @@ A template for creating a PySide6 application with an OpenGL viewport using py-n
 
 """
 
-import random
+import argparse
 import sys
 import traceback
 from enum import Enum
 
 import numpy as np
 import OpenGL.GL as gl
-from aiohttp.hdrs import TE
-from ncca.ngl import Mat4, Vec3, logger, ortho
-from ncca.ngl.opengl import ShaderLib, Text, VAOFactory, VAOType, VertexData
-from PySide6.QtCore import QEvent, QObject, Qt, QTimerEvent
-from PySide6.QtGui import QKeyEvent, QMouseEvent, QSurfaceFormat, QWheelEvent
+from ncca.ngl import logger
+from ncca.ngl.opengl import ShaderLib
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, QTimerEvent
+from PySide6.QtGui import QMouseEvent, QSurfaceFormat, QWheelEvent
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 
@@ -144,16 +143,6 @@ class MainWindow(QOpenGLWindow):
     def random_int(self, low_high):
         lo, hi = low_high
         return int(self.rng.integers(lo, hi + 1))
-
-    def random_pixels(self):
-        r = self.random_int(self.colour_dist)
-        g = self.random_int(self.colour_dist)
-        b = self.random_int(self.colour_dist)
-        for _ in range(1000):
-            x = self.random_int(self.width_dist)
-            y = self.random_int(self.height_dist)
-            self.set_pixel(x, y, r, g, b)
-        self.update_texture_buffer()
 
     def random_pixels(self):
         r = self.random_int(self.colour_dist)
@@ -325,6 +314,23 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # --- Application Entry Point ---
 
     # Create a QSurfaceFormat object to request a specific OpenGL context
@@ -344,8 +350,7 @@ if __name__ == "__main__":
     # Apply this format to all new OpenGL contexts
     QSurfaceFormat.setDefaultFormat(format)
 
-    # Check for a "--debug" command-line argument to run the DebugApplication
-    if len(sys.argv) > 1 and "--debug" in sys.argv:
+    if args.debug:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
@@ -356,5 +361,9 @@ if __name__ == "__main__":
     window.resize(1024, 720)
     # Show the window
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     # Start the application's event loop
     sys.exit(app.exec())
