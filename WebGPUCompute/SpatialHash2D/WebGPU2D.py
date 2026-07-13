@@ -5,9 +5,9 @@ import traceback
 
 import numpy as np
 import wgpu
-from ncca.ngl import PerspMode, Vec2, logger, ortho
+from ncca.ngl import PerspMode, logger, ortho
 from ncca.ngl.webgpu import PipelineFactory, PipelineType, WebGPUWidget
-from PySide6.QtCore import QElapsedTimer, Qt, QTimerEvent
+from PySide6.QtCore import QElapsedTimer, Qt, QTimer, QTimerEvent
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
 from wgpu.utils import get_default_device
@@ -531,17 +531,7 @@ class WebGPUScene(WebGPUWidget):
         # After all compute passes are complete, read back the data
         cell_counts = self.read_cell_particle_counts()
 
-        # Print statistics
-        total_particles = np.sum(cell_counts)
-        max_in_cell = np.max(cell_counts)
-        avg_per_cell = np.mean(cell_counts)
-        non_empty_cells = np.count_nonzero(cell_counts)
-        # print("Frame Stats:")
-        # print(f"  Total particles counted: {total_particles}")
-        # print(f"  Max particles in a cell: {max_in_cell}")
-        # print(f"  Avg particles per cell: {avg_per_cell:.2f}")
-        # print(f"  Non-empty cells: {non_empty_cells}/{self.total_cells}")
-        # print("-" * 50)
+        # Print statistics (commented out debug output)
 
         def sim_to_qt(x, y):
             # # widget size in device pixels (account for HiDPI)
@@ -978,20 +968,25 @@ def main():
         help="Equispaced point distribution.",
     )
     parser.add_argument(
-        "-d", "--debug", action="store_true", help="Run in full debug mode"
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="Run smoketest for MS milliseconds (default 200) and exit",
     )
+    parser.add_argument("--debug", action="store_true", help="Run in full debug mode")
     parser.set_defaults(distribution="random")
     args = parser.parse_args()
 
-    if args.debug:
-        print("Running in debug mode")
-        app = DebugApplication(sys.argv)
-    else:
-        app = QApplication(sys.argv)
+    app = DebugApplication(sys.argv) if args.debug else QApplication(sys.argv)
 
     win = WebGPUScene(num_points=args.points, distribution=args.distribution)
     win.resize(1024, 720)
     win.show()
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
     sys.exit(app.exec())
 
 

@@ -7,7 +7,7 @@ import numpy as np
 import wgpu
 from ncca.ngl import Mat4, PerspMode, PrimData, Vec3, look_at, perspective
 from ncca.ngl.webgpu import PipelineFactory, PipelineType, WebGPUWidget
-from PySide6.QtCore import QElapsedTimer, Qt, QTimerEvent
+from PySide6.QtCore import QElapsedTimer, Qt, QTimer, QTimerEvent
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
 from wgpu.utils import get_default_device
@@ -865,20 +865,25 @@ def main():
         help="Equispaced point distribution.",
     )
     parser.add_argument(
-        "-d", "--debug", action="store_true", help="Run in full debug mode"
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="Run smoketest for MS milliseconds (default 200) and exit",
     )
+    parser.add_argument("--debug", action="store_true", help="Run in full debug mode")
     parser.set_defaults(distribution="random")
     args = parser.parse_args()
 
-    if args.debug:
-        print("Running in debug mode")
-        app = DebugApplication(sys.argv)
-    else:
-        app = QApplication(sys.argv)
+    app = DebugApplication(sys.argv) if args.debug else QApplication(sys.argv)
 
     win = WebGPUScene3D(num_points=args.points, distribution=args.distribution)
     win.resize(1024, 720)
     win.show()
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
     sys.exit(app.exec())
 
 
