@@ -1,23 +1,18 @@
 # UBO / Storage Buffers
 
 ![](UBOStorageBuffers.png)
-<!-- TODO(Jon): capture a screenshot of each entry script and save as
-     UBOStorageBuffers.png (a shot of main.py's teapot + checker grid with
-     the HUD visible is the priority; a second shot of StorageWebGPU.py
-     with the light-count HUD line visible would also be useful but only
-     one image is wired into this README/the root README row). -->
 
-Explicit, buffer-backed uniforms, and the `std140` padding rule almost
-everyone gets wrong at least once. Two entry points sharing one folder:
+Explicit, buffer-backed uniforms, and the `std140` padding rule almost everyone gets wrong at some time, this demo show the results of getting it wrong as well as the correct layout.
 
-- **`main.py`** (OpenGL) — one `SceneBlock` UBO (`mat4 VP; vec4 lightPos;
-  vec4 lightColour;`) bound once, at binding point 0, and read by **two
+- **`main.py`** (OpenGL) :- one `SceneBlock` UBO (`mat4 VP; vec4 lightPos;
+vec4 lightColour;`) bound once, at binding point 0, and read by **two
   different shader programs** — a diffuse teapot and a flat-coloured
   checker grid — via `glUniformBlockBinding` + `glBindBufferBase`. A
   second UBO, `MaterialBlock { vec3 albedo; vec3 specularColour; float
-  shininess; }`, carries a deliberate `std140` padding trap, and the HUD
+shininess; }`, carries a deliberate `std140` padding trap, and the HUD
   shows the driver's own `GL_UNIFORM_OFFSET` answers as ground truth.
-- **`StorageWebGPU.py`** (WebGPU) — the same scene, plus a
+
+- **`StorageWebGPU.py`** (WebGPU) :- the same scene, plus a
   `var<storage, read>` **runtime-sized** array of point lights (8..64,
   grown/shrunk with `+`/`-`) accumulated in the fragment shader: the one
   thing the OpenGL half of this demo cannot do, because GL 4.1 has no
@@ -25,20 +20,20 @@ everyone gets wrong at least once. Two entry points sharing one folder:
 
 ## Controls
 
-| Key | main.py (OpenGL) | StorageWebGPU.py (WebGPU) |
-| :-- | :-- | :-- |
-| `X` | toggle `MaterialBlock` CPU layout: std140-correct / naive | same |
-| `+` / `-` | — | grow / shrink the storage-buffer light count (8..64) |
-| LMB / RMB / wheel | rotate / pan / zoom | same |
-| `Space` | reset camera | same |
-| `Esc` | quit | same |
+| Key               | main.py (OpenGL)                                          | StorageWebGPU.py (WebGPU)                            |
+| :---------------- | :-------------------------------------------------------- | :--------------------------------------------------- |
+| `X`               | toggle `MaterialBlock` CPU layout: std140-correct / naive | same                                                 |
+| `+` / `-`         | —                                                         | grow / shrink the storage-buffer light count (8..64) |
+| LMB / RMB / wheel | rotate / pan / zoom                                       | same                                                 |
+| `Space`           | reset camera                                              | same                                                 |
+| `Esc`             | quit                                                      | same                                                 |
 
 ## One UBO, two shader programs: the core lesson
 
 A uniform **location** (`glGetUniformLocation`) is per-variable and
 per-program — that is why every demo elsewhere in this repo calls
 `ShaderLib.set_uniform("MVP", ...)` again for every shader it uses. A
-uniform **block binding** is a level of indirection *above* that:
+uniform **block binding** is a level of indirection _above_ that:
 
 ```
 GLSL block "SceneBlock" (program A)  --\
@@ -47,7 +42,7 @@ GLSL block "SceneBlock" (program B)  --/
 ```
 
 1. `glGetUniformBlockIndex(program, "SceneBlock")` finds the block's index
-   *within that program* (every program numbers its own blocks
+   _within that program_ (every program numbers its own blocks
    independently).
 2. `glUniformBlockBinding(program, blockIndex, bindingPoint)` tells that
    program "read this block from context binding point N" — this is what
@@ -61,8 +56,8 @@ After that one-time wiring, **one** `glBufferSubData` call per frame
 (`main.py::_update_scene_block`) updates the VP matrix and light for both
 programs — no per-shader re-upload, no `ShaderLib.use()` required first.
 This demo deliberately does **not** use `ShaderLib.set_uniform_buffer()`:
-that convenience method allocates a fresh `GL_UNIFORM_BUFFER` *per shader
-program* (see `ShaderProgram._register_uniform_blocks` in `ncca.ngl`),
+that convenience method allocates a fresh `GL_UNIFORM_BUFFER` _per shader
+program_ (see `ShaderProgram._register_uniform_blocks` in `ncca.ngl`),
 which would give the teapot and grid programs two different buffers and
 defeat the entire point of this demo.
 
@@ -75,24 +70,24 @@ uploaded this way throughout both `main.py` and `StorageWebGPU.py`).
 `layouts.py` defines the CPU-side numpy dtypes for `SceneBlock` and two
 competing layouts for `MaterialBlock`:
 
-| Block | Field | "Correct" std140 offset | "Naive" packed offset |
-| :-- | :-- | :-: | :-: |
-| `SceneBlock` | `VP` (mat4) | 0 | — |
-| `SceneBlock` | `lightPos` (vec4) | 64 | — |
-| `SceneBlock` | `lightColour` (vec4) | 80 | — |
-| `MaterialBlock` | `albedo` (vec3) | 0 | 0 |
-| `MaterialBlock` | `specularColour` (vec3) | **16** | **12** |
-| `MaterialBlock` | `shininess` (float) | **28** | **24** |
+| Block           | Field                   | "Correct" std140 offset | "Naive" packed offset |
+| :-------------- | :---------------------- | :---------------------: | :-------------------: |
+| `SceneBlock`    | `VP` (mat4)             |            0            |           —           |
+| `SceneBlock`    | `lightPos` (vec4)       |           64            |           —           |
+| `SceneBlock`    | `lightColour` (vec4)    |           80            |           —           |
+| `MaterialBlock` | `albedo` (vec3)         |            0            |           0           |
+| `MaterialBlock` | `specularColour` (vec3) |         **16**          |        **12**         |
+| `MaterialBlock` | `shininess` (float)     |         **28**          |        **24**         |
 
 A `vec3`'s base alignment in `std140` (and in WGSL's default uniform
-address-space layout) is **16 bytes**, but it only *consumes* 12 — the
+address-space layout) is **16 bytes**, but it only _consumes_ 12 — the
 rule has two halves and people usually get one of them wrong:
 
 1. A vec3 does **not** pad itself: a following member whose own alignment
    is ≤ 4 (a lone `float`) packs straight into the leftover slot. That is
    why `shininess` sits at 28, immediately after `specularColour`'s 12
    bytes — not pushed to 32.
-2. What a vec3 *does* do is push the **next 16-byte-aligned member** up:
+2. What a vec3 _does_ do is push the **next 16-byte-aligned member** up:
    `specularColour` cannot start at 12, so the compiler moves it to 16 and
    bytes 12..15 become padding.
 
@@ -181,12 +176,22 @@ both).
 
 ## Files
 
-| File | Purpose |
-| :-- | :-- |
-| `layouts.py` | numpy structured dtypes for `SceneBlock` / `MaterialBlock` (both layouts) shared by both backends, plus `std140_offsets()` |
-| `tests/test_layouts.py` | itemsize / offset checks against hand-computed std140 values |
-| `main.py` | OpenGL demo |
-| `shaders/Scene{Diffuse,Grid}{Vertex,Fragment}.glsl` | the two GL programs sharing `SceneBlock` |
-| `StorageWebGPU.py` | WebGPU demo |
-| `SceneShader.wgsl` / `GridShader.wgsl` | the two WebGPU pipelines |
-| `WebGPUWidget.py` | local copy of the shared WebGPU Qt widget (per-folder, per repo convention) |
+| File                                                | Purpose                                                                                                                    |
+| :-------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- |
+| `layouts.py`                                        | numpy structured dtypes for `SceneBlock` / `MaterialBlock` (both layouts) shared by both backends, plus `std140_offsets()` |
+| `tests/test_layouts.py`                             | itemsize / offset checks against hand-computed std140 values                                                               |
+| `main.py`                                           | OpenGL demo                                                                                                                |
+| `shaders/Scene{Diffuse,Grid}{Vertex,Fragment}.glsl` | the two GL programs sharing `SceneBlock`                                                                                   |
+| `StorageWebGPU.py`                                  | WebGPU demo                                                                                                                |
+| `SceneShader.wgsl` / `GridShader.wgsl`              | the two WebGPU pipelines                                                                                                   |
+| `WebGPUWidget.py`                                   | local copy of the shared WebGPU Qt widget (per-folder, per repo convention)                                                |
+
+## References
+
+- [OpenGL 4.6 core specification, §7.6.2.2 "Standard Uniform Block Layout"](https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf) — the normative std140 rules: the ten base-alignment cases this demo's `layouts.py` docstring paraphrases, including why a vec3 aligns to 16 but only consumes 12 bytes.
+- [ARB_uniform_buffer_object extension spec](https://registry.khronos.org/OpenGL/extensions/ARB/ARB_uniform_buffer_object.txt) — where UBOs, binding points, `GL_UNIFORM_OFFSET` queries and the std140 layout were originally defined; the "Issues" section explains *why* the layout was designed around vec4-sized slots.
+- [OpenGL Wiki — Interface Block (GLSL), Memory layout](https://www.khronos.org/opengl/wiki/Interface_Block_(GLSL)#Memory_layout) — readable summary of std140 vs std430 vs packed/shared, and the explicit warning about vec3's alignment behaviour.
+- [OpenGL Wiki — Uniform Buffer Object](https://www.khronos.org/opengl/wiki/Uniform_Buffer_Object) — the buffer-object side: `glBindBufferBase`, binding indices, and sharing one block across programs.
+- [LearnOpenGL — Advanced GLSL: Uniform buffer objects](https://learnopengl.com/Advanced-OpenGL/Advanced-GLSL) — tutorial walk-through of the same one-UBO-many-programs pattern as `main.py`, with worked std140 offset examples.
+- [WGSL specification — Memory Layout](https://www.w3.org/TR/WGSL/#memory-layouts) — the alignment/size table for the uniform and storage address spaces; for the types used here it matches std140, which is why both backends share `layouts.py`.
+- [WebGPU Fundamentals — Memory Layout](https://webgpufundamentals.org/webgpu/lessons/webgpu-memory-layout.html) — practical guide to building WGSL-compatible byte layouts CPU-side, with an interactive [offset calculator](https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html) that will happily settle any argument with this demo's HUD.
