@@ -128,6 +128,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="FBODemos/Blit"><img src="FBODemos/Blit/Blit.png" width="220"></a> | [FBODemos/Blit](FBODemos/Blit) | Blitting between framebuffers |
 | <a href="FBODemos/DOF"><img src="FBODemos/DOF/DOF.png" width="220"></a> | [FBODemos/DOF](FBODemos/DOF) | Depth of field |
 | <a href="FBODemos/WebGPURenderToTexture"><img src="FBODemos/WebGPURenderToTexture/WebGPURenderToTexture.png" width="220"></a> | [FBODemos/WebGPURenderToTexture](FBODemos/WebGPURenderToTexture) | Render to texture (WebGPU) |
+| <a href="PostProcessChain"><img src="PostProcessChain/PostProcessChain.png" width="220"></a> | [PostProcessChain](PostProcessChain) | HDR bloom + tonemap post-process chain (OpenGL) |
 
 ## Lighting &amp; Shadows
 
