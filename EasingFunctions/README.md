@@ -1,9 +1,10 @@
 # Easing Functions
 
+![Easing Functions Graphs](EasingFunctionsApp.png)
+
 Extends the [Interpolation](../Interpolation) demo to the full set of
-[Penner easing functions](https://easings.net) — sine, quad, cubic, quart,
-quint, expo, circ, back, elastic, and bounce, each with In / Out / InOut
-variants (30 in total).
+[Penner easing functions](https://easings.net) such as sine, quad, cubic, quart,
+quint, expo, circ, back etc (30 in total), the following graphs show the easing curves for each function.
 
 ![](images/EasingFunctionsGraphs.png)
 
@@ -34,10 +35,6 @@ uv run pytest EasingFunctions/tests/
 ```
 
 ## Usage
-
-```bash
-uv run EasingFunctions/main.py
-```
 
 | Control              | Action                                          |
 | -------------------- | ----------------------------------------------- |

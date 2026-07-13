@@ -1,5 +1,7 @@
 ## Colour Selection
 
+![](ColourSelect.png)
+
 Picking of objects using Colour values based on this [post](https://moddb.fandom.com/wiki/OpenGL_Selection_Using_Unique_Color_IDs).
 
 ### Implementation Details

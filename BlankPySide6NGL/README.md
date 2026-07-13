@@ -1,5 +1,7 @@
 # BlankPySide6NGL / using_mixin
 
+![](BlankPySide6NGL.png)
+
 These demos are a starting point for creating a PySide6 application with NGL support.
 
 It has a basic full screen OpenGL window and simple mouse and keyboard controls.
