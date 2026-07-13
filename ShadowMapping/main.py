@@ -162,7 +162,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
         self.objects: list[tuple[str, Mat4, tuple[float, float, float, float]]] = [
             ("floor", Mat4(), (0.65, 0.65, 0.68, 1.0)),
-            ("teapot", Mat4.translate(0.0, 0.05, -0.5), (0.85, 0.55, 0.25, 1.0)),
+            ("teapot", Mat4.translate(0.0, 0.45, -0.5), (0.85, 0.55, 0.25, 1.0)),
             ("cube", Mat4.translate(-2.2, 0.5, 0.8), (0.4, 0.65, 0.85, 1.0)),
             ("ball", Mat4.translate(1.8, 1.4, 1.0), (0.75, 0.3, 0.35, 1.0)),
         ]
@@ -279,10 +279,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             LIGHT_NEAR,
             LIGHT_FAR,
         )
-        # ncca.ngl.Mat4's __matmul__ makes "project @ view" read like
-        # column-major maths (v @ (project @ view) applies view first,
-        # then project) -- see shadow_maths.py for the equivalent done in
-        # plain numpy, where the operand order is reversed.
+
         self.light_space = light_project @ light_view
 
     def scene_global_tx(self) -> Mat4:
@@ -318,8 +315,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
         # Culling front faces during the depth pass writes the *back*
         # surface's depth into the shadow map, which fixes shadow acne on
-        # the lit face at the cost of more peter-panning on thin geometry
-        # -- flip [C] to see both artefacts live.
+        # the lit face at the cost of more peter panning on thin geometry
+        # see https://digitalrune.github.io/DigitalRune-Documentation/html/3f4d959e-9c98-4a97-8d85-7a73c26145d7.htm
         if self.cull_front:
             gl.glEnable(gl.GL_CULL_FACE)
             gl.glCullFace(gl.GL_FRONT)
