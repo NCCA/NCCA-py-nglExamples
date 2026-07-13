@@ -1,5 +1,7 @@
 # ParticleQuads
 
+![](ParticleQuads.png)
+
 A WebGPU particle system where each particle is rendered as a camera-facing
 billboard quad (rather than a point). The `Emitter` class updates 50,000
 particles on the CPU with vectorized NumPy (position, velocity, colour, life

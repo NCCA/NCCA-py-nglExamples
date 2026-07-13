@@ -7,6 +7,8 @@ Check out the mouse controls on some of the demos
 - Deffered lighting not working at all
 - Make FrustumCull better
 - Add tesselation to PyNGLs shader lib then update Tessellation demo
+- Lights demo check the re-comp of shaders
+-
 
 update all WebGPU demos to new structure.
 Create templates for basic WebGPU and OpenGL demos (via button on RunDemos)

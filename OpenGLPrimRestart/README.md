@@ -1,6 +1,8 @@
 # Restart Line
 
-This project demonstrates how to use [glPrimitiveRestartIndex](https://registry.khronos.org/OpenGL-Refpages/gl4/html/glPrimitiveRestartIndex.xhtml) to draw different lines of different lengths using the [SimpleIndexVAO](https://github.com/NCCA/PyNGL/blob/main/src/ncca/ngl/simple_index_vao.py) class 
+![](PrimRestart.png)
+
+This project demonstrates how to use [glPrimitiveRestartIndex](https://registry.khronos.org/OpenGL-Refpages/gl4/html/glPrimitiveRestartIndex.xhtml) to draw different lines of different lengths using the [SimpleIndexVAO](https://github.com/NCCA/PyNGL/blob/main/src/ncca/ngl/simple_index_vao.py) class
 
 The [PrimRestartLine.py](PrimRestartLine.py) uses the build in PyNGL elements for ease but the update is slow.
 
