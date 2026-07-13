@@ -8,26 +8,35 @@ structured dtypes can describe the CPU-side byte layout for both backends:
 
     - a scalar (float / int / bool) has a 4-byte base alignment.
     - a vec2 has an 8-byte base alignment.
-    - a vec3 *or* vec4 has a 16-byte base alignment -- vec3 is stored as if
-      it were a vec4, the 4th component is simply unused padding.
+    - a vec3 *or* vec4 has a 16-byte base alignment, but a vec3 only
+      *consumes* 12 bytes -- a following member whose own base alignment
+      is <= 4 (a lone float, say) packs straight into the leftover 4-byte
+      slot. The padding only appears when the NEXT member itself needs
+      16-byte alignment.
     - mat4 is stored as 4 columns, each a 16-byte-aligned vec4 (64 bytes).
-    - every member's offset is rounded up to its own base alignment; a
-      struct/block's total size is rounded up to a multiple of 16.
+    - every member's offset is rounded up to *that member's own* base
+      alignment; a struct/block's total size is rounded up to a multiple
+      of 16.
 
 The classic "gotcha" this demo exists to teach lives in ``MaterialBlock``:
 
-    struct MaterialBlock { vec3 albedo; float shininess; };
+    struct MaterialBlock { vec3 albedo; vec3 specularColour; float shininess; };
 
-Because ``vec3``'s base alignment is 16 (not 12), ``shininess`` is *not*
-packed immediately after ``albedo`` at byte offset 12. It is pushed up to
-byte offset 16, leaving 4 bytes of padding between ``albedo.z`` and
-``shininess``. A CPU-side struct that assumes tight packing (offset 12)
-will write ``shininess`` into what the GPU actually treats as padding --
-and the GPU will read *its* offset-16 bytes (whatever is there -- zero,
-in this demo, since the upload buffer is zero-initialised) as
-``shininess``. That is the "naive" layout below; toggling between the two
-dtypes while uploading to the *same* correctly-declared shader block is
-exactly how both demos reproduce the bug on screen.
+``albedo`` occupies bytes 0..11. A naively tight C-struct mindset puts
+``specularColour`` at 12 -- but its base alignment is 16, so the compiler
+pushes it to 16, leaving bytes 12..15 as padding. ``shininess`` (alignment
+4) then packs into the slot straight after it, at 28 -- note it is NOT
+pushed to 32; that is the half of the vec3 rule people over-correct on.
+
+A CPU-side struct that assumes tight packing writes ``specularColour``
+starting in the GPU's padding bytes and ``shininess`` inside what the GPU
+reads as ``specularColour`` -- so the shader sees a scrambled specular
+colour and a shininess of 0 (this demo's upload buffer is
+zero-initialised). That is the "naive" layout below; toggling between the
+two dtypes while uploading to the *same* correctly-declared shader block
+is exactly how both demos reproduce the bug on screen. The GL demo also
+queries ``GL_UNIFORM_OFFSET`` at startup so the driver's own answer is on
+the HUD next to these hand-computed numbers.
 """
 
 import numpy as np
@@ -48,46 +57,51 @@ SCENE_BLOCK_DTYPE = np.dtype(
     }
 )
 
-# MaterialBlock { vec3 albedo; float shininess; } -- the CORRECT std140/WGSL
-# layout: shininess is pushed to offset 16 by vec3's 16-byte alignment, and
-# the block as a whole is padded out to 32 bytes (next multiple of 16).
+# MaterialBlock { vec3 albedo; vec3 specularColour; float shininess; } --
+# the CORRECT std140/WGSL layout: specularColour is pushed from 12 to 16 by
+# its own 16-byte vec3 alignment, shininess (alignment 4) packs into the
+# tail slot at 28, and 28 + 4 = 32 is already a 16-byte multiple.
 MATERIAL_BLOCK_STD140_DTYPE = np.dtype(
     {
-        "names": ["albedo", "shininess"],
-        "formats": [(np.float32, 3), np.float32],
-        "offsets": [0, 16],
+        "names": ["albedo", "specularColour", "shininess"],
+        "formats": [(np.float32, 3), (np.float32, 3), np.float32],
+        "offsets": [0, 16, 28],
         "itemsize": 32,
     }
 )
 
 # The NAIVE (wrong) layout a programmer gets by assuming a plain, tightly
-# packed C struct: shininess immediately follows the 3 floats of albedo at
-# byte offset 12. Uploading this to a shader block declared as above lands
-# shininess in albedo's padding bytes, and the shader reads zero (or stale
-# data) from the true offset-16 location instead.
+# packed C struct: specularColour immediately follows albedo's 3 floats at
+# byte offset 12, shininess at 24. Uploading this to a shader block declared
+# as above starts specularColour in albedo's padding, so the shader reads a
+# scrambled colour from its true offset 16 and zero shininess from 28.
 MATERIAL_BLOCK_NAIVE_DTYPE = np.dtype(
     {
-        "names": ["albedo", "shininess"],
-        "formats": [(np.float32, 3), np.float32],
-        "offsets": [0, 12],
-        "itemsize": 16,
+        "names": ["albedo", "specularColour", "shininess"],
+        "formats": [(np.float32, 3), (np.float32, 3), np.float32],
+        "offsets": [0, 12, 24],
+        "itemsize": 28,
     }
 )
 
 
-def naive_bytes_padded_to_std140(albedo, shininess) -> bytes:
+def naive_bytes_padded_to_std140(albedo, specular_colour, shininess) -> bytes:
     """Build the NAIVE (wrong) MaterialBlock payload, zero-padded up to the
     STD140-correct block size (32 bytes) so it can be uploaded with a single
     ``glBufferSubData`` / ``write_buffer`` call of the buffer's real size.
 
-    The result deliberately writes ``shininess`` at byte offset 12 -- which
-    the shader (compiled against the correct std140/WGSL layout) treats as
-    ``albedo``'s padding -- and leaves the shader's real offset-16
-    ``shininess`` bytes as zero, so the corruption is a *visible, repeatable*
-    "shininess collapses to 0" rather than uninitialised GPU memory.
+    The result deliberately writes ``specularColour`` at byte offset 12 and
+    ``shininess`` at 24. The shader (compiled against the correct
+    std140/WGSL layout) reads specularColour from 16 -- landing on
+    ``(specular.g, specular.b, shininess)``, a scrambled colour -- and
+    shininess from 28, which was never written and reads back zero. Both
+    corruptions are *visible and repeatable* rather than uninitialised GPU
+    memory: the highlight loses its tight falloff AND its colour goes wrong,
+    while albedo (offset 0 in both layouts) stays perfect.
     """
     naive = np.zeros((), dtype=MATERIAL_BLOCK_NAIVE_DTYPE)
     naive["albedo"] = albedo
+    naive["specularColour"] = specular_colour
     naive["shininess"] = shininess
     payload = bytearray(MATERIAL_BLOCK_STD140_DTYPE.itemsize)
     payload[: MATERIAL_BLOCK_NAIVE_DTYPE.itemsize] = naive.tobytes()
@@ -96,7 +110,8 @@ def naive_bytes_padded_to_std140(albedo, shininess) -> bytes:
 
 def std140_offsets() -> dict:
     """Return a small (block name -> {field: (offset, size)}) table for the
-    HUD / README -- the ground truth this demo renders on screen.
+    HUD / README -- hand-computed values the GL demo cross-checks against
+    the driver's GL_UNIFORM_OFFSET answers at startup.
     """
     return {
         "SceneBlock": {
@@ -107,12 +122,14 @@ def std140_offsets() -> dict:
         },
         "MaterialBlock (std140-correct)": {
             "albedo": (0, 12),
-            "shininess": (16, 4),
+            "specularColour": (16, 12),
+            "shininess": (28, 4),
             "size": MATERIAL_BLOCK_STD140_DTYPE.itemsize,
         },
         "MaterialBlock (naive/packed -- WRONG)": {
             "albedo": (0, 12),
-            "shininess": (12, 4),
+            "specularColour": (12, 12),
+            "shininess": (24, 4),
             "size": MATERIAL_BLOCK_NAIVE_DTYPE.itemsize,
         },
     }

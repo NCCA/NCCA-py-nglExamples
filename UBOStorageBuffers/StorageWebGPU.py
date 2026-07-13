@@ -6,10 +6,11 @@ Same scene as main.py (diffuse teapot + checker grid), rebuilt on wgpu-py,
 picking up where the OpenGL half's README leaves off: GL 4.1 has no SSBOs,
 so the "many lights" half of this story can only be told here.
 
-    - SceneBlock (VP, light) and MaterialBlock (albedo, shininess) are
-      ordinary uniform buffers, laid out with the SAME numpy dtypes as the
-      OpenGL demo (layouts.py) -- WGSL's default uniform-address-space
-      layout follows the same vec3-alignment rule as std140.
+    - SceneBlock (VP, light) and MaterialBlock (albedo, specularColour,
+      shininess) are ordinary uniform buffers, laid out with the SAME numpy
+      dtypes as the OpenGL demo (layouts.py) -- WGSL's default
+      uniform-address-space layout follows the same vec3-alignment rule as
+      std140 (specularColour pushed to 16, shininess packing in at 28).
     - The point lights are a `var<storage, read> lights: array<PointLight>`
       -- a buffer whose element count is read back in the shader with
       `arrayLength(&lights)` rather than being a fixed max-size array
@@ -357,14 +358,16 @@ class WebGPUScene(WebGPUWidget):
 
     def _update_material_block(self) -> None:
         albedo = (0.8, 0.65, 0.2)
+        specular_colour = (1.0, 0.6, 0.3)
         shininess = 64.0
         if self.correct_material_layout:
             data = np.zeros((), dtype=MATERIAL_BLOCK_STD140_DTYPE)
             data["albedo"] = albedo
+            data["specularColour"] = specular_colour
             data["shininess"] = shininess
             payload = data.tobytes()
         else:
-            payload = naive_bytes_padded_to_std140(albedo, shininess)
+            payload = naive_bytes_padded_to_std140(albedo, specular_colour, shininess)
         self.device.queue.write_buffer(self.material_buffer, 0, payload)
 
     def paintWebGPU(self) -> None:
@@ -435,9 +438,10 @@ class WebGPUScene(WebGPUWidget):
             white,
         )
         layout_name = (
-            "CORRECT std140 (shininess offset=16)"
+            "CORRECT std140 (specularColour@16, shininess@28)"
             if self.correct_material_layout
-            else "NAIVE packed (shininess offset=12) -- WRONG, specular reads 0"
+            else "NAIVE packed (specularColour@12, shininess@24) -- WRONG, "
+            "colour scrambled + shininess reads 0"
         )
         self.render_text(
             10,

@@ -14,8 +14,9 @@ everyone gets wrong at least once. Two entry points sharing one folder:
   vec4 lightColour;`) bound once, at binding point 0, and read by **two
   different shader programs** — a diffuse teapot and a flat-coloured
   checker grid — via `glUniformBlockBinding` + `glBindBufferBase`. A
-  second UBO, `MaterialBlock { vec3 albedo; float shininess; }`, carries a
-  deliberate `std140` padding trap.
+  second UBO, `MaterialBlock { vec3 albedo; vec3 specularColour; float
+  shininess; }`, carries a deliberate `std140` padding trap, and the HUD
+  shows the driver's own `GL_UNIFORM_OFFSET` answers as ground truth.
 - **`StorageWebGPU.py`** (WebGPU) — the same scene, plus a
   `var<storage, read>` **runtime-sized** array of point lights (8..64,
   grown/shrunk with `+`/`-`) accumulated in the fragment shader: the one
@@ -80,33 +81,53 @@ competing layouts for `MaterialBlock`:
 | `SceneBlock` | `lightPos` (vec4) | 64 | — |
 | `SceneBlock` | `lightColour` (vec4) | 80 | — |
 | `MaterialBlock` | `albedo` (vec3) | 0 | 0 |
-| `MaterialBlock` | `shininess` (float) | **16** | **12** |
+| `MaterialBlock` | `specularColour` (vec3) | **16** | **12** |
+| `MaterialBlock` | `shininess` (float) | **28** | **24** |
 
 A `vec3`'s base alignment in `std140` (and in WGSL's default uniform
-address-space layout) is **16 bytes** — it is stored as if it were a
-`vec4`, with the 4th component simply unused. A programmer who assumes a
-plain, tightly packed C struct places `shininess` right after albedo's
-3 floats, at byte offset 12. The compiler that built the actual shader
-disagrees: it reserves the padding and puts `shininess` at offset 16.
+address-space layout) is **16 bytes**, but it only *consumes* 12 — the
+rule has two halves and people usually get one of them wrong:
+
+1. A vec3 does **not** pad itself: a following member whose own alignment
+   is ≤ 4 (a lone `float`) packs straight into the leftover slot. That is
+   why `shininess` sits at 28, immediately after `specularColour`'s 12
+   bytes — not pushed to 32.
+2. What a vec3 *does* do is push the **next 16-byte-aligned member** up:
+   `specularColour` cannot start at 12, so the compiler moves it to 16 and
+   bytes 12..15 become padding.
+
+A programmer who assumes a plain, tightly packed C struct places
+`specularColour` at 12 and `shininess` at 24. The compiler that built the
+actual shader disagrees, and reads from 16 and 28.
 
 Both entry scripts build the `MaterialBlock` upload buffer from
-`layouts.py::MATERIAL_BLOCK_STD140_DTYPE` (the correct one, offset 16) by
-default. Pressing `X` switches to
-`layouts.py::naive_bytes_padded_to_std140()`, which writes `shininess` at
-offset 12 (into what the GPU treats as `albedo`'s padding) and leaves the
-real offset-16 bytes untouched — zero, since the upload buffer is
-zero-initialised. The shader, compiled once and never recompiled, keeps
-reading `shininess` from offset 16 regardless of what was uploaded, so the
-visible effect is deterministic: **the teapot's specular highlight
-collapses to nothing** (`shininess == 0` still shades, it just never
-falls off with angle, and this demo gates it off entirely below 1.0) while
-`albedo` looks completely unaffected. Nothing about the GLSL/WGSL source
-changes between the two states — only the bytes fed to an already-compiled
-shader.
+`layouts.py::MATERIAL_BLOCK_STD140_DTYPE` (the correct one) by default.
+Pressing `X` switches to `layouts.py::naive_bytes_padded_to_std140()`,
+which writes the tightly packed bytes instead. The shader, compiled once
+and never recompiled, keeps reading from offsets 16 and 28 regardless of
+what was uploaded, so the visible corruption is deterministic:
+`specularColour` reads back as `(specular.g, specular.b, shininess)` — the
+CPU-side shininess value (64.0) lands in the blue channel — and
+`shininess` reads the zero padding at 28. **The teapot's tight warm
+highlight smears into a blue-white glare across the whole lit side**
+(exponent clamps to 1, glare tinted by the scrambled colour), while
+`albedo` (offset 0 in both layouts) looks completely unaffected — which is
+exactly why this bug is so easy to half-miss in real code. Nothing about
+the GLSL/WGSL source changes between the two states — only the bytes fed
+to an already-compiled shader.
+
+The GL demo does not just assert these offsets in comments: at startup
+`main.py::_query_material_offsets` asks the driver where the linked
+program actually put each member (`glGetUniformIndices` +
+`glGetActiveUniformsiv(..., GL_UNIFORM_OFFSET, ...)`) and prints/renders
+the answer on the HUD — `albedo@0 specularColour@16 shininess@28` — so the
+demo verifies its own layout claims at runtime. (WebGPU has no equivalent
+runtime reflection in `wgpu-py`; the WGSL rules are the spec's "Memory
+Layout" table, identical to `std140` for these types.)
 
 `tests/test_layouts.py` checks the dtypes' `itemsize`s and field offsets
-against hand-computed `std140` values, and that the two `MaterialBlock`
-layouts differ in exactly (and only) the `shininess` offset.
+against hand-computed `std140` values, and that a naive payload read at
+the shader's real offsets comes back scrambled exactly as described.
 
 ## Why GL stops here: no SSBOs on GL 4.1
 

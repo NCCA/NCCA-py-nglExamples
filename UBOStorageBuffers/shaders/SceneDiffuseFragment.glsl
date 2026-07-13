@@ -13,14 +13,19 @@ layout(std140) uniform SceneBlock
 };
 
 // The bug this demo exists to show: a naive CPU-side struct packs
-// shininess right after albedo's 3 floats (offset 12). Because vec3 has a
-// 16-byte base alignment in std140, THIS shader (compiled once, layout
-// fixed forever) actually reads shininess from offset 16. Feed it the
-// naive buffer and shininess reads back as 0 -- the specular highlight
-// flattens out even though albedo still looks correct.
+// specularColour right after albedo's 3 floats (offset 12) and shininess
+// at 24. std140 disagrees: a vec3 only consumes 12 bytes, but the NEXT
+// 16-byte-aligned member is pushed up -- so specularColour really lives at
+// offset 16 and shininess (a float, 4-byte alignment) packs after it at 28.
+// THIS shader (compiled once, layout fixed forever) reads those std140
+// offsets. Feed it the naive buffer and specularColour reads back as
+// (specular.g, specular.b, shininess) -- scrambled -- while shininess
+// reads the zero padding at 28. The demo's HUD shows the driver's own
+// GL_UNIFORM_OFFSET answers as ground truth.
 layout(std140) uniform MaterialBlock
 {
     vec3 albedo;
+    vec3 specularColour;
     float shininess;
 };
 
@@ -34,14 +39,15 @@ void main()
     vec3 H = normalize(L + V);
 
     float diff = max(dot(N, L), 0.0);
-    // shininess == 0 (the corrupted case) still works arithmetically --
-    // pow(x, 0) == 1 -- so the highlight just stops falling off with angle
-    // and paints every lit fragment full-strength specular white instead.
+    // In the corrupted/naive case shininess reads 0, so max() clamps the
+    // exponent to 1 -- the highlight loses its tight falloff and smears
+    // across the whole lit side, tinted by the scrambled specularColour
+    // (whose blue channel now holds the CPU-side shininess value, 64).
     float spec = pow(max(dot(N, H), 0.0), max(shininess, 1.0));
 
     vec3 ambient = 0.15 * albedo;
     vec3 diffuse = diff * albedo * lightColour.rgb;
-    vec3 specular = spec * lightColour.rgb * step(1.0, shininess);
+    vec3 specular = spec * specularColour * lightColour.rgb;
 
     fragColour = vec4(ambient + diffuse + specular, 1.0);
 }

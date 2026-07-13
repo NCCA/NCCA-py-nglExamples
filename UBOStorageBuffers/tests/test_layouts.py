@@ -32,31 +32,38 @@ class TestSceneBlockDtype:
 
 
 class TestMaterialBlockStd140Dtype:
-    def test_itemsize_is_padded_to_16_byte_multiple(self):
-        # albedo (vec3, 16-byte aligned) + shininess (pushed to offset 16) +
-        # tail padding -> whole block rounds up to 32 bytes.
+    def test_itemsize_matches_hand_computed_std140_size(self):
+        # albedo (0..11) + specularColour pushed to 16 (vec3 base alignment
+        # 16) + shininess packing into the tail slot at 28 -> exactly 32,
+        # already a 16-byte multiple.
         assert MATERIAL_BLOCK_STD140_DTYPE.itemsize == 32
 
-    def test_shininess_is_pushed_past_vec3_padding(self):
+    def test_second_vec3_is_pushed_to_16_but_trailing_float_is_not(self):
+        # THE std140 vec3 rule, stated correctly: a vec3 consumes 12 bytes
+        # but forces the NEXT 16-byte-aligned member (here specularColour)
+        # up to the next 16-byte boundary. A scalar float has base alignment
+        # 4, so shininess packs straight after specularColour at 28 -- it is
+        # NOT pushed to 32.
         offsets = {
             name: MATERIAL_BLOCK_STD140_DTYPE.fields[name][1]
             for name in MATERIAL_BLOCK_STD140_DTYPE.names
         }
-        assert offsets == {"albedo": 0, "shininess": 16}
+        assert offsets == {"albedo": 0, "specularColour": 16, "shininess": 28}
 
 
 class TestMaterialBlockNaiveDtype:
     def test_itemsize_is_tightly_packed(self):
-        assert MATERIAL_BLOCK_NAIVE_DTYPE.itemsize == 16
+        # 3 + 3 + 1 floats, no padding anywhere.
+        assert MATERIAL_BLOCK_NAIVE_DTYPE.itemsize == 28
 
-    def test_shininess_immediately_follows_albedo(self):
+    def test_members_immediately_follow_each_other(self):
         offsets = {
             name: MATERIAL_BLOCK_NAIVE_DTYPE.fields[name][1]
             for name in MATERIAL_BLOCK_NAIVE_DTYPE.names
         }
-        assert offsets == {"albedo": 0, "shininess": 12}
+        assert offsets == {"albedo": 0, "specularColour": 12, "shininess": 24}
 
-    def test_naive_and_correct_layouts_differ_only_in_shininess_offset(self):
+    def test_layouts_agree_on_albedo_and_disagree_after_it(self):
         correct = {
             name: MATERIAL_BLOCK_STD140_DTYPE.fields[name][1]
             for name in MATERIAL_BLOCK_STD140_DTYPE.names
@@ -65,27 +72,38 @@ class TestMaterialBlockNaiveDtype:
             name: MATERIAL_BLOCK_NAIVE_DTYPE.fields[name][1]
             for name in MATERIAL_BLOCK_NAIVE_DTYPE.names
         }
-        assert correct["albedo"] == naive["albedo"]
-        assert correct["shininess"] != naive["shininess"]
+        assert correct["albedo"] == naive["albedo"] == 0
+        # every member after the first vec3 is displaced by its padding
+        assert correct["specularColour"] - naive["specularColour"] == 4
         assert correct["shininess"] - naive["shininess"] == 4
 
 
 class TestNaiveBytesPaddedToStd140:
     def test_output_length_matches_correct_block_size(self):
-        payload = naive_bytes_padded_to_std140((1.0, 0.5, 0.25), 32.0)
+        payload = naive_bytes_padded_to_std140((1.0, 0.5, 0.25), (1.0, 1.0, 1.0), 32.0)
         assert len(payload) == MATERIAL_BLOCK_STD140_DTYPE.itemsize
 
-    def test_shininess_lands_in_albedo_padding_not_the_real_offset(self):
-        payload = naive_bytes_padded_to_std140((1.0, 0.5, 0.25), 32.0)
-        # naive write put shininess at byte 12 (correct, non-zero value)...
-        naive_slot = np.frombuffer(payload, dtype=np.float32, count=1, offset=12)[0]
-        assert naive_slot == pytest.approx(32.0)
-        # ...but the shader reads shininess from byte 16, which is untouched
-        # padding (zero) -- this is the visible corruption.
-        real_std140_slot = np.frombuffer(payload, dtype=np.float32, count=1, offset=16)[
-            0
-        ]
-        assert real_std140_slot == pytest.approx(0.0)
+    def test_shader_visible_reads_of_the_naive_payload_are_corrupted(self):
+        albedo = (1.0, 0.5, 0.25)
+        specular_colour = (0.9, 0.6, 0.3)
+        shininess = 32.0
+        payload = naive_bytes_padded_to_std140(albedo, specular_colour, shininess)
+        as_floats = np.frombuffer(payload, dtype=np.float32)
+
+        # albedo lives at offset 0 in both layouts -- the shader reads it
+        # correctly, which is what makes this bug so easy to miss.
+        assert as_floats[0:3] == pytest.approx(albedo)
+
+        # the shader reads specularColour from std140 offset 16 (floats
+        # 4..6), but the naive write put (specularColour, shininess) there:
+        # it sees (specular.g, specular.b, shininess) -- scrambled.
+        assert as_floats[4:7] == pytest.approx(
+            (specular_colour[1], specular_colour[2], shininess)
+        )
+
+        # and the shader's real shininess slot (offset 28, float 7) was
+        # never written -- it reads back the zero padding.
+        assert as_floats[7] == pytest.approx(0.0)
 
 
 class TestStd140Offsets:
@@ -97,12 +115,14 @@ class TestStd140Offsets:
             "MaterialBlock (naive/packed -- WRONG)",
         }
 
-    def test_correct_and_naive_shininess_offsets_differ_exactly_as_documented(self):
+    def test_correct_and_naive_offsets_differ_exactly_as_documented(self):
         table = std140_offsets()
-        correct = table["MaterialBlock (std140-correct)"]["shininess"]
-        naive = table["MaterialBlock (naive/packed -- WRONG)"]["shininess"]
-        assert correct == (16, 4)
-        assert naive == (12, 4)
+        correct = table["MaterialBlock (std140-correct)"]
+        naive = table["MaterialBlock (naive/packed -- WRONG)"]
+        assert correct["specularColour"] == (16, 12)
+        assert naive["specularColour"] == (12, 12)
+        assert correct["shininess"] == (28, 4)
+        assert naive["shininess"] == (24, 4)
 
     def test_albedo_offset_is_identical_in_both_material_layouts(self):
         table = std140_offsets()

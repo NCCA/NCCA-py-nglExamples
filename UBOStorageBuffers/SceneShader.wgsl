@@ -1,9 +1,11 @@
 // Diffuse teapot: a uniform SceneBlock (shared with GridShader.wgsl via the
 // SAME bind group layout / buffer) + a uniform MaterialBlock that carries
-// the same std140-style vec3-then-scalar padding trap as the OpenGL half
-// of this demo -- WGSL's default "uniform address space" layout applies
-// the identical 16-byte vec3 alignment rule, so `shininess` sits at byte
-// offset 16 here too, not 12.
+// the same std140-style vec3 padding trap as the OpenGL half of this demo
+// -- WGSL's default "uniform address space" layout applies the identical
+// 16-byte vec3 alignment rule: `specularColour` sits at byte offset 16
+// (not 12, albedo's 12 bytes are followed by 4 bytes of padding) while
+// `shininess`, a lone f32 with 4-byte alignment, packs straight after it
+// at offset 28.
 //
 // The point-light accumulation loop reads a var<storage, read> array whose
 // LENGTH is not fixed at shader-compile time (arrayLength(&lights)) -- a
@@ -19,6 +21,7 @@ struct SceneBlock {
 
 struct MaterialBlock {
     albedo: vec3<f32>,
+    specularColour: vec3<f32>,
     shininess: f32,
 };
 
@@ -71,11 +74,14 @@ fn fragment_main(in: VertexOut) -> @location(0) vec4<f32> {
     let diff0 = max(dot(N, L0), 0.0);
     result += diff0 * material.albedo * scene.lightColour.rgb;
 
-    // shininess == 0 (the corrupted/naive case) collapses the highlight to
-    // nothing via the step() gate, same visible cue as the GL demo.
+    // In the corrupted/naive case shininess reads 0 (max() clamps the
+    // exponent to 1, smearing the highlight across the lit side) and
+    // specularColour reads (specular.g, specular.b, shininess) -- the
+    // scrambled blue channel holds the CPU-side shininess value, blowing
+    // the glare out blue-white. Same visible cue as the GL demo.
     let H0 = normalize(L0 + V);
     let spec0 = pow(max(dot(N, H0), 0.0), max(material.shininess, 1.0));
-    result += spec0 * scene.lightColour.rgb * step(1.0, material.shininess);
+    result += spec0 * material.specularColour * scene.lightColour.rgb;
 
     // runtime-sized storage-buffer point lights -- the thing a UBO cannot
     // express: this loop bound comes from the buffer's actual size, not a
