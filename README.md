@@ -20,6 +20,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 - [Geometry &amp; Meshes](#geometry--meshes)
 - [Textures &amp; Materials](#textures--materials)
 - [Blending &amp; Transparency](#blending--transparency)
+- [Environment &amp; Sky](#environment--sky)
 - [Curves &amp; Interpolation](#curves--interpolation)
 - [Selection &amp; Picking](#selection--picking)
 - [Framebuffers &amp; Post Processing](#framebuffers--post-processing)
@@ -93,6 +94,12 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | :---: | :--- | :--- |
 | <a href="Blending"><img src="Blending/Blending.png" width="220"></a> | [Blending](Blending) | Alpha blending, depth write and sorting toggles (OpenGL + WebGPU) |
 | <a href="OITransparency"><img src="OITransparency/OIT.png" width="220"></a> | [OITransparency](OITransparency) | Weighted blended order-independent transparency (OpenGL + WebGPU) |
+
+## Environment &amp; Sky
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="SkyBoxEnvMap"><img src="SkyBoxEnvMap/SkyBoxEnvMap.png" width="220"></a> | [SkyBoxEnvMap](SkyBoxEnvMap) | Procedural cubemap skybox with reflect/refract/Fresnel teapot (OpenGL + WebGPU) |
 
 ## Curves &amp; Interpolation
 
