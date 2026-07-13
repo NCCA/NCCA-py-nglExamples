@@ -25,6 +25,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 - [Selection &amp; Picking](#selection--picking)
 - [Framebuffers &amp; Post Processing](#framebuffers--post-processing)
 - [Lighting &amp; Shadows](#lighting--shadows)
+- [Geometry &amp; Tessellation Shaders](#geometry--tessellation-shaders)
 - [Compute Shaders](#compute-shaders)
 - [WebGPU](#webgpu)
 - [Particles &amp; Points](#particles--points)
@@ -137,6 +138,12 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="DefferedLighting"><img src="DefferedLighting/WebGPUNGL.png" width="220"></a> | [DefferedLighting](DefferedLighting) | Deferred lighting (WebGPU) |
 | <a href="WebGPUShadows"><img src="WebGPUShadows/WebGPUShadows.png" width="220"></a> | [WebGPUShadows](WebGPUShadows) | PCF shadow mapping (WebGPU) |
 | <a href="ShadowMapping"><img src="ShadowMapping/ShadowMapping.png" width="220"></a> | [ShadowMapping](ShadowMapping) | Two-pass depth-map shadows with PCF, bias and culling toggles (OpenGL) |
+
+## Geometry &amp; Tessellation Shaders
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="GeometryTessellation"><img src="GeometryTessellation/GeometryTessellation.png" width="220"></a> | [GeometryTessellation](GeometryTessellation) | Geometry-shader normal visualiser + distance-LOD tessellated noise plane (OpenGL) |
 
 ## Compute Shaders
 
