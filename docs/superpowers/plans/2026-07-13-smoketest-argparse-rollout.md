@@ -18,9 +18,8 @@
 - Do NOT touch `RunDemos.py` or anything under `Obj2Numpy/`.
 - Remove every old-style `"--smoketest" in sys.argv` / `"--debug" in sys.argv` check when converting a file — no mixed styles.
 - Preserve each demo's existing behaviour and structure (QSurfaceFormat setup, window size, try/except blocks, `main()` vs `__main__` layout). Only the argument handling and smoketest wiring change.
-- Verification for every touched file runs **from the file's own directory** (demos load shaders/textures by relative path):
-  `cd <demo dir> && QT_QPA_PLATFORM=offscreen uv run <script>.py --smoketest` → prints `SMOKETEST OK`, exit 0.
-  If a WebGPU demo cannot create an offscreen surface, retry without `QT_QPA_PLATFORM=offscreen` (on-screen); record any file that still fails in the final report — do not hide it.
+- Verification for every touched file runs **from the file's own directory** (demos load shaders/textures by relative path) and **on-screen** — macOS's Qt `offscreen` platform cannot create OpenGL contexts, and macOS has no `timeout(1)`. Use the helper:
+  `.superpowers/sdd/smoketest_all.sh <file> [<file> ...]` → prints `PASS <file>` per file (checks for `SMOKETEST OK`, 90 s perl-alarm watchdog). Record any FAIL in the final report — do not hide it.
 - After each task: `uv run ruff check <files>` and `uv run ruff format --check <files>` clean (pre-commit runs these anyway).
 - Conventional commit per task.
 
