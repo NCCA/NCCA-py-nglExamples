@@ -1,17 +1,16 @@
 ## QML WebGPU Overlay
 
-Floating, draggable QML control panels (`ncca.ngl.qml`) layered over a live 3D
-teapot viewport — the **WebGPU** version of `GUIDemos/QMLOverlayApp`, and the
-working resolution of the limitation documented in `GUIDemos/QMLFloatingWidgets`.
+![](QMLWebGPUOverlay.png)
 
-![QMLWebGPUOverlay](QMLWebGPUOverlay.png)
+Floating, draggable QML control panels (`ncca.ngl.qml`) layered over a live 3D
+teapot viewport — the **WebGPU** version of `GUIDemos/QMLOverlayApp`.
 
 ### What this demo shows
 
 A `QMainWindow` stacks two widgets:
 
-- **The 3D viewport** (`PyNGLScene`) — a `ncca.ngl.webgpu.WebGPUWidget` that
-  renders a diffuse-lit teapot **offscreen into a numpy buffer** and blits it
+- **The 3D viewport** (`PyNGLScene`) a `ncca.ngl.webgpu.WebGPUWidget` that
+  renders a diffuse lit teapot **offscreen into a numpy buffer** and blits it
   via `QPainter`. It exposes `set_model_matrix(Mat4)`, `set_view_matrix(Mat4)`
   and `set_colour(r, g, b)` slots.
 - **A transparent overlay** (`OverlayQuickWidget`, a `QQuickWidget`) carrying
@@ -24,7 +23,7 @@ Because the overlay is transparent, clicks that miss every panel are
 hit-tested (`PanelRegistry`) and forwarded down to the WebGPU scene. Panel
 positions and the selected theme persist between runs via QML's `Settings`.
 
-### Why WebGPU instead of OpenGL
+### Why this only works in WebGPU.
 
 `QMLFloatingWidgets` tried to render the teapot with a `QQuickFramebufferObject`
 inside a pure Qt Quick scene graph. Under Qt 6's RHI/Metal backend that class
@@ -33,7 +32,7 @@ the OpenGL backend segfaults on `QOpenGLFramebufferObject` construction).
 
 `QMLOverlayApp` worked around this by rendering with a `QOpenGLWidget`, but that
 forces the whole top-level surface to composite via OpenGL, so the overlay
-`QQuickWidget` then *also* has to be forced onto the OpenGL scene graph backend
+`QQuickWidget` then _also_ has to be forced onto the OpenGL scene graph backend
 (`QQuickWindow.setGraphicsApi(OpenGL)` + a `QSurfaceFormat`) or it renders
 nothing under Metal.
 

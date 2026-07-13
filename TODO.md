@@ -6,6 +6,7 @@ Check out the mouse controls on some of the demos
 - Easing Functions arrow keys not working in pause (maybe add timeline at bottom)
 - Deffered lighting not working at all
 - Make FrustumCull better
+- Add tesselation to PyNGLs shader lib then update Tessellation demo
 
 update all WebGPU demos to new structure.
 Create templates for basic WebGPU and OpenGL demos (via button on RunDemos)

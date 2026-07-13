@@ -1,5 +1,7 @@
 # WebGPUGUI
 
+![](WebGPUGUI.png)
+
 Demonstrates embedding a WebGPU viewport inside a Qt Designer GUI. A teapot is
 rendered with a PBR shader (`PBRShader.wgsl`) inside a `WebGPUWidget`, and the
 surrounding controls from `MainWindow.ui` drive the scene:
@@ -21,8 +23,10 @@ This is the WebGPU equivalent of the OpenGL GUI demos in `GUIDemos`.
 
 ## Controls
 
-- Left-drag in the viewport : rotate camera, Right-drag : pan, Wheel : zoom
-- `Esc` : quit
+- Left-drag in the viewport : rotate camera.
+- Right-drag : pan.
+- Wheel : zoom.
+- `Esc` : quit.
 
 ## References
 

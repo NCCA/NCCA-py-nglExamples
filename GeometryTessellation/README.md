@@ -42,7 +42,7 @@ Fragment Shader
   deliberately avoidable complexity; each demo isolates the stage pair it
   is teaching.
 
-## Why OpenGL only — the WebGPU-absence note
+## Why OpenGL only 
 
 **WebGPU has no geometry shader stage and no tessellation stages at all.**
 This is not an oversight in `ncca.ngl`'s WebGPU backend; the WebGPU spec
