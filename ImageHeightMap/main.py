@@ -271,20 +271,6 @@ class DebugApplication(QApplication):
 if __name__ == "__main__":
     # --- Application Entry Point ---
 
-    # Create a QSurfaceFormat object to request a specific OpenGL context
-    format: QSurfaceFormat = QSurfaceFormat()
-    # Request 4x multisampling for anti-aliasing
-    format.setSamples(4)
-    # Request OpenGL version 4.1 as this is the highest supported on macOS
-    format.setMajorVersion(4)
-    format.setMinorVersion(1)
-    # Request a Core Profile context, which removes deprecated, fixed-function pipeline features
-    format.setProfile(QSurfaceFormat.CoreProfile)
-    # Request a 24-bit depth buffer for proper 3D sorting
-    format.setDepthBufferSize(24)
-    # Set default format for all new OpenGL contexts
-    QSurfaceFormat.setDefaultFormat(format)
-
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--smoketest",
@@ -301,6 +287,20 @@ if __name__ == "__main__":
         help="run with DebugApplication (tracebacks from Qt event handlers)",
     )
     args = parser.parse_args()
+
+    # Create a QSurfaceFormat object to request a specific OpenGL context
+    format: QSurfaceFormat = QSurfaceFormat()
+    # Request 4x multisampling for anti-aliasing
+    format.setSamples(4)
+    # Request OpenGL version 4.1 as this is the highest supported on macOS
+    format.setMajorVersion(4)
+    format.setMinorVersion(1)
+    # Request a Core Profile context, which removes deprecated, fixed-function pipeline features
+    format.setProfile(QSurfaceFormat.CoreProfile)
+    # Request a 24-bit depth buffer for proper 3D sorting
+    format.setDepthBufferSize(24)
+    # Set default format for all new OpenGL contexts
+    QSurfaceFormat.setDefaultFormat(format)
 
     if args.debug:
         app = DebugApplication(sys.argv)
