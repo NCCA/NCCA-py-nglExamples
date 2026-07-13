@@ -1,6 +1,8 @@
 # Selection and Manipulation
 
-A demo of DCC-style object selection and manipulation, in the spirit of Maya
+![](SelectionManipulator.png)
+
+A demo of DCC style object selection and manipulation, in the spirit of Maya
 or Houdini. A small scene of objects can be picked with the mouse and
 transformed with visual Translate / Rotate / Scale gizmos.
 
@@ -9,25 +11,23 @@ uv run main.py          # or ./main.py
 uv run main.py --debug  # re-raise exceptions swallowed by Qt event handlers
 ```
 
-![](SelectionManipulator.png)
-
 ## Controls (Maya-style)
 
-| Input | Action |
-|---|---|
-| `Q` | Select mode (gizmo hidden) |
-| `W` | Translate mode (arrows) |
-| `E` | Rotate mode (rings) |
-| `R` | Scale mode (boxes) |
-| Left click | Select the object under the cursor (replaces selection) |
-| `Ctrl` + click | Toggle an object in / out of the selection (multi-select) |
-| Drag an axis handle | Transform **all** selected objects along that axis |
+| Input                | Action                                                     |
+| -------------------- | ---------------------------------------------------------- |
+| `Q`                  | Select mode (gizmo hidden)                                 |
+| `W`                  | Translate mode (arrows)                                    |
+| `E`                  | Rotate mode (rings)                                        |
+| `R`                  | Scale mode (boxes)                                         |
+| Left click           | Select the object under the cursor (replaces selection)    |
+| `Ctrl` + click       | Toggle an object in / out of the selection (multi-select)  |
+| Drag an axis handle  | Transform **all** selected objects along that axis         |
 | Drag the centre cube | Free screen-plane move (translate) / uniform scale (scale) |
-| `Alt` + LMB drag | Tumble the camera |
-| `Alt` + RMB drag | Pan the camera |
-| Mouse wheel | Dolly in / out |
-| `Space` | Reset the camera |
-| `Escape` | Quit |
+| `Alt` + LMB drag     | Tumble the camera                                          |
+| `Alt` + RMB drag     | Pan the camera                                             |
+| Mouse wheel          | Dolly in / out                                             |
+| `Space`              | Reset the camera                                           |
+| `Escape`             | Quit                                                       |
 
 ## How it works
 
@@ -62,30 +62,30 @@ gizmo is scaled by its view-space depth so it keeps a constant on-screen
 size, and drawn after clearing the depth buffer so it always renders on top,
 exactly like a DCC viewport.
 
-Dragging works in *screen space*:
+Dragging works in _screen space_:
 
-* **Translate** — the gizmo axis is projected to the screen; mouse motion is
+- **Translate** :- the gizmo axis is projected to the screen; mouse motion is
   dotted with the projected axis direction and divided by its pixels-per-
   world-unit length, giving a world-space delta along the axis.
-* **Scale** — the same projected motion drives a per-axis multiply factor.
-* **Free translate** (centre cube) — mouse motion is converted to a world
+- **Scale** :- the same projected motion drives a per-axis multiply factor.
+- **Free translate** (center cube) :- mouse motion is converted to a world
   delta in the camera's screen plane, using the model-view basis vectors that
   map to screen right / up at the pivot, so the selection tracks the cursor.
-* **Uniform scale** (centre cube) — the change in the mouse's distance from
+- **Uniform scale** (center cube) :- the change in the mouse's distance from
   the projected pivot drives a single factor applied equally to all axes.
-* **Rotate** — the angle of the mouse around the projected gizmo centre is
+- **Rotate** :- the angle of the mouse around the projected gizmo centre is
   tracked (`atan2`), and its per-event change is applied around the handle
   axis, with the sign flipped when the axis points away from the camera so
   the rotation always follows the mouse.
 
-All deltas are applied to *every* selected object, so a multi-selection
+All deltas are applied to _every_ selected object, so a multi-selection
 moves, scales, and rotates together (rotation and scale are applied about
 each object's own pivot).
 
 ## Possible extensions
 
-* Rotating multiple objects about the shared pivot rather than their own.
-* Marquee (rubber-band) selection.
+- Rotating multiple objects about the shared pivot rather than their own.
+- Marquee (rubber-band) selection.
 
 ## References
 

@@ -8,7 +8,8 @@ Check out the mouse controls on some of the demos
 - Make FrustumCull better
 - Add tesselation to PyNGLs shader lib then update Tessellation demo
 - Lights demo check the re-comp of shaders
--
+- Update the SciFi demo to use the FBO class. (Add FBO Class to PyNGL)
+- SelectionManipulator Rotating multiple objects about the shared pivot rather than their own Marquee (rubber-band) selection.
 
 update all WebGPU demos to new structure.
 Create templates for basic WebGPU and OpenGL demos (via button on RunDemos)

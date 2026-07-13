@@ -2,7 +2,7 @@
 
 ![](ShadowMapping.png)
 
-A two-pass depth map shadow technique using a directional light orbiting the scene that renders depth into a 2048^2 `GL_DEPTH_COMPONENT24` texture, then the main pass re-projects every fragment through the light's view-projection and compares against that stored depth.
+A two pass depth map shadow technique using a directional light orbiting the scene that renders depth into a 2048^2 `GL_DEPTH_COMPONENT24` texture, then the main pass re-projects every fragment through the light's view-projection and compares against that stored depth.
 
 This is deliberately the **OpenGL mirror of `WebGPUShadows`** using the same scene shape, same PCF option, same artifact toggle so the two can be diffed API-for-API to see what each backend makes explicit vs. hides.
 
@@ -19,13 +19,13 @@ This is deliberately the **OpenGL mirror of `WebGPUShadows`** using the same sce
 
 ## The two passes
 
-1. **Depth pass** — the scene is rendered from the light's point of view into a 2048^2 FBO holding only a `GL_DEPTH_COMPONENT24` **texture** (no colour attachment: `glDrawBuffer(GL_NONE)` / `glReadBuffer(GL_NONE)`). The light is directional, modelled as an orthographic camera orbiting the scene on a timer (`L` pauses it).
-2. **Shade pass** — rendered to the default framebuffer. The vertex shader carries the fragment's world position re-projected through the light's view-projection matrix (`lightSpaceMatrix`); the fragment shader perspective-divides it, remaps `[-1,1] -> [0,1]`, and compares against `texture(shadowMap, uv).r` with a bias. `P` switches between a single tap and a 3×3 PCF kernel scaled by `textureSize(shadowMap, 0)`.
-3. **Debug inset** — the raw depth texture drawn into a small screen-corner quad with its own tiny shader (own VAO in clip space, viewport shrunk to the corner rectangle). Because the light uses an _orthographic_ projection, NDC depth is already linear in view-space distance, so no extra "linearisation" maths is needed to make it legible — unlike a perspective shadow map's depth buffer.
+1. **Depth pass** :- the scene is rendered from the light's point of view into a 2048^2 FBO holding only a `GL_DEPTH_COMPONENT24` **texture** (no colour attachment: `glDrawBuffer(GL_NONE)` / `glReadBuffer(GL_NONE)`). The light is directional, modelled as an orthographic camera orbiting the scene on a timer (`L` pauses it).
+2. **Shade pass** :- rendered to the default framebuffer. The vertex shader carries the fragment's world position re-projected through the light's view-projection matrix (`lightSpaceMatrix`); the fragment shader perspective-divides it, remaps `[-1,1] -> [0,1]`, and compares against `texture(shadowMap, uv).r` with a bias. `P` switches between a single tap and a 3×3 PCF kernel scaled by `textureSize(shadowMap, 0)`.
+3. **Debug inset** :- the raw depth texture drawn into a small screen-corner quad with its own tiny shader (own VAO in clip space, viewport shrunk to the corner rectangle). Because the light uses an _orthographic_ projection, NDC depth is already linear in view-space distance, so no extra "linearisation" maths is needed to make it legible — unlike a perspective shadow map's depth buffer.
 
-## Teaching points
+## How it works
 
-1. **Shadow mapping is "render depth from the light, then compare."** There is no magic: pass 1 is a depth-only render from a second camera (the light); pass 2 asks "is _this_ fragment's light-space depth further from the light than what's already recorded?" — if so, something else was closer to the light along that ray, so this fragment is in shadow.
+1. **Shadow mapping is "render depth from the light, then compare."** There is no magic: pass 1 is a depth only render from a second camera (the light); pass 2 asks "is _this_ fragment's light-space depth further from the light than what's already recorded?" — if so, something else was closer to the light along that ray, so this fragment is in shadow.
 2. **The comparison is done explicitly, not with `sampler2DShadow`.** A hardware shadow sampler (`sampler2DShadow` + `textureProj`) would perform the perspective divide, the `[-1,1] -> [0,1]` remap and the depth compare for you in one call — which is exactly what a first shadow-mapping demo shouldn't hide. `GL_TEXTURE_COMPARE_MODE` is deliberately left at `GL_NONE` so `texture(shadowMap, uv).r` returns a raw depth value.
 3. **Every artefact you can produce here traces back to one of three things:**
 

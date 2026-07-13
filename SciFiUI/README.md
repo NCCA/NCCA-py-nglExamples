@@ -1,10 +1,10 @@
 # SciFiUI
 
-A retro sci-fi CRT terminal built entirely with `ncca.ngl` and OpenGL — think the Nostromo's MU-TH-UR 6000 from _Alien_ (1979).
+![](SciFiUI.png)
 
-![SciFiUI](SciFiUI.png)
+A retro sci-fi CRT terminal built entirely with `ncca.ngl` and OpenGL based on the Nostromo's [MU-TH-UR 6000](https://avp.fandom.com/wiki/MU/TH/UR_6000) from _Alien_ (1979).
 
-The central window is a wireframe terrain fly-over drawn as stacked ridge lines in the style of the pulsar plot on Joy Division's _Unknown Pleasures_ cover. Around it sits a full terminal interface: clickable buttons on the left, a scrolling system log on the right, and header/footer status bars with a blinking cursor.
+The central window is a wireframe terrain fly-over drawn as stacked ridge lines in the style of the pulsar plot on [Joy Division's _Unknown Pleasures_ cover](https://en.wikipedia.org/wiki/Unknown_Pleasures). Around it sits a full terminal interface: clickable buttons on the left, a scrolling system log on the right, and header/footer status bars with a blinking cursor.
 
 ```bash
 uv run SciFiUI/main.py

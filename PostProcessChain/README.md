@@ -27,15 +27,21 @@ A real multi-FBO HDR post-processing chain: bright pass, separable Gaussian bloo
 
 ## FBO management
 
-The four render targets (`scene`, `bright`, `blur_a`, `blur_b`) are built and bound with the `FrameBufferObject` helper class (`FrameBufferObject.py`, `TextureTypes.py` — copied in from the `Voxels` demo, since each demo folder is self-contained) instead of hand-rolled `glGenFramebuffers`/`glFramebufferTexture2D` calls. Each FBO is created with `FrameBufferObject.create(width, height)`, then, while bound (`with fbo:`), gets its colour/depth attachments added via `add_colour_attachment(...)`/`add_depth_buffer(...)` using the strongly-typed `GLTexture*`/`GLAttachment` enums from `TextureTypes.py`. `fbo.bind()` / `fbo.set_viewport()` / `fbo.unbind()` replace the old manual `glBindFramebuffer`/`glViewport` pairs in each pass, and resizing just drops the old `FrameBufferObject` references (`__del__` deletes the underlying GL objects) and rebuilds fresh ones at the new size.
+The four render targets (`scene`, `bright`, `blur_a`, `blur_b`) are built and bound with the `FrameBufferObject` helper class (`FrameBufferObject.py`, `TextureTypes.py` as used in the `Voxels` demo.
 
-## Why HDR before tonemap
+Each FBO is created with `FrameBufferObject.create(width, height)`, then, while bound (`with fbo:`), gets its colour/depth attachments added via `add_colour_attachment(...)`/`add_depth_buffer(...)` using the strongly-typed `GLTexture*`/`GLAttachment` enums from `TextureTypes.py`. `fbo.bind()` / `fbo.set_viewport()` / `fbo.unbind()`
 
-If the emissive spheres were shaded straight into an ordinary 8-bit framebuffer, "bright" and "extremely bright" would both just be `(1,1,1)` white the instant they were written — there would be nothing left for a bright-pass threshold to find, and no way to later choose how the highlights roll off. Rendering into `RGBA16F` first lets values like `(9, 9, 2)` survive unclipped all the way to the final pass, where the tonemap operator makes an _explicit, swappable_ choice (`T`) about how to compress that unbounded range back into `[0,1]` — instead of an implicit, irreversible one made the moment a fragment shader returns.
+This replaces the old manual `glBindFramebuffer`/`glViewport` pairs in each pass, and resizing just drops the old `FrameBufferObject` references (`__del__` deletes the underlying GL objects) and rebuilds fresh ones at the new size, using the enums from `TextureTypes.py` ensures that the correct types are used.
+
+## HDR before tonemap
+
+If the emissive spheres were shaded straight into an ordinary 8-bit framebuffer, "bright" and "extremely bright" would both just be `(1,1,1)` white the instant they were written, there would be nothing left for a bright-pass threshold to find, and no way to later choose how the highlights roll off.
+
+Rendering into `RGBA16F` first lets values like `(9, 9, 2)` survive unclipped all the way to the final pass, where the tonemap operator makes an _explicit, swappable_ choice (`T`) about how to compress that unbounded range back into `[0,1]` instead of an implicit, irreversible one made the moment a fragment shader returns.
 
 ## `H`: split screen
 
-The tonemap fragment shader branches on `gl_FragCoord.x` against half the screen width: the left half runs `clamp(scene, 0, 1)` with no bloom, no exposure and no operator — i.e. what you'd see without any of this pipeline — and the right half runs the full chain. It is the fastest way to see that the whole exercise is doing something, not just adding a soft-focus filter.
+The tonemap fragment shader branches on `gl_FragCoord.x` against half the screen width: the left half runs `clamp(scene, 0, 1)` with no bloom, no exposure and no operator, i.e. what you'd see without any of this pipeline, and the right half runs the full chain. It is the fastest way to see that the whole exercise is doing something, not just adding a soft-focus filter.
 
 ## References
 
