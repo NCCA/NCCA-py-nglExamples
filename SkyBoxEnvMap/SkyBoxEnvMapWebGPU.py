@@ -10,11 +10,6 @@ viewed with dimension="cube" and sampled with texture_cube<f32> in WGSL.
     +/-  increase / decrease the index of refraction (refract & fresnel mix)
     LMB  rotate    RMB pan    wheel zoom    Space reset camera    Esc quit
 
-See main.py's docstring for the skybox depth trick and draw-order teaching
-points -- they carry over unchanged: WebGPU's blend/depth state is baked
-into the pipeline rather than toggled with glEnable, but the "push the
-skybox to the far plane and draw it last, LEQUAL, no depth write" trick is
-identical.
 """
 
 import sys

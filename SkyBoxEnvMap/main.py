@@ -9,20 +9,6 @@ as a GL_TEXTURE_CUBE_MAP and drawn as a skybox behind an env-mapped teapot.
     +/-  increase / decrease the index of refraction (refract & fresnel mix)
     LMB  rotate    RMB pan    wheel zoom    Space reset camera    Esc quit
 
-Teaching points:
-    1. A skybox is a unit cube sampled with a *direction*, not a UV: the
-       vertex shader strips translation from the view matrix
-       (P * mat4(mat3(V))) and forces depth to the far plane
-       (gl_Position = pos.xyww) so the skybox is drawn as if infinitely far
-       away and never occludes real geometry.
-    2. Despite most tutorials drawing the skybox *first* "to save fill
-       rate", drawing opaque geometry first and the skybox *last* lets
-       early-z reject the (expensive, full-screen) skybox fragments that
-       sit behind already-drawn opaque pixels -- the classic tutorial order
-       is actually the slower one on modern hardware.
-    3. reflect()/refract() need world-space position, normal and camera
-       position -- not the usual view-space lighting setup -- because the
-       cubemap itself is sampled in world space.
 """
 
 import sys
@@ -122,7 +108,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         faces = generate_cubemap_faces()
         self.cube_texture = gl.glGenTextures(1)
         gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, self.cube_texture)
-        for face_name, face_pixels in zip(FACE_ORDER, faces):
+        for face_name, face_pixels in zip(FACE_ORDER, faces, strict=False):
             target = _GL_FACE_TARGET[face_name]
             size = face_pixels.shape[0]
             gl.glTexImage2D(
