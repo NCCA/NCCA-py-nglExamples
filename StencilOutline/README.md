@@ -8,13 +8,13 @@ There's no picking here — that's [RayPickingSelection](../RayPickingSelection)
 
 ## Controls
 
-| Key   | Action                                                             |
-| :---- | :------------------------------------------------------------------ |
-| `Tab` | cycle which object is selected                                      |
-| `O`   | toggle the outline pass — watch it disappear along with the extra draw call |
-| `V`   | visualise the stencil buffer — tints every pixel currently marked 1 |
-| `+`/`-` | grow / shrink the outline width (`outlineScale`)                  |
-| LMB / RMB / wheel | rotate / pan / zoom, `Space` resets, `Esc` quits         |
+| Key               | Action                                                                      |
+| :---------------- | :-------------------------------------------------------------------------- |
+| `Tab`             | cycle which object is selected                                              |
+| `O`               | toggle the outline pass — watch it disappear along with the extra draw call |
+| `V`               | visualise the stencil buffer — tints every pixel currently marked 1         |
+| `+`/`-`           | grow / shrink the outline width (`outlineScale`)                            |
+| LMB / RMB / wheel | rotate / pan / zoom, `Space` resets, `Esc` quits                            |
 
 ## The recipe
 
@@ -26,13 +26,13 @@ Every frame:
 
 ## Stencil state machine
 
-| Pass | `glStencilFunc` | `glStencilOp` (fail, zfail, zpass) | `glStencilMask` | Depth test | Draws |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| Non-selected objects | `GL_ALWAYS, 1, 0xFF` | `KEEP, KEEP, KEEP` | `0x00` (no write) | on | normal shading |
-| Selected object, normal pass | `GL_ALWAYS, 1, 0xFF` | `KEEP, KEEP, REPLACE` | `0xFF` | on | normal shading, stamps stencil = 1 |
-| Selected object, outline pass | `GL_NOTEQUAL, 1, 0xFF` | `KEEP, KEEP, KEEP` | `0x00` (read-only) | **off** | fattened copy, flat orange, rejected wherever stencil already reads 1 |
-| Stencil-visualise (`V`) | `GL_EQUAL, 1, 0xFF` | `KEEP, KEEP, KEEP` | `0x00` (read-only) | off | full-screen tint triangle, alpha-blended |
-| End of frame (restore) | `GL_ALWAYS, 1, 0xFF` | `KEEP, KEEP, KEEP` | `0xFF` | on | — resting state for the next `glClear` |
+| Pass                          | `glStencilFunc`        | `glStencilOp` (fail, zfail, zpass) | `glStencilMask`    | Depth test | Draws                                                                 |
+| :---------------------------- | :--------------------- | :--------------------------------- | :----------------- | :--------- | :-------------------------------------------------------------------- |
+| Non-selected objects          | `GL_ALWAYS, 1, 0xFF`   | `KEEP, KEEP, KEEP`                 | `0x00` (no write)  | on         | normal shading                                                        |
+| Selected object, normal pass  | `GL_ALWAYS, 1, 0xFF`   | `KEEP, KEEP, REPLACE`              | `0xFF`             | on         | normal shading, stamps stencil = 1                                    |
+| Selected object, outline pass | `GL_NOTEQUAL, 1, 0xFF` | `KEEP, KEEP, KEEP`                 | `0x00` (read-only) | **off**    | fattened copy, flat orange, rejected wherever stencil already reads 1 |
+| Stencil-visualise (`V`)       | `GL_EQUAL, 1, 0xFF`    | `KEEP, KEEP, KEEP`                 | `0x00` (read-only) | off        | full-screen tint triangle, alpha-blended                              |
+| End of frame (restore)        | `GL_ALWAYS, 1, 0xFF`   | `KEEP, KEEP, KEEP`                 | `0xFF`             | on         | — resting state for the next `glClear`                                |
 
 ## Things to know
 

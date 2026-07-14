@@ -74,12 +74,10 @@ class SceneObject:
 # demonstrate the seam artefact scaling-along-normals produces on hard
 # edges -- see the README, this is intentional, not a bug.
 OBJECTS: tuple[SceneObject, ...] = (
-    SceneObject("teapot", "teapot", Vec3(-2.6, 0.0, 0.0), 1.0, (0.75, 0.68, 0.55, 1.0)),
+    SceneObject("teapot", "teapot", Vec3(-2.6, 0.5, 0.0), 1.0, (0.75, 0.68, 0.55, 1.0)),
     SceneObject("cube A", "cube", Vec3(0.0, 0.5, 0.0), 0.7, (0.55, 0.62, 0.78, 1.0)),
     SceneObject("cube B", "cube", Vec3(2.4, 0.5, 1.2), 0.5, (0.55, 0.78, 0.6, 1.0)),
-    SceneObject(
-        "sphere", "sphere", Vec3(0.6, 0.55, -2.2), 0.9, (0.78, 0.55, 0.62, 1.0)
-    ),
+    SceneObject("sphere", "sphere", Vec3(0.6, 0.9, -2.2), 0.9, (0.78, 0.55, 0.62, 1.0)),
 )
 
 

@@ -274,7 +274,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         # four components (a Vec3 here emits glUniform3f and GL rejects it with
         # GL_INVALID_OPERATION, aborting the whole frame).
         ShaderLib.set_uniform("lightDiffuse", 1.0, 1.0, 1.0, 1.0)
-        self._load_scene_matrices(Mat4(), global_tx)
+        self._load_scene_matrices(Mat4(), global_tx @ Mat4.translate(0, 0.5, 0))
         Primitives.draw("teapot")
 
         # ---- 2. billboards ----
