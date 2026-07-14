@@ -81,18 +81,18 @@ RENDER_UNIFORM_DTYPE = np.dtype(
 # (12 verts), local +z is the nose, y is up, x is wingspan.
 BOID_VERTS = np.array(
     [
-        (0.0, 1.0, 1.0),
-        (0.0, 0.0, -1.0),
-        (-0.5, 0.0, 1.0),
-        (0.0, 1.0, 1.0),
-        (0.0, 0.0, -1.0),
-        (0.5, 0.0, 1.0),
-        (0.0, 1.0, 1.0),
-        (0.0, 0.0, 1.5),
-        (-0.5, 0.0, 1.0),
-        (0.0, 1.0, 1.0),
-        (0.0, 0.0, 1.5),
-        (0.5, 0.0, 1.0),
+        (0.0, 1.0, -1.0),
+        (0.0, 0.0, 1.0),
+        (-0.5, 0.0, -1.0),
+        (0.0, 1.0, -1.0),
+        (0.0, 0.0, 1.0),
+        (0.5, 0.0, -1.0),
+        (0.0, 1.0, -1.0),
+        (0.0, 0.0, -1.5),
+        (-0.5, 0.0, -1.0),
+        (0.0, 1.0, -1.0),
+        (0.0, 0.0, -1.5),
+        (0.5, 0.0, -1.0),
     ],
     dtype=np.float32,
 ).reshape(-1)
@@ -146,7 +146,7 @@ class WebGPUScene(WebGPUWidget):
         )
 
         # --- camera / mouse state (same conventions as the other WebGPU demos) ---
-        self.model_position = Vec3(0, 0, -20)
+        self.model_position = Vec3(0, 0, -10)
         self.rotate = False
         self.translate = False
         self.spin_x_face = 0

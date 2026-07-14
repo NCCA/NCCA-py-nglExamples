@@ -10,20 +10,20 @@ A 4-bone chain along +y wrapped in a procedurally-built tube (no mesh or rig ass
 
 ## Controls
 
-| Key               | Action                                                         |
-| :---------------- | :-------------------------------------------------------------- |
-| `D`               | toggle LBS / DQS                                                |
+| Key               | Action                                                              |
+| :---------------- | :------------------------------------------------------------------ |
+| `D`               | toggle LBS / DQS                                                    |
 | `T`               | snap to the candy-wrapper pose — a fixed 180° twist of the end bone |
-| `S`               | toggle the skeleton overlay                                      |
-| LMB / RMB / wheel | rotate / pan / zoom, `Space` resets, `Esc` quits                |
+| `S`               | toggle the skeleton overlay                                         |
+| LMB / RMB / wheel | rotate / pan / zoom, `Space` resets, `Esc` quits                    |
 
 ## The candy-wrapper artefact
 
-Both skinning methods start from the same bind pose, the same per-vertex weights (linear falloff between the two nearest bones), and the same posed bone matrices — the only thing that differs is *how the two influences per vertex get blended*.
+Both skinning methods start from the same bind pose, the same per-vertex weights (linear falloff between the two nearest bones), and the same posed bone matrices — the only thing that differs is _how the two influences per vertex get blended_.
 
-LBS blends each influence's whole 4×4 matrix linearly: `v' = w0 * (v @ M0) + w1 * (v @ M1)`. That's fine for a bend, but twist a joint far enough and the two matrices start rotating a vertex towards opposite sides of the bone axis. Averaging them pulls the vertex *towards the axis itself* rather than around it, so the cross-section pinches in — like paper twisted at both ends, hence "candy wrapper". Push the twist to 180° and a ring weighted 50/50 between the two bones collapses to (near) zero radius: `tests/test_skinning_maths.py::TestCandyWrapper` pins this down to the metre, plus a check that DQS gets the same case wrong (right, rather) by keeping the ring's radius.
+LBS blends each influence's whole 4×4 matrix linearly: `v' = w0 * (v @ M0) + w1 * (v @ M1)`. That's fine for a bend, but twist a joint far enough and the two matrices start rotating a vertex towards opposite sides of the bone axis. Averaging them pulls the vertex _towards the axis itself_ rather than around it, so the cross-section pinches in — like paper twisted at both ends, hence "candy wrapper". Push the twist to 180° and a ring weighted 50/50 between the two bones collapses to (near) zero radius: `tests/test_skinning_maths.py::TestCandyWrapper` pins this down to the meter, plus a check that DQS gets the same case wrong (right, rather) by keeping the ring's radius.
 
-Dual-quaternion skinning blends the *rotations* instead of the matrices, via dual quaternion linear blending (DLB): each bone's rigid transform becomes a unit dual quaternion, the two influences are hemisphere-aligned (`q` and `-q` are the same rotation, but summing them unaligned cancels instead of blending) and blended, then renormalised. That blend takes the shortest path between the two orientations rather than the two positions, so the cross-section stays rigid all the way through the twist.
+Dual-quaternion skinning blends the _rotations_ instead of the matrices, via dual quaternion linear blending (DLB): each bone's rigid transform becomes a unit dual quaternion, the two influences are hemisphere-aligned (`q` and `-q` are the same rotation, but summing them unaligned cancels instead of blending) and blended, then renormalised. That blend takes the shortest path between the two orientations rather than the two positions, so the cross-section stays rigid all the way through the twist.
 
 This is the artefact skeletal animation textbooks always reach for to justify DQS over LBS — see Kavan, Collins, Žára & O'Sullivan, ["Skinning with Dual Quaternions"](https://users.cs.utah.edu/~ladislav/kavan08geometric/kavan08geometric.pdf), I3D 2007, which coined the "candy wrapper" name and the DLB blending rule used here.
 

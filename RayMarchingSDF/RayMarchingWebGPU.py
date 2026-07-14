@@ -258,8 +258,7 @@ class WebGPUScene(WebGPUWidget):
         self.render_text(
             10,
             45,
-            f"[+/-] smooth-min k = {self.smooth_k:.2f}   "
-            f"[Space] {'paused' if self.paused else 'running'}",
+            f"[+/-] smooth-min k = {self.smooth_k:.2f}   [Space] {'paused' if self.paused else 'running'}",
             14,
             "Arial",
             white,
@@ -335,6 +334,9 @@ class WebGPUScene(WebGPUWidget):
     def wheelEvent(self, event) -> None:
         delta = event.angleDelta().y()
         self.model_position.z += self.ZOOM * (delta / 120.0)
+        self.update()
+
+    def timerEvent(self, event) -> None:
         self.update()
 
 
