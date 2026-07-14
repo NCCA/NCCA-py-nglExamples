@@ -1,11 +1,10 @@
 #!/usr/bin/env -S uv run --active --script
+import argparse
 import sys
+import traceback
 
-import numpy as np
-import wgpu
-import wgpu.utils
-from ncca.ngl import Mat3, Mat4, PerspMode, PrimData, Prims, Vec3, look_at, perspective
-from PySide6.QtCore import Qt
+from ncca.ngl import Mat4, PerspMode, Vec3, look_at, perspective
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication
 from TeapotPipeline import TeapotPipeline
 from WebGPUWidget import WebGPUWidget
@@ -120,7 +119,7 @@ class WebGPUScene(WebGPUWidget):
                 self.depth_buffer_view,
             )
             self._update_colour_buffer()
-        except:
+        except Exception:
             pass
 
     def update_uniform_buffers(self) -> None:
@@ -160,15 +159,52 @@ class WebGPUScene(WebGPUWidget):
         super().keyPressEvent(event)
 
 
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
 def main():
     """
     Main function to run the application.
     Parses command line arguments and initializes the WebGPUScene.
     """
-    app = QApplication(sys.argv)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
     win = WebGPUScene()
     win.resize(800, 600)
     win.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())
 
 

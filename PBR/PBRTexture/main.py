@@ -8,6 +8,7 @@ can be toggled on and off. The scene features a floor and uses a first-person ca
 for navigation.
 """
 
+import argparse
 import logging
 import math
 import random
@@ -29,7 +30,7 @@ from ncca.ngl import (
     logger,
 )
 from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib
-from PySide6.QtCore import QElapsedTimer, Qt
+from PySide6.QtCore import QElapsedTimer, Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -385,7 +386,23 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
-    # --- Application Entry Point ---
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     logging.basicConfig(level=logging.INFO)
 
     format = QSurfaceFormat()
@@ -396,7 +413,7 @@ if __name__ == "__main__":
     format.setDepthBufferSize(24)
     QSurfaceFormat.setDefaultFormat(format)
 
-    if "--debug" in sys.argv:
+    if args.debug:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
@@ -404,4 +421,8 @@ if __name__ == "__main__":
     window = MainWindow()
     window.resize(1024, 720)
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())

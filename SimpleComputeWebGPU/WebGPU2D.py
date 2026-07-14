@@ -1,13 +1,14 @@
 #!/usr/bin/env -S uv run --active --script
 import argparse
 import sys
+import traceback
 
 import numpy as np
 import wgpu
 import wgpu.utils
-from ncca.ngl import Mat4, PerspMode, Vec3, look_at, ortho
-from PySide6.QtCore import QElapsedTimer, Qt, QTimerEvent
-from PySide6.QtGui import QKeyEvent, QMouseEvent, QSurfaceFormat, QWheelEvent
+from ncca.ngl import PerspMode, ortho
+from PySide6.QtCore import QElapsedTimer, Qt, QTimer, QTimerEvent
+from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
 from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
@@ -594,6 +595,18 @@ class WebGPUScene(WebGPUWidget):
             self.update()
 
 
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
 def main():
     """
     Main function to run the application.
@@ -609,11 +622,34 @@ def main():
         default=1000,
         help="The number of points to generate.",
     )
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
     args = parser.parse_args()
-    app = QApplication(sys.argv)
+
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
     win = WebGPUScene(num_points=args.points)
     win.resize(1024, 720)
     win.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())
 
 

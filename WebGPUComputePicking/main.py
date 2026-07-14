@@ -32,7 +32,9 @@ Controls (matching Maya):
     Escape       quit
 """
 
+import argparse
 import sys
+import traceback
 
 import numpy as np
 import wgpu
@@ -40,7 +42,7 @@ from Manipulator import CENTER, GIZMO_ID_BASE, Axis, ManipMode, Manipulator
 from ncca.ngl import Mat4, PerspMode, PrimData, Prims, Vec3, Vec4, look_at, perspective
 from ncca.ngl.webgpu import PipelineFactory, PipelineType
 from ObjectPipeline import GizmoPipeline, ObjectPipeline, PickResolver
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
 from SelectionObject import (
@@ -56,6 +58,18 @@ from wgpu.utils import get_default_device
 
 LIGHT_POS = (0.0, 10.0, 10.0)
 LIGHT_DIFFUSE = (1.0, 1.0, 1.0, 1.0)
+
+
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
 
 
 class WebGPUScene(WebGPUWidget):
@@ -492,10 +506,31 @@ class WebGPUScene(WebGPUWidget):
 
 
 def main() -> None:
-    app = QApplication(sys.argv)
+    parser = argparse.ArgumentParser(
+        description="Object selection and manipulation with compute-based picking"
+    )
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
+    app = DebugApplication(sys.argv) if args.debug else QApplication(sys.argv)
     win = WebGPUScene()
     win.resize(1024, 720)
     win.show()
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
     sys.exit(app.exec())
 
 

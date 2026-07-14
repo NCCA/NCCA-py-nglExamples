@@ -3,6 +3,7 @@
 frustum (6-plane extraction + sphere/plane distance test) and only draws the
 spheres that are inside or intersecting."""
 
+import argparse
 import sys
 import traceback
 
@@ -423,6 +424,23 @@ class DebugApplication(QApplication):
 if __name__ == "__main__":
     # --- Application Entry Point ---
 
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
@@ -437,13 +455,7 @@ if __name__ == "__main__":
     # Set default format for all new OpenGL contexts
     QSurfaceFormat.setDefaultFormat(format)
 
-    # Apply this format to all new OpenGL contexts
-    QSurfaceFormat.setDefaultFormat(format)
-
-    smoketest = "--smoketest" in sys.argv
-
-    # Check for a "--debug" command-line argument to run the DebugApplication
-    if len(sys.argv) > 1 and "--debug" in sys.argv:
+    if args.debug:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
@@ -455,8 +467,8 @@ if __name__ == "__main__":
     # Show the window
     window.show()
 
-    if smoketest:
-        QTimer.singleShot(200, lambda: (print("SMOKETEST OK"), app.quit()))
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
 
     # Start the application's event loop
     sys.exit(app.exec())

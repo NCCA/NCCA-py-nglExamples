@@ -29,6 +29,7 @@ Teaching points:
        README -- this whole stage doesn't exist outside desktop GL/Vulkan).
 """
 
+import argparse
 import sys
 import traceback
 from pathlib import Path
@@ -204,6 +205,23 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     format: QSurfaceFormat = QSurfaceFormat()
     format.setSamples(4)
     format.setMajorVersion(4)
@@ -212,8 +230,7 @@ if __name__ == "__main__":
     format.setDepthBufferSize(24)
     QSurfaceFormat.setDefaultFormat(format)
 
-    smoketest = "--smoketest" in sys.argv
-    if "--debug" in sys.argv:
+    if args.debug:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
@@ -222,7 +239,7 @@ if __name__ == "__main__":
     window.resize(1024, 720)
     window.show()
 
-    if smoketest:
-        QTimer.singleShot(200, lambda: (print("SMOKETEST OK"), app.quit()))
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
 
     sys.exit(app.exec())

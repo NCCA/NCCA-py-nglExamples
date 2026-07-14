@@ -1,8 +1,9 @@
 #!/usr/bin/env -S uv run --active --script
+import argparse
 import sys
 import traceback
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QApplication,
@@ -424,6 +425,18 @@ class WebGPUControlPanel3D(QWidget):
         self.regenerate_particles()
 
 
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
 class WebGPU3DGui(QMainWindow):
     """Main GUI window for WebGPU3D simulation."""
 
@@ -490,8 +503,6 @@ class WebGPU3DGui(QMainWindow):
 
 def main():
     """Main function to run the GUI application."""
-    import argparse
-
     parser = argparse.ArgumentParser(
         description="WebGPU 3D Particle Simulation with GUI"
     )
@@ -515,15 +526,32 @@ def main():
         help="Equispaced particle distribution",
     )
     parser.set_defaults(distribution="random")
-    parser.add_argument("-d", "--debug", action="store_true", help="Run in debug mode")
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
 
     args = parser.parse_args()
 
-    app = QApplication(sys.argv)
+    app = DebugApplication(sys.argv) if args.debug else QApplication(sys.argv)
 
     try:
         window = WebGPU3DGui(num_points=args.points, distribution=args.distribution)
         window.show()
+        if args.smoketest is not None:
+            QTimer.singleShot(
+                args.smoketest, lambda: (print("SMOKETEST OK"), app.quit())
+            )
         return_code = app.exec()
         sys.exit(return_code)
     except Exception as e:
