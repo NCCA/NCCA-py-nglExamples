@@ -7,6 +7,7 @@ standard mouse and keyboard controls for interacting with a 3D scene (rotate, pa
 It mirrors the functionality of the BlankPySide6NGL example using the SDL3 library.
 """
 
+import argparse
 import sys
 
 import OpenGL.GL as gl
@@ -159,6 +160,18 @@ def main():
     """
     The main entry point for the application.
     """
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    args = parser.parse_args()
+
     if sdl3.SDL_Init(sdl3.SDL_INIT_VIDEO) < 0:
         sys.exit(f"Error: could not initialize SDL: {sdl3.SDL_GetError()}")
 
@@ -193,6 +206,7 @@ def main():
 
     running = True
     event = sdl3.SDL_Event()
+    start_ticks = sdl3.SDL_GetTicks()
     while running:
         # Process all pending events
         while sdl3.SDL_PollEvent(event):
@@ -204,6 +218,12 @@ def main():
         scene.render()
         # Swap the front and back buffers to display the rendered frame
         sdl3.SDL_GL_SwapWindow(window)
+        if (
+            args.smoketest is not None
+            and sdl3.SDL_GetTicks() - start_ticks >= args.smoketest
+        ):
+            print("SMOKETEST OK")
+            running = False
 
     # Cleanup
     sdl3.SDL_GL_DestroyContext(context)
