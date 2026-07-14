@@ -1,17 +1,31 @@
 #!/usr/bin/env -S uv run --script
 # GUIDemos/QMLOverlayApp/main.py
+import argparse
 import sys
+import traceback
 from pathlib import Path
 
 import ncca.ngl.qml  # noqa: F401  (import registers ncca.ngl.qml widget types)
 from panel_registry import PanelRegistry
 from PyNGLScene import PyNGLScene
-from PySide6.QtCore import QEvent, Qt, QUrl
+from PySide6.QtCore import QEvent, Qt, QTimer, QUrl
 from PySide6.QtGui import QMouseEvent, QSurfaceFormat
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 from PySide6.QtQuickControls2 import QQuickStyle
 from PySide6.QtQuickWidgets import QQuickWidget
 from PySide6.QtWidgets import QApplication, QMainWindow
+
+
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
 
 
 class OverlayQuickWidget(QQuickWidget):
@@ -84,6 +98,23 @@ class MainWindow(QMainWindow):
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # The central widget is a QOpenGLWidget, which forces the top-level
     # window's native surface to composite via OpenGL. Qt Quick's default
     # RHI backend on macOS is Metal, which is incompatible with that
@@ -98,7 +129,10 @@ def main() -> int:
     # native appearance that doesn't match. Fusion supports both consistently
     # — same fix already applied in the sibling QMLFloatingWidgets demo.
     QQuickStyle.setStyle("Fusion")
-    app = QApplication(sys.argv)
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
     # main.qml's Settings element (import QtCore) persists panel positions and
     # the selected theme via QSettings. QSettings derives its storage path from
     # the organization/application name, so set them before any Settings is
@@ -115,6 +149,10 @@ def main() -> int:
 
     window = MainWindow()
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     return app.exec()
 
 

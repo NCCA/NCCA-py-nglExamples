@@ -1,6 +1,8 @@
 #!/usr/bin/env -S uv run  --script
 
+import argparse
 import sys
+import traceback
 
 from ncca.ngl import Vec3
 from ncca.ngl.widgets import (
@@ -10,10 +12,22 @@ from ncca.ngl.widgets import (
     TransformWidget,
 )
 from PyNGLScene import PyNGLScene
-from PySide6.QtCore import QFile, Qt, Signal
+from PySide6.QtCore import QFile, Qt, QTimer
 from PySide6.QtGui import QKeyEvent, QSurfaceFormat
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtWidgets import QApplication, QColorDialog, QMainWindow, QWidget
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget
+
+
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
 
 
 class Loader(QUiLoader):
@@ -116,8 +130,27 @@ class MainWindow(QMainWindow):
 
 def main():
     """Main application entry point."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
 
-    app = QApplication(sys.argv)
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
     # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
@@ -138,6 +171,12 @@ def main():
     try:
         window = MainWindow()
         window.show()
+
+        if args.smoketest is not None:
+            QTimer.singleShot(
+                args.smoketest, lambda: (print("SMOKETEST OK"), app.quit())
+            )
+
         sys.exit(app.exec())
     except Exception as e:
         print(f"Application error: {e}")
