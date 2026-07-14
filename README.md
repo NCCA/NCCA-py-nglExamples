@@ -182,6 +182,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="SimpleComputeWebGPU"><img src="SimpleComputeWebGPU/SimpleComputeWebGPU.png" width="220"></a> | [SimpleComputeWebGPU](SimpleComputeWebGPU) | Simple compute shader (WebGPU) |
 | <a href="WebGPUCompute/SpatialHash2D"><img src="WebGPUCompute/SpatialHash2D/SpatialHash2D.png" width="220"></a> | [WebGPUCompute/SpatialHash2D](WebGPUCompute/SpatialHash2D) | 2D spatial hashing on the GPU |
 | <a href="WebGPUCompute/SpatialHash3D"><img src="WebGPUCompute/SpatialHash3D/SpatialHash3D.png" width="220"></a> | [WebGPUCompute/SpatialHash3D](WebGPUCompute/SpatialHash3D) | 3D spatial hashing on the GPU |
+| <a href="BoidsCompute"><img src="BoidsCompute/BoidsCompute.png" width="220"></a> | [BoidsCompute](BoidsCompute) | Reynolds flocking with compute shaders + instanced rendering |
 
 ## WebGPU
 
