@@ -9,6 +9,7 @@ allows the user to execute the selected demo script in a separate process.
 """
 
 import os
+import shlex
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -17,7 +18,7 @@ from typing import Iterator
 
 import ncca.ngl
 from PySide6.QtCore import QFile, Qt
-from PySide6.QtGui import QKeyEvent, QPixmap
+from PySide6.QtGui import QIntValidator, QKeyEvent, QPixmap
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
@@ -29,6 +30,10 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+# Default smoketest run time in milliseconds, matching the default used by
+# the demos' own `--smoketest` argparse option.
+DEFAULT_SMOKETEST_MS = 200
 
 
 @dataclass
@@ -202,6 +207,10 @@ class DemoRunner(QMainWindow):
         ui_file.close()
         # Connect the 'Run Demo' button's clicked signal to its handler
         self.run_demo.clicked.connect(self.on_demo_clicked)
+        # Only positive integer millisecond values are accepted
+        self.smoketest_time.setValidator(QIntValidator(1, 600_000, self))
+        self.smoketest_time.setText(str(DEFAULT_SMOKETEST_MS))
+        self.smoketest_all.clicked.connect(self.on_smoketest_all_clicked)
 
     def on_demo_clicked(self) -> None:
         """
@@ -218,6 +227,55 @@ class DemoRunner(QMainWindow):
                 shell=True,
                 cwd=self.active_demo.root_path,
             )
+
+    def on_smoketest_all_clicked(self) -> None:
+        """
+        Runs every discovered demo with `--smoketest <ms>` in turn.
+
+        Each demo is expected to exit itself after the given number of
+        milliseconds. Progress and a final pass/fail summary are shown in
+        the description pane; failures include demos that exit non-zero or
+        that fail to exit within a grace period after the smoketest time.
+        """
+        try:
+            smoketest_ms = int(self.smoketest_time.text())
+        except ValueError:
+            smoketest_ms = DEFAULT_SMOKETEST_MS
+
+        self.smoketest_all.setEnabled(False)
+        total = len(self.executables)
+        failures: list[str] = []
+        try:
+            for index, demo in enumerate(self.executables, start=1):
+                self.demo_text.setPlainText(
+                    f"Smoketesting {index}/{total}: {demo.button_name}..."
+                )
+                QApplication.processEvents()
+                command = (
+                    f"{shlex.quote(demo.app_full_path)} --smoketest {smoketest_ms}"
+                )
+                try:
+                    result = subprocess.run(
+                        command,
+                        shell=True,
+                        cwd=demo.root_path,
+                        timeout=(smoketest_ms / 1000.0) + 30.0,
+                    )
+                    if result.returncode != 0:
+                        failures.append(demo.button_name)
+                except subprocess.TimeoutExpired:
+                    failures.append(f"{demo.button_name} (timed out)")
+        finally:
+            self.smoketest_all.setEnabled(True)
+
+        if failures:
+            summary = (
+                f"Smoketest FAILED for {len(failures)}/{total} demo(s):\n"
+                + "\n".join(failures)
+            )
+        else:
+            summary = f"Smoketest OK for all {total} demos."
+        self.demo_text.setPlainText(summary)
 
     def filter_demos(self, text: str) -> None:
         """
