@@ -38,7 +38,7 @@ from pathlib import Path
 import numpy as np
 import wgpu
 from instance_layout import cube, golden_spiral
-from ncca.ngl import Mat4, PerspMode, Vec3, look_at, perspective
+from ncca.ngl import Mat4, PerspMode, Vec3, logger, look_at, perspective
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
@@ -374,6 +374,7 @@ class WebGPUScene(WebGPUWidget):
 class DebugApplication(QApplication):
     def __init__(self, argv):
         super().__init__(argv)
+        logger.info("Running in full debug mode")
 
     def notify(self, receiver, event):
         try:

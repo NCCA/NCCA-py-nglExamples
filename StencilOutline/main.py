@@ -151,6 +151,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
         Primitives.load_default_primitives()
         Primitives.create(Prims.LINE_GRID, "grid", 12.0, 12.0, 24)
+        # sphere isn't in the pre-baked default set load_default_primitives()
+        # pulls from (unlike cube/teapot), so it must be created explicitly
+        Primitives.create(Prims.SPHERE, "sphere", 1.0, 40)
         # empty VAO for the full-screen tint triangle (core profile
         # requires a VAO to be bound even with no vertex attributes)
         self.screen_vao = gl.glGenVertexArrays(1)
@@ -158,7 +161,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Text.add_font(
             "Arial", str(Path(__file__).parent.parent / "font" / "Arial.ttf"), 20
         )
-        Primitives.create(Prims.SPHERE, "sphere", 1.0, 40)
 
     # ------------------------------------------------------------------
     # helpers
