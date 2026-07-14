@@ -17,6 +17,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 - [Getting Started / Templates](#getting-started--templates)
 - [OpenGL Fundamentals](#opengl-fundamentals)
 - [Vertex Array Objects](#vertex-array-objects)
+- [Instancing &amp; Performance](#instancing--performance)
 - [Geometry &amp; Meshes](#geometry--meshes)
 - [Textures &amp; Materials](#textures--materials)
 - [Blending &amp; Transparency](#blending--transparency)
@@ -68,6 +69,12 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="VertexArrayObject/MultiBufferVAO"><img src="VertexArrayObject/MultiBufferVAO/MBBoid.png" width="220"></a> | [VertexArrayObject/MultiBufferVAO](VertexArrayObject/MultiBufferVAO) | Multi-buffer VAO |
 | <a href="VertexArrayObject/SimpleIndexVAOFactory"><img src="VertexArrayObject/SimpleIndexVAOFactory/IndexVAO.png" width="220"></a> | [VertexArrayObject/SimpleIndexVAOFactory](VertexArrayObject/SimpleIndexVAOFactory) | Indexed VAO factory |
 | <a href="VertexArrayObject/ExtendedVAOFactory"><img src="VertexArrayObject/ExtendedVAOFactory/ExtendedVAO.png" width="220"></a> | [VertexArrayObject/ExtendedVAOFactory](VertexArrayObject/ExtendedVAOFactory) | Custom / extended VAO factory |
+
+## Instancing &amp; Performance
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="Instancing"><img src="Instancing/Instancing.png" width="220"></a> | [Instancing](Instancing) | GPU instancing vs a Python draw-call loop, with an on-screen frame-time HUD (OpenGL + WebGPU) |
 
 ## Geometry &amp; Meshes
 
