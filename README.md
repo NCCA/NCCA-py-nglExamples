@@ -87,6 +87,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="ColourObj"><img src="ColourObj/ColourObj.png" width="220"></a> | [ColourObj](ColourObj) | Obj mesh with per-vertex colour |
 | <a href="Obj2Numpy"><img src="Obj2Numpy/Obj2Numpy.png" width="220"></a> | [Obj2Numpy](Obj2Numpy) | Convert Obj data to NumPy arrays |
 | <a href="KleinBottle"><img src="KleinBottle/KleinBottle.png" width="220"></a> | [KleinBottle](KleinBottle) | Procedural Klein bottle |
+| <a href="MarchingCubes"><img src="MarchingCubes/MarchingCubes.png" width="220"></a> | [MarchingCubes](MarchingCubes) | Metaballs polygonised into a mesh every frame with vectorised Marching Cubes |
 
 ## Transforms &amp; Hierarchy
 
