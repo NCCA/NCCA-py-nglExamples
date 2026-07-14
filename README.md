@@ -20,6 +20,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 - [Instancing &amp; Performance](#instancing--performance)
 - [Geometry &amp; Meshes](#geometry--meshes)
 - [Transforms &amp; Hierarchy](#transforms--hierarchy)
+- [Animation](#animation)
 - [Textures &amp; Materials](#textures--materials)
 - [Blending &amp; Transparency](#blending--transparency)
 - [Environment &amp; Sky](#environment--sky)
@@ -27,6 +28,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 - [Selection &amp; Picking](#selection--picking)
 - [Framebuffers &amp; Post Processing](#framebuffers--post-processing)
 - [Lighting &amp; Shadows](#lighting--shadows)
+- [Ray Marching](#ray-marching)
 - [Geometry &amp; Tessellation Shaders](#geometry--tessellation-shaders)
 - [Uniforms &amp; Buffers](#uniforms--buffers)
 - [Compute Shaders](#compute-shaders)
@@ -85,12 +87,19 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="ColourObj"><img src="ColourObj/ColourObj.png" width="220"></a> | [ColourObj](ColourObj) | Obj mesh with per-vertex colour |
 | <a href="Obj2Numpy"><img src="Obj2Numpy/Obj2Numpy.png" width="220"></a> | [Obj2Numpy](Obj2Numpy) | Convert Obj data to NumPy arrays |
 | <a href="KleinBottle"><img src="KleinBottle/KleinBottle.png" width="220"></a> | [KleinBottle](KleinBottle) | Procedural Klein bottle |
+| <a href="MarchingCubes"><img src="MarchingCubes/MarchingCubes.png" width="220"></a> | [MarchingCubes](MarchingCubes) | Metaballs polygonised into a mesh every frame with vectorised Marching Cubes |
 
 ## Transforms &amp; Hierarchy
 
 | Preview | Demo | Description |
 | :---: | :--- | :--- |
 | <a href="SceneGraph"><img src="SceneGraph/SceneGraph.png" width="220"></a> | [SceneGraph](SceneGraph) | A robot arm built from a minimal, unit-tested transform-hierarchy `Node` class |
+
+## Animation
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="SkeletalAnimation"><img src="SkeletalAnimation/SkeletalAnimation.png" width="220"></a> | [SkeletalAnimation](SkeletalAnimation) | Linear blend skinning vs dual-quaternion skinning, and the "candy wrapper" artefact that tells them apart (OpenGL) |
 
 ## Textures &amp; Materials
 
@@ -103,6 +112,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="NormalMapping"><img src="NormalMapping/NormalMapping.png" width="220"></a> | [NormalMapping](NormalMapping) | Tangent-space normal mapping |
 | <a href="PBR/SimplePBR"><img src="PBR/SimplePBR/SimplePBR.png" width="220"></a> | [PBR/SimplePBR](PBR/SimplePBR) | Simple physically based rendering |
 | <a href="PBR/PBRTexture"><img src="PBR/PBRTexture/PBRTexture.png" width="220"></a> | [PBR/PBRTexture](PBR/PBRTexture) | Textured physically based rendering |
+| <a href="PBR/IBL"><img src="PBR/IBL/IBL.png" width="220"></a> | [PBR/IBL](PBR/IBL) | Image-based ambient lighting for PBR: numpy-precomputed irradiance map + BRDF split-sum LUT (OpenGL) |
 | <a href="Billboards"><img src="Billboards/Billboards.png" width="220"></a> | [Billboards](Billboards) | Camera-facing quads: fixed / cylindrical / spherical billboarding modes (OpenGL) |
 
 ## Blending &amp; Transparency
@@ -126,6 +136,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="EasingFunctions"><img src="EasingFunctions/EasingFunctions.png" width="220"></a> | [EasingFunctions](EasingFunctions) | Full Penner easing set with combo box selection and live matplotlib graph |
 | <a href="Interpolation"><img src="Interpolation/Interpolation.png" width="220"></a> | [Interpolation](Interpolation) | Interpolation techniques |
 | <a href="QuatSlerp"><img src="QuatSlerp/QuatSlerp.png" width="220"></a> | [QuatSlerp](QuatSlerp) | Quaternion spherical interpolation |
+| <a href="GimbalLock"><img src="GimbalLock/GimbalLock.png" width="220"></a> | [GimbalLock](GimbalLock) | Euler vs quaternion orientation, side by side, with a scripted gimbal-lock demonstration |
 
 ## Selection &amp; Picking
 
@@ -156,6 +167,12 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="WebGPUShadows"><img src="WebGPUShadows/WebGPUShadows.png" width="220"></a> | [WebGPUShadows](WebGPUShadows) | PCF shadow mapping (WebGPU) |
 | <a href="ShadowMapping"><img src="ShadowMapping/ShadowMapping.png" width="220"></a> | [ShadowMapping](ShadowMapping) | Two-pass depth-map shadows with PCF, bias and culling toggles (OpenGL) |
 
+## Ray Marching
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="RayMarchingSDF"><img src="RayMarchingSDF/RayMarchingSDF.png" width="220"></a> | [RayMarchingSDF](RayMarchingSDF) | Sphere-traced signed distance fields, smooth-blended primitives, soft shadows + AO (OpenGL &amp; WebGPU) |
+
 ## Geometry &amp; Tessellation Shaders
 
 | Preview | Demo | Description |
@@ -175,6 +192,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="SimpleComputeWebGPU"><img src="SimpleComputeWebGPU/SimpleComputeWebGPU.png" width="220"></a> | [SimpleComputeWebGPU](SimpleComputeWebGPU) | Simple compute shader (WebGPU) |
 | <a href="WebGPUCompute/SpatialHash2D"><img src="WebGPUCompute/SpatialHash2D/SpatialHash2D.png" width="220"></a> | [WebGPUCompute/SpatialHash2D](WebGPUCompute/SpatialHash2D) | 2D spatial hashing on the GPU |
 | <a href="WebGPUCompute/SpatialHash3D"><img src="WebGPUCompute/SpatialHash3D/SpatialHash3D.png" width="220"></a> | [WebGPUCompute/SpatialHash3D](WebGPUCompute/SpatialHash3D) | 3D spatial hashing on the GPU |
+| <a href="BoidsCompute"><img src="BoidsCompute/BoidsCompute.png" width="220"></a> | [BoidsCompute](BoidsCompute) | Reynolds flocking with compute shaders + instanced rendering |
 
 ## WebGPU
 

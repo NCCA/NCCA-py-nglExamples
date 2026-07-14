@@ -86,3 +86,6 @@ cython_debug/
 .DS_Store
 err
 .worktrees/
+
+# IBL numpy precompute caches (runtime artefacts, regenerated on first run)
+PBR/IBL/*.npy
