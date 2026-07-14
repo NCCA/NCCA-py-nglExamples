@@ -135,6 +135,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="SelectionManipulator"><img src="SelectionManipulator/SelectionManipulator.png" width="220"></a> | [SelectionManipulator](SelectionManipulator) | Maya-style manipulator (OpenGL) |
 | <a href="SelectionManipulatorWebGPU"><img src="SelectionManipulatorWebGPU/SelectionManipulatorWebGPU.png" width="220"></a> | [SelectionManipulatorWebGPU](SelectionManipulatorWebGPU) | Manipulator (WebGPU) |
 | <a href="WebGPUComputePicking"><img src="WebGPUComputePicking/WebGPUPick.png" width="220"></a> | [WebGPUComputePicking](WebGPUComputePicking) | Compute-shader picking (WebGPU) |
+| <a href="StencilOutline"><img src="StencilOutline/StencilOutline.png" width="220"></a> | [StencilOutline](StencilOutline) | Maya-style two-pass stencil-buffer selection outline (OpenGL) |
 
 ## Framebuffers &amp; Post Processing
 
