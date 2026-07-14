@@ -19,6 +19,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 - [Vertex Array Objects](#vertex-array-objects)
 - [Instancing &amp; Performance](#instancing--performance)
 - [Geometry &amp; Meshes](#geometry--meshes)
+- [Transforms &amp; Hierarchy](#transforms--hierarchy)
 - [Textures &amp; Materials](#textures--materials)
 - [Blending &amp; Transparency](#blending--transparency)
 - [Environment &amp; Sky](#environment--sky)
@@ -84,6 +85,12 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="ColourObj"><img src="ColourObj/ColourObj.png" width="220"></a> | [ColourObj](ColourObj) | Obj mesh with per-vertex colour |
 | <a href="Obj2Numpy"><img src="Obj2Numpy/Obj2Numpy.png" width="220"></a> | [Obj2Numpy](Obj2Numpy) | Convert Obj data to NumPy arrays |
 | <a href="KleinBottle"><img src="KleinBottle/KleinBottle.png" width="220"></a> | [KleinBottle](KleinBottle) | Procedural Klein bottle |
+
+## Transforms &amp; Hierarchy
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="SceneGraph"><img src="SceneGraph/SceneGraph.png" width="220"></a> | [SceneGraph](SceneGraph) | A robot arm built from a minimal, unit-tested transform-hierarchy `Node` class |
 
 ## Textures &amp; Materials
 
