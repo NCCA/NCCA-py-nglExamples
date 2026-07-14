@@ -158,6 +158,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Text.add_font(
             "Arial", str(Path(__file__).parent.parent / "font" / "Arial.ttf"), 20
         )
+        Primitives.create(Prims.SPHERE, "sphere", 1.0, 40)
 
     # ------------------------------------------------------------------
     # helpers
@@ -197,8 +198,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         )
         global_tx = self.scene_global_tx()
 
-        # floor grid, unaffected by stencil (mask still 0x00 from the last
-        # frame's restore, so this never writes)
+        # floor grid, unaffected by stencil: op is still GL_KEEP/GL_KEEP/GL_KEEP
+        # from the last frame's restore, so nothing gets written regardless
+        # of the write mask (which is 0xFF at this point, from that same restore)
         ShaderLib.use(DefaultShader.COLOUR)
         ShaderLib.set_uniform("MVP", self.project @ self.view @ global_tx)
         ShaderLib.set_uniform("Colour", 0.55, 0.55, 0.55, 1.0)
