@@ -20,6 +20,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 - [Instancing &amp; Performance](#instancing--performance)
 - [Geometry &amp; Meshes](#geometry--meshes)
 - [Transforms &amp; Hierarchy](#transforms--hierarchy)
+- [Animation](#animation)
 - [Textures &amp; Materials](#textures--materials)
 - [Blending &amp; Transparency](#blending--transparency)
 - [Environment &amp; Sky](#environment--sky)
@@ -91,6 +92,12 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | Preview | Demo | Description |
 | :---: | :--- | :--- |
 | <a href="SceneGraph"><img src="SceneGraph/SceneGraph.png" width="220"></a> | [SceneGraph](SceneGraph) | A robot arm built from a minimal, unit-tested transform-hierarchy `Node` class |
+
+## Animation
+
+| Preview | Demo | Description |
+| :---: | :--- | :--- |
+| <a href="SkeletalAnimation"><img src="SkeletalAnimation/SkeletalAnimation.png" width="220"></a> | [SkeletalAnimation](SkeletalAnimation) | Linear blend skinning vs dual-quaternion skinning, and the "candy wrapper" artefact that tells them apart (OpenGL) |
 
 ## Textures &amp; Materials
 
