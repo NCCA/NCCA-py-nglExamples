@@ -270,7 +270,10 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         ShaderLib.use(DefaultShader.DIFFUSE)
         ShaderLib.set_uniform("Colour", 0.85, 0.8, 0.75, 1.0)
         ShaderLib.set_uniform("lightPos", Vec3(2.0, 4.0, 3.0))
-        ShaderLib.set_uniform("lightDiffuse", Vec3(1.0, 1.0, 1.0))
+        # lightDiffuse is a vec4 in DefaultShader.DIFFUSE -- it must be set with
+        # four components (a Vec3 here emits glUniform3f and GL rejects it with
+        # GL_INVALID_OPERATION, aborting the whole frame).
+        ShaderLib.set_uniform("lightDiffuse", 1.0, 1.0, 1.0, 1.0)
         self._load_scene_matrices(Mat4(), global_tx)
         Primitives.draw("teapot")
 
