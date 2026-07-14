@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <ui version="4.0">
  <class>Form</class>
  <widget class="QWidget" name="Form">
@@ -19,7 +19,7 @@
      <property name="title">
       <string>Demo</string>
      </property>
-     <layout class="QVBoxLayout" name="demo_vertical_layout"/>
+     <layout class="QVBoxLayout" name="demo_vertical_layout" />
     </widget>
    </item>
    <item>
@@ -39,7 +39,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QTextEdit" name="demo_text"/>
+       <widget class="QTextEdit" name="demo_text" />
       </item>
       <item>
        <widget class="QPushButton" name="run_demo">
@@ -53,14 +53,14 @@
         <item>
          <widget class="QPushButton" name="smoketest_all">
           <property name="text">
-           <string>Smoketest All</string>
+           <string>Run All</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QLabel" name="smoketest_time_label">
           <property name="text">
-           <string>Time (ms):</string>
+           <string>Run Time (ms):</string>
           </property>
          </widget>
         </item>
@@ -78,6 +78,6 @@
    </item>
   </layout>
  </widget>
- <resources/>
- <connections/>
+ <resources />
+ <connections />
 </ui>
