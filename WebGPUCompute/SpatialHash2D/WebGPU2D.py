@@ -974,9 +974,13 @@ def main():
         default=None,
         type=int,
         metavar="MS",
-        help="Run smoketest for MS milliseconds (default 200) and exit",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
     )
-    parser.add_argument("--debug", action="store_true", help="Run in full debug mode")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
     parser.set_defaults(distribution="random")
     args = parser.parse_args()
 
