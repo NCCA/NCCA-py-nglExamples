@@ -1,5 +1,11 @@
 # TODO
 
+WebGPUWidget checks (and in PyGNL)
+FBO in PyNGL
+Tessellation in ShaderLib
+
+Make the IBL and SkyBox demos use images as well.
+
 Check out the mouse controls on some of the demos
 
 - WebGPURenderToTexture fix to be like SimpleFBO
