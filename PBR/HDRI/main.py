@@ -9,10 +9,12 @@ from pathlib import Path
 import OpenGL.GL as gl
 from exr_loader import load_equirect_hdr
 from ncca.ngl import (
+    Mat3,
     Mat4,
     Prims,
     Transform,
     Vec3,
+    Vec3Array,
     logger,
     look_at,
     perspective,
@@ -21,6 +23,7 @@ from ncca.ngl.opengl import (
     Primitives,
     PySideEventHandlingMixin,
     ShaderLib,
+    Text,
 )
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QKeyEvent, QSurfaceFormat
@@ -96,6 +99,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self._capture_rbo_size: int = 0
         self._empty_vao: int = 0
         self.debug_view: int = 0
+        self.use_ibl: bool = True
+        self.eye: Vec3 = Vec3(0, 0, 30)
 
     def initializeGL(self) -> None:
         """
@@ -108,10 +113,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_MULTISAMPLE)
 
-        eye = Vec3(0, 0, 4)
         to = Vec3(0, 0, 0)
         up = Vec3(0, 1, 0)
-        self.view = look_at(eye, to, up)
+        self.view = look_at(self.eye, to, up)
         self.project = perspective(45.0, 1024.0 / 720.0, 0.05, 350.0)
 
         ok = ShaderLib.load_shader(
@@ -144,12 +148,20 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             vert=str(SHADER_DIR / "LUTQuadVertex.glsl"),
             frag=str(SHADER_DIR / "LUTQuadFragment.glsl"),
         )
+        ok &= ShaderLib.load_shader(
+            "pbr",
+            vert=str(SHADER_DIR / "PBRVertex.glsl"),
+            frag=str(SHADER_DIR / "PBRFragment.glsl"),
+        )
         if not ok:
             logger.error("Error loading shaders")
             self.close()
 
         Primitives.create(Prims.CUBE, "cube", 2.0)
-        Primitives.load_default_primitives()  # for "teapot", used in later tasks
+        Primitives.load_default_primitives()  # for "teapot"
+        Text.add_font(
+            "Arial", str(Path(__file__).parent.parent.parent / "font" / "Arial.ttf"), 20
+        )
 
         # Empty VAO for the gl_VertexID-generated fullscreen triangle/quad
         # draws (BRDF LUT bake, LUT debug overlay) -- core profile still
@@ -203,6 +215,29 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
         # --- BRDF LUT (fullscreen triangle into RG16F 2D) ---
         self.brdf_lut = self._bake_brdf_lut()
+
+        # --- PBR teapot-grid shader: constant uniforms (lights, material,
+        # sampler units) set once here; per-teapot metallic/roughness/MVP
+        # are set per-draw in paintGL ---
+        ShaderLib.use("pbr")
+        ShaderLib.set_uniform("albedo", 0.5, 0.0, 0.0)
+        ShaderLib.set_uniform("ao", 1.0)
+        ShaderLib.set_uniform("camPos", self.eye)
+        ShaderLib.set_uniform("irradianceMap", 0)
+        ShaderLib.set_uniform("prefilterMap", 1)
+        ShaderLib.set_uniform("brdfLUT", 2)
+        light_colors = Vec3Array([Vec3(300.0, 300.0, 300.0) for _ in range(4)])
+        self.light_positions = Vec3Array(
+            [
+                Vec3(-10.0, 4.0, -10.0),
+                Vec3(10.0, 4.0, -10.0),
+                Vec3(-10.0, 4.0, 10.0),
+                Vec3(10.0, 4.0, 10.0),
+            ]
+        )
+        for i in range(4):
+            ShaderLib.set_uniform(f"lightPositions[{i}]", self.light_positions[i])
+            ShaderLib.set_uniform(f"lightColors[{i}]", light_colors[i])
 
     def _upload_equirect(self) -> int:
         """Upload the HDRI as a float32 2D texture (source for the bake)."""
@@ -375,6 +410,52 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glDepthMask(gl.GL_TRUE)
         gl.glDepthFunc(gl.GL_LESS)
 
+    def load_matrices_to_shader(self) -> None:
+        """Copy the transform's M/MVP/normalMatrix to the currently bound
+        shader (copied from PBR/SimplePBR:133-142)."""
+        M = self.mouse_global_tx @ self.transform.matrix()
+        MV = self.view @ M
+        MVP = self.project @ MV
+
+        normal_matrix = Mat3.from_mat4(MV)
+        normal_matrix = normal_matrix.inverse().transposed()
+        ShaderLib.set_uniform("MVP", MVP)
+        ShaderLib.set_uniform("normalMatrix", normal_matrix)
+        ShaderLib.set_uniform("M", M)
+
+    def _draw_teapot_grid(self) -> None:
+        """The 7x7 PBR teapot grid: rows sweep metallic 0..1, columns sweep
+        roughness 0.05..1, all lit by the split-sum IBL baked in
+        initializeGL (or the flat SimplePBR ambient hack when `I` toggles
+        IBL off)."""
+        ShaderLib.use("pbr")
+        ShaderLib.set_uniform("useIBL", self.use_ibl)
+        ShaderLib.set_uniform("camPos", self.eye)
+        gl.glActiveTexture(gl.GL_TEXTURE0)
+        gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, self.irradiance_map)
+        gl.glActiveTexture(gl.GL_TEXTURE1)
+        gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, self.prefilter_map)
+        gl.glActiveTexture(gl.GL_TEXTURE2)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self.brdf_lut)
+        for row in range(7):
+            for col in range(7):
+                self.transform.reset()
+                self.transform.set_position((col - 3) * 3.0, (row - 3) * 3.0, 0.0)
+                ShaderLib.set_uniform("metallic", row / 6.0)
+                ShaderLib.set_uniform("roughness", max(0.05, col / 6.0))
+                self.load_matrices_to_shader()
+                Primitives.draw("teapot")
+
+    def _draw_hud(self) -> None:
+        ibl_state = "on" if self.use_ibl else "off"
+        Text.render_text(
+            "Arial",
+            10,
+            20,
+            f"IBL: {ibl_state}  |  view: {DEBUG_VIEWS[self.debug_view]}",
+            Vec3(1.0, 1.0, 1.0),
+        )
+
     def _draw_debug_overlay(self) -> None:
         """`E` debug view "brdf lut": the BRDF LUT drawn as a small quad in
         the bottom-right corner, red = A (scale), green = B (bias)."""
@@ -391,11 +472,16 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glEnable(gl.GL_DEPTH_TEST)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
-        """`E` cycles the debug view; everything else falls through to the
-        mixin's defaults (Escape/W/S/Space)."""
+        """`E` cycles the debug view, `I` toggles IBL; everything else falls
+        through to the mixin's defaults (Escape/W/S/Space)."""
         if event.key() == Qt.Key_E:
             self.debug_view = (self.debug_view + 1) % len(DEBUG_VIEWS)
             logger.info(f"debug view: {DEBUG_VIEWS[self.debug_view]}")
+            self.update()
+            return
+        if event.key() == Qt.Key_I:
+            self.use_ibl = not self.use_ibl
+            logger.info(f"IBL: {'on' if self.use_ibl else 'off'}")
             self.update()
             return
         super().keyPressEvent(event)
@@ -415,8 +501,10 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.mouse_global_tx[3, 1] = self.model_position.y
         self.mouse_global_tx[3, 2] = self.model_position.z
 
+        self._draw_teapot_grid()
         self._draw_skybox()
         self._draw_debug_overlay()
+        self._draw_hud()
 
     def resizeGL(self, w: int, h: int) -> None:
         """
@@ -433,6 +521,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         # Update the projection matrix to match the new aspect ratio.
         # This creates a perspective projection with a 45-degree field of view.
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
+        Text.set_screen_size(w, h)
 
 
 class DebugApplication(QApplication):
