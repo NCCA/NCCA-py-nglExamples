@@ -167,6 +167,14 @@ class MainWindow(QOpenGLWindow):
         self._render_lights()
         self._render_scene()
 
+        # Keep repainting while an arrow key is held so movement is continuous
+        # and frame-rate paced, rather than a single step per key event.
+        if self.keys_pressed & self._MOVE_KEYS:
+            self.update()
+
+    # Arrow keys drive the first-person camera (see _update_camera_movement).
+    _MOVE_KEYS = {Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down}
+
     def _update_camera_movement(self) -> None:
         """Calculates and applies camera movement based on currently pressed keys."""
         # Advance the frame clock every call, not just while a key is held.
