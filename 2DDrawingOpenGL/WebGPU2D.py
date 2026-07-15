@@ -7,10 +7,10 @@ import numpy as np
 import wgpu
 import wgpu.utils
 from ncca.ngl import PerspMode, ortho
+from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import QElapsedTimer, Qt, QTimer, QTimerEvent
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 SIM_WIDTH = 200

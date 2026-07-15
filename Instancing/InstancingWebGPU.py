@@ -39,10 +39,10 @@ import numpy as np
 import wgpu
 from instance_layout import cube, golden_spiral
 from ncca.ngl import Mat4, PerspMode, Vec3, logger, look_at, perspective
+from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 DEFAULT_N = 4096

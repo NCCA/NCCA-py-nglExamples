@@ -10,8 +10,8 @@ from ncca.ngl import (
     look_at,
     perspective,
 )
+from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import Qt, Slot
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 

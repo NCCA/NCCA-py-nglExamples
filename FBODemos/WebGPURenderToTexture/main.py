@@ -4,10 +4,10 @@ import sys
 import traceback
 
 from ncca.ngl import Mat4, PerspMode, Vec3, look_at, perspective
+from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication
 from TeapotPipeline import TeapotPipeline
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 

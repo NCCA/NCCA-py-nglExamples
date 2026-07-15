@@ -26,10 +26,10 @@ import numpy as np
 import wgpu
 from blend_scene import DEFAULT_ALPHA, PANEL_SIZE, PANELS, back_to_front
 from ncca.ngl import Mat4, PerspMode, PrimData, Prims, Vec3, look_at, perspective
+from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 # Blend presets cycled with F, expressed as WebGPU blend components.
