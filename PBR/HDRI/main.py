@@ -22,8 +22,8 @@ from ncca.ngl.opengl import (
     PySideEventHandlingMixin,
     ShaderLib,
 )
-from PySide6.QtCore import QTimer
-from PySide6.QtGui import QSurfaceFormat
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QKeyEvent, QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 
@@ -39,6 +39,10 @@ ENV_SIZE, IRRADIANCE_SIZE, PREFILTER_SIZE, PREFILTER_MIPS, LUT_SIZE = (
     5,
     512,
 )
+
+# Cycled by the `E` key to prove out each bake stage visually; see
+# _draw_skybox and _draw_debug_overlay.
+DEBUG_VIEWS = ("off", "irradiance", "prefilter mip 2", "brdf lut")
 
 # The six view matrices that look out the six cube faces from the origin
 # (LearnOpenGL "Diffuse irradiance"). Order matches GL_TEXTURE_CUBE_MAP_POSITIVE_X..+5.
@@ -84,7 +88,14 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.transform = Transform()
 
         self.env_cubemap: int = 0
+        self.irradiance_map: int = 0
+        self.prefilter_map: int = 0
+        self.brdf_lut: int = 0
         self._capture_fbo: int = 0
+        self._capture_rbo: int = 0
+        self._capture_rbo_size: int = 0
+        self._empty_vao: int = 0
+        self.debug_view: int = 0
 
     def initializeGL(self) -> None:
         """
@@ -113,6 +124,26 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             vert=str(SHADER_DIR / "SkyboxVertex.glsl"),
             frag=str(SHADER_DIR / "SkyboxFragment.glsl"),
         )
+        ok &= ShaderLib.load_shader(
+            "irradiance",
+            vert=str(SHADER_DIR / "CubeVertex.glsl"),
+            frag=str(SHADER_DIR / "IrradianceFragment.glsl"),
+        )
+        ok &= ShaderLib.load_shader(
+            "prefilter",
+            vert=str(SHADER_DIR / "CubeVertex.glsl"),
+            frag=str(SHADER_DIR / "PrefilterFragment.glsl"),
+        )
+        ok &= ShaderLib.load_shader(
+            "brdf",
+            vert=str(SHADER_DIR / "BRDFVertex.glsl"),
+            frag=str(SHADER_DIR / "BRDFFragment.glsl"),
+        )
+        ok &= ShaderLib.load_shader(
+            "lutquad",
+            vert=str(SHADER_DIR / "LUTQuadVertex.glsl"),
+            frag=str(SHADER_DIR / "LUTQuadFragment.glsl"),
+        )
         if not ok:
             logger.error("Error loading shaders")
             self.close()
@@ -120,19 +151,25 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Primitives.create(Prims.CUBE, "cube", 2.0)
         Primitives.load_default_primitives()  # for "teapot", used in later tasks
 
+        # Empty VAO for the gl_VertexID-generated fullscreen triangle/quad
+        # draws (BRDF LUT bake, LUT debug overlay) -- core profile still
+        # requires *some* VAO bound even when no attributes are pulled.
+        self._empty_vao = gl.glGenVertexArrays(1)
+
         # Capture FBO used by every bake stage (equirect->cube here; irradiance,
-        # prefilter and LUT in Tasks 3-4 reuse this same FBO).
+        # prefilter and LUT below reuse this same FBO, resized per stage by
+        # _resize_capture_depth).
         self._capture_fbo = gl.glGenFramebuffers(1)
+        self._capture_rbo = gl.glGenRenderbuffers(1)
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self._capture_fbo)
-        rbo = gl.glGenRenderbuffers(1)
-        gl.glBindRenderbuffer(gl.GL_RENDERBUFFER, rbo)
-        gl.glRenderbufferStorage(
-            gl.GL_RENDERBUFFER, gl.GL_DEPTH_COMPONENT24, ENV_SIZE, ENV_SIZE
-        )
         gl.glFramebufferRenderbuffer(
-            gl.GL_FRAMEBUFFER, gl.GL_DEPTH_ATTACHMENT, gl.GL_RENDERBUFFER, rbo
+            gl.GL_FRAMEBUFFER,
+            gl.GL_DEPTH_ATTACHMENT,
+            gl.GL_RENDERBUFFER,
+            self._capture_rbo,
         )
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0)
+        self._resize_capture_depth(ENV_SIZE)
 
         self.equirect_tex = self._upload_equirect()
         self.env_cubemap = self._new_cubemap(ENV_SIZE, mip=True)
@@ -143,7 +180,29 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self._render_cube_faces("equirect2cube", self.env_cubemap, ENV_SIZE)
         gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, self.env_cubemap)
         gl.glGenerateMipmap(gl.GL_TEXTURE_CUBE_MAP)  # for prefilter sampling later
-        # (Tasks 3-4 append irradiance/prefilter/LUT bakes and the PBR draw here.)
+
+        # --- irradiance ---
+        self.irradiance_map = self._new_cubemap(IRRADIANCE_SIZE, mip=False)
+        self._resize_capture_depth(IRRADIANCE_SIZE)
+        gl.glActiveTexture(gl.GL_TEXTURE0)
+        gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, self.env_cubemap)
+        ShaderLib.use("irradiance")
+        ShaderLib.set_uniform("environmentMap", 0)
+        self._render_cube_faces("irradiance", self.irradiance_map, IRRADIANCE_SIZE)
+
+        # --- prefilter chain: one bake per mip, roughness = mip / (mips-1) ---
+        self.prefilter_map = self._new_cubemap(PREFILTER_SIZE, mip=True)
+        gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, self.env_cubemap)
+        ShaderLib.use("prefilter")
+        ShaderLib.set_uniform("environmentMap", 0)
+        for mip in range(PREFILTER_MIPS):
+            size = PREFILTER_SIZE >> mip
+            self._resize_capture_depth(size)
+            ShaderLib.set_uniform("roughness", mip / (PREFILTER_MIPS - 1))
+            self._render_cube_faces("prefilter", self.prefilter_map, size, mip=mip)
+
+        # --- BRDF LUT (fullscreen triangle into RG16F 2D) ---
+        self.brdf_lut = self._bake_brdf_lut()
 
     def _upload_equirect(self) -> int:
         """Upload the HDRI as a float32 2D texture (source for the bake)."""
@@ -196,6 +255,59 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             gl.glGenerateMipmap(gl.GL_TEXTURE_CUBE_MAP)
         return tex
 
+    def _resize_capture_depth(self, size: int) -> None:
+        """Resize the shared capture FBO's depth renderbuffer to `size`x`size`.
+
+        Every bake stage (env cubemap, irradiance, each prefilter mip) renders
+        at a different resolution, so the depth buffer backing the capture FBO
+        is resized to match immediately before that stage's draws.
+        """
+        if size == self._capture_rbo_size:
+            return
+        gl.glBindRenderbuffer(gl.GL_RENDERBUFFER, self._capture_rbo)
+        gl.glRenderbufferStorage(
+            gl.GL_RENDERBUFFER, gl.GL_DEPTH_COMPONENT24, size, size
+        )
+        self._capture_rbo_size = size
+
+    def _bake_brdf_lut(self) -> int:
+        """Bake the split-sum BRDF LUT into a 512^2 RG16F 2D texture, drawn
+        from a `gl_VertexID`-generated fullscreen triangle (no VBO needed)."""
+        tex = gl.glGenTextures(1)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, tex)
+        gl.glTexImage2D(
+            gl.GL_TEXTURE_2D,
+            0,
+            gl.GL_RG16F,
+            LUT_SIZE,
+            LUT_SIZE,
+            0,
+            gl.GL_RG,
+            gl.GL_FLOAT,
+            None,
+        )
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+
+        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self._capture_fbo)
+        self._resize_capture_depth(LUT_SIZE)
+        gl.glFramebufferTexture2D(
+            gl.GL_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D, tex, 0
+        )
+        assert (
+            gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE
+        )
+        gl.glViewport(0, 0, LUT_SIZE, LUT_SIZE)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+        ShaderLib.use("brdf")
+        gl.glBindVertexArray(self._empty_vao)
+        gl.glDrawArrays(gl.GL_TRIANGLES, 0, 3)
+        gl.glBindVertexArray(0)
+        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0)
+        return tex
+
     def _render_cube_faces(
         self, shader: str, target: int, size: int, mip: int = 0
     ) -> None:
@@ -218,6 +330,13 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
                 target,
                 mip,
             )
+            if face == 0:
+                # Cheap sanity check: catch a mis-sized depth buffer or a bad
+                # attachment loudly instead of silently baking garbage.
+                assert (
+                    gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER)
+                    == gl.GL_FRAMEBUFFER_COMPLETE
+                )
             gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
             Primitives.draw("cube")
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0)
@@ -225,14 +344,28 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
     def _draw_skybox(self) -> None:
         """The background sky: the baked environment cubemap, always drawn last
         behind everything else -- translation is stripped from the view so it
-        stays centred on the camera no matter where we pan."""
+        stays centred on the camera no matter where we pan.
+
+        Doubles as the `E` debug view for the cube bakes: "irradiance" swaps
+        in the 32^2 convolved cubemap, "prefilter mip 2" keeps the env cubemap
+        but samples it through the prefiltered chain at a fixed LOD.
+        """
         gl.glDepthFunc(gl.GL_LEQUAL)
         gl.glDepthMask(gl.GL_FALSE)
         ShaderLib.use("skybox")
         gl.glActiveTexture(gl.GL_TEXTURE0)
-        gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, self.env_cubemap)
+        debug = DEBUG_VIEWS[self.debug_view]
+        if debug == "irradiance":
+            gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, self.irradiance_map)
+            lod = 0.0
+        elif debug == "prefilter mip 2":
+            gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, self.prefilter_map)
+            lod = 2.0
+        else:
+            gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, self.env_cubemap)
+            lod = 0.0
         ShaderLib.set_uniform("skybox", 0)
-        ShaderLib.set_uniform("lod", 0.0)
+        ShaderLib.set_uniform("lod", lod)
         view_rotation_only = self.view.copy()
         view_rotation_only[3, 0] = 0.0
         view_rotation_only[3, 1] = 0.0
@@ -241,6 +374,31 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Primitives.draw("cube")
         gl.glDepthMask(gl.GL_TRUE)
         gl.glDepthFunc(gl.GL_LESS)
+
+    def _draw_debug_overlay(self) -> None:
+        """`E` debug view "brdf lut": the BRDF LUT drawn as a small quad in
+        the bottom-right corner, red = A (scale), green = B (bias)."""
+        if DEBUG_VIEWS[self.debug_view] != "brdf lut":
+            return
+        gl.glDisable(gl.GL_DEPTH_TEST)
+        ShaderLib.use("lutquad")
+        gl.glActiveTexture(gl.GL_TEXTURE0)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self.brdf_lut)
+        ShaderLib.set_uniform("lut", 0)
+        gl.glBindVertexArray(self._empty_vao)
+        gl.glDrawArrays(gl.GL_TRIANGLE_STRIP, 0, 4)
+        gl.glBindVertexArray(0)
+        gl.glEnable(gl.GL_DEPTH_TEST)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        """`E` cycles the debug view; everything else falls through to the
+        mixin's defaults (Escape/W/S/Space)."""
+        if event.key() == Qt.Key_E:
+            self.debug_view = (self.debug_view + 1) % len(DEBUG_VIEWS)
+            logger.info(f"debug view: {DEBUG_VIEWS[self.debug_view]}")
+            self.update()
+            return
+        super().keyPressEvent(event)
 
     def paintGL(self) -> None:
         """
@@ -258,6 +416,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.mouse_global_tx[3, 2] = self.model_position.z
 
         self._draw_skybox()
+        self._draw_debug_overlay()
 
     def resizeGL(self, w: int, h: int) -> None:
         """
