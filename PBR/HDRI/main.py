@@ -11,7 +11,6 @@ from exr_loader import load_equirect_hdr
 from ncca.ngl import (
     Mat3,
     Mat4,
-    Prims,
     Transform,
     Vec3,
     Vec3Array,
@@ -157,8 +156,10 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             logger.error("Error loading shaders")
             self.close()
 
-        Primitives.create(Prims.CUBE, "cube", 2.0)
-        Primitives.load_default_primitives()  # for "teapot"
+        # "cube" and "teapot" are both mesh defaults -- Prims.CUBE is not a
+        # parametric Primitives.create() type (that raises ValueError and would
+        # abort initializeGL), so load them from the bundled default meshes.
+        Primitives.load_default_primitives()
         Text.add_font(
             "Arial", str(Path(__file__).parent.parent.parent / "font" / "Arial.ttf"), 20
         )
