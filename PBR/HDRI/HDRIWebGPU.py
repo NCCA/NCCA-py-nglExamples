@@ -4,12 +4,13 @@
 This bakes the same split-sum IBL textures as the OpenGL ``main.py`` -
 env cube, irradiance cube, prefiltered specular cube and the BRDF LUT -
 but on wgpu-py, rendering into individual cube-array layers (and mip
-levels) rather than a single cubemap object. Task 6 adds the PBR teapot
-grid on top of the four bake textures produced here; for now this window
-just shows the baked HDRI as a skybox.
+levels) rather than a single cubemap object. On top of that it draws the
+same 7x7 PBR teapot grid (rows sweep metallic, columns sweep roughness)
+lit by the split-sum IBL, then the baked HDRI as a skybox behind it.
 
-Controls: left mouse rotates, wheel zooms, `E` cycles the env/irradiance/
-prefilter debug cubes, Escape quits.
+Controls: left mouse rotates, wheel zooms, `I` toggles IBL ambient, `E`
+cycles the env/irradiance/prefilter debug cubes, Space resets the camera,
+Escape quits.
 """
 
 import argparse
@@ -23,6 +24,7 @@ import wgpu.utils
 from exr_loader import load_equirect_hdr
 from ncca.ngl import (
     FirstPersonCamera,
+    Mat4,
     PerspMode,
     PrimData,
     Prims,
@@ -97,6 +99,52 @@ _SKYBOX_DTYPE = np.dtype(
     }
 )
 
+# Dynamic uniform offsets must be a multiple of the device alignment; 256 is
+# the maximum any device requires, so it is always a safe stride to use.
+_DYNAMIC_STRIDE = 256
+
+# One padded slot of per-teapot transforms (matches Transforms in PBR.wgsl).
+_TRANSFORM_DTYPE = np.dtype(
+    {
+        "names": ["MVP", "M", "normalMatrix", "material"],
+        "formats": [
+            (np.float32, (4, 4)),
+            (np.float32, (4, 4)),
+            (np.float32, (4, 4)),
+            (np.float32, 4),
+        ],
+        "offsets": [0, 64, 128, 192],
+        "itemsize": _DYNAMIC_STRIDE,
+    }
+)
+
+# Lights, camera and the IBL toggle, shared by every teapot in a frame
+# (matches Scene in PBR.wgsl).
+_PBR_SCENE_DTYPE = np.dtype(
+    {
+        "names": ["lightPositions", "lightColors", "camPos", "useIBL"],
+        "formats": [
+            (np.float32, (4, 4)),
+            (np.float32, (4, 4)),
+            (np.float32, 4),
+            np.uint32,
+        ],
+        "offsets": [0, 64, 128, 144],
+        "itemsize": 160,
+    }
+)
+
+# Matches main.py's initializeGL: 4 analytic point lights around the grid.
+_LIGHT_POSITIONS = [
+    (-10.0, 4.0, -10.0),
+    (10.0, 4.0, -10.0),
+    (-10.0, 4.0, 10.0),
+    (10.0, 4.0, 10.0),
+]
+_LIGHT_COLOUR = (300.0, 300.0, 300.0)
+
+GRID_SIZE = 7
+
 _MOVE_KEYS: set = set()
 
 
@@ -110,6 +158,7 @@ class HDRIScene(WebGPUWidget):
         self.msaa_sample_count = 4
 
         self.debug_view = 0
+        self.use_ibl = True
         self.rotate = False
         self.original_x_rotation = 0
         self.original_y_rotation = 0
@@ -156,15 +205,20 @@ class HDRIScene(WebGPUWidget):
             )
             self.prefilter_cube = self._bake_prefilter(self.env_cube)
             self.brdf_lut = self._bake_brdf()
+
+            self._create_pbr_pipeline()
+            self._build_grid()
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
             traceback.print_exc()
             raise
 
     def _load_geometry(self) -> None:
-        """Upload the unit cube used both for the bake draws and the skybox."""
+        """Upload the unit cube (bake draws + skybox) and the teapot (grid)."""
         cube = PrimData.primitive(Prims.CUBE.value).astype(np.float32)
         self.cube_geometry = self._make_vertex_buffer(cube)
+        teapot = PrimData.primitive(Prims.TEAPOT.value).astype(np.float32)
+        self.teapot_geometry = self._make_vertex_buffer(teapot)
 
     def _make_vertex_buffer(self, data: np.ndarray) -> dict:
         buffer = self.device.create_buffer_with_data(
@@ -434,6 +488,230 @@ class HDRIScene(WebGPUWidget):
         self.device.queue.submit([encoder.finish()])
         return lut
 
+    # --------------------------------------------------------- PBR teapots
+    def _create_pbr_pipeline(self) -> None:
+        """Create the split-sum IBL PBR pipeline and its bind group layouts."""
+        with open(HDRI_DIR / "PBR.wgsl", "r") as f:
+            shader = self.device.create_shader_module(code=f.read())
+
+        # @group(0) per-teapot transforms, addressed with a dynamic offset.
+        self.pbr_transform_bgl = self.device.create_bind_group_layout(
+            label="pbr_transform_bgl",
+            entries=[
+                {
+                    "binding": 0,
+                    "visibility": wgpu.ShaderStage.VERTEX | wgpu.ShaderStage.FRAGMENT,
+                    "buffer": {
+                        "type": wgpu.BufferBindingType.uniform,
+                        "has_dynamic_offset": True,
+                    },
+                }
+            ],
+        )
+        # @group(1) lights, camera and the IBL toggle, shared across the frame.
+        self.pbr_scene_bgl = self.device.create_bind_group_layout(
+            label="pbr_scene_bgl",
+            entries=[
+                {
+                    "binding": 0,
+                    "visibility": wgpu.ShaderStage.FRAGMENT,
+                    "buffer": {"type": wgpu.BufferBindingType.uniform},
+                }
+            ],
+        )
+        # @group(2) the baked IBL textures + a linear/mip-linear sampler.
+        self.pbr_ibl_bgl = self.device.create_bind_group_layout(
+            label="pbr_ibl_bgl",
+            entries=[
+                {
+                    "binding": 0,
+                    "visibility": wgpu.ShaderStage.FRAGMENT,
+                    "texture": {
+                        "sample_type": wgpu.TextureSampleType.float,
+                        "view_dimension": wgpu.TextureViewDimension.cube,
+                        "multisampled": False,
+                    },
+                },
+                {
+                    "binding": 1,
+                    "visibility": wgpu.ShaderStage.FRAGMENT,
+                    "texture": {
+                        "sample_type": wgpu.TextureSampleType.float,
+                        "view_dimension": wgpu.TextureViewDimension.cube,
+                        "multisampled": False,
+                    },
+                },
+                {
+                    "binding": 2,
+                    "visibility": wgpu.ShaderStage.FRAGMENT,
+                    "texture": {
+                        "sample_type": wgpu.TextureSampleType.float,
+                        "view_dimension": wgpu.TextureViewDimension.d2,
+                        "multisampled": False,
+                    },
+                },
+                {
+                    "binding": 3,
+                    "visibility": wgpu.ShaderStage.FRAGMENT,
+                    "sampler": {"type": wgpu.SamplerBindingType.filtering},
+                },
+            ],
+        )
+
+        layout = self.device.create_pipeline_layout(
+            bind_group_layouts=[
+                self.pbr_transform_bgl,
+                self.pbr_scene_bgl,
+                self.pbr_ibl_bgl,
+            ]
+        )
+        self.pbr_pipeline = self.device.create_render_pipeline(
+            label="pbr_ibl_pipeline",
+            layout=layout,
+            vertex={
+                "module": shader,
+                "entry_point": "vertex_main",
+                "buffers": [
+                    {
+                        "array_stride": _VERTEX_STRIDE,
+                        "step_mode": "vertex",
+                        "attributes": [
+                            {"format": "float32x3", "offset": 0, "shader_location": 0},
+                            {"format": "float32x3", "offset": 12, "shader_location": 1},
+                            {"format": "float32x2", "offset": 24, "shader_location": 2},
+                        ],
+                    }
+                ],
+            },
+            fragment={
+                "module": shader,
+                "entry_point": "fragment_main",
+                "targets": [{"format": PRESENT_FORMAT}],
+            },
+            primitive={"topology": wgpu.PrimitiveTopology.triangle_list},
+            depth_stencil={
+                "format": wgpu.TextureFormat.depth24plus,
+                "depth_write_enabled": True,
+                "depth_compare": wgpu.CompareFunction.less,
+            },
+            multisample={"count": self.msaa_sample_count},
+        )
+
+        self.pbr_scene_uniforms = np.zeros((), dtype=_PBR_SCENE_DTYPE)
+        for i, pos in enumerate(_LIGHT_POSITIONS):
+            self.pbr_scene_uniforms["lightPositions"][i] = (*pos, 1.0)
+            self.pbr_scene_uniforms["lightColors"][i] = (*_LIGHT_COLOUR, 1.0)
+        self.pbr_scene_buffer = self.device.create_buffer(
+            size=self.pbr_scene_uniforms.nbytes,
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+            label="pbr_scene_buffer",
+        )
+        self.pbr_scene_bind_group = self.device.create_bind_group(
+            layout=self.pbr_scene_bgl,
+            entries=[{"binding": 0, "resource": {"buffer": self.pbr_scene_buffer}}],
+        )
+
+        ibl_view = self.pbr_ibl_bind_group = self.device.create_bind_group(
+            layout=self.pbr_ibl_bgl,
+            entries=[
+                {
+                    "binding": 0,
+                    "resource": self.irradiance_cube.create_view(
+                        dimension=wgpu.TextureViewDimension.cube
+                    ),
+                },
+                {
+                    "binding": 1,
+                    "resource": self.prefilter_cube.create_view(
+                        dimension=wgpu.TextureViewDimension.cube
+                    ),
+                },
+                {
+                    "binding": 2,
+                    "resource": self.brdf_lut.create_view(
+                        dimension=wgpu.TextureViewDimension.d2
+                    ),
+                },
+                {"binding": 3, "resource": self.linear_sampler},
+            ],
+        )
+        del ibl_view  # created for clarity above; bind group is the useful part
+
+    def _build_grid(self) -> None:
+        """Lay out the 7x7 teapot grid: rows sweep metallic, columns sweep
+        roughness, matching main.py's `_draw_teapot_grid`."""
+        self.grid_objects = []  # (model Mat4, metallic, roughness)
+        for row in range(GRID_SIZE):
+            for col in range(GRID_SIZE):
+                model = Mat4()
+                model[3, 0] = (col - 3) * 3.0
+                model[3, 1] = (row - 3) * 3.0
+                model[3, 2] = 0.0
+                metallic = row / 6.0
+                roughness = max(0.05, col / 6.0)
+                self.grid_objects.append((model, metallic, roughness))
+
+        count = len(self.grid_objects)
+        self.grid_transform_uniforms = np.zeros(count, dtype=_TRANSFORM_DTYPE)
+        self.grid_transform_buffer = self.device.create_buffer(
+            size=self.grid_transform_uniforms.nbytes,
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+            label="grid_transform_buffer",
+        )
+        self.grid_transform_bind_group = self.device.create_bind_group(
+            layout=self.pbr_transform_bgl,
+            entries=[
+                {
+                    "binding": 0,
+                    "resource": {
+                        "buffer": self.grid_transform_buffer,
+                        "offset": 0,
+                        "size": _DYNAMIC_STRIDE,
+                    },
+                }
+            ],
+        )
+
+    def _write_pbr_scene_uniforms(self) -> None:
+        self.pbr_scene_uniforms["camPos"] = (
+            self.camera.eye.x,
+            self.camera.eye.y,
+            self.camera.eye.z,
+            1.0,
+        )
+        self.pbr_scene_uniforms["useIBL"] = 1 if self.use_ibl else 0
+        self.device.queue.write_buffer(
+            self.pbr_scene_buffer, 0, self.pbr_scene_uniforms.tobytes()
+        )
+
+    def _write_grid_transform_uniforms(self) -> None:
+        view = self.camera.view
+        projection = self.camera.projection
+        for i, (model, metallic, roughness) in enumerate(self.grid_objects):
+            model_view = view @ model
+            mvp = projection @ model_view
+            normal_matrix = model_view.copy().inverse().transposed()
+            slot = self.grid_transform_uniforms[i]
+            slot["MVP"] = mvp.to_numpy()
+            slot["M"] = model.to_numpy()
+            slot["normalMatrix"] = normal_matrix.to_numpy()
+            slot["material"] = (metallic, roughness, 1.0, 0.0)
+        self.device.queue.write_buffer(
+            self.grid_transform_buffer, 0, self.grid_transform_uniforms.tobytes()
+        )
+
+    def _draw_grid(self, render_pass: "wgpu.GPURenderPassEncoder") -> None:
+        render_pass.set_viewport(0, 0, self.texture_size[0], self.texture_size[1], 0, 1)
+        render_pass.set_pipeline(self.pbr_pipeline)
+        render_pass.set_bind_group(1, self.pbr_scene_bind_group)
+        render_pass.set_bind_group(2, self.pbr_ibl_bind_group)
+        for i in range(len(self.grid_objects)):
+            render_pass.set_bind_group(
+                0, self.grid_transform_bind_group, [i * _DYNAMIC_STRIDE]
+            )
+            render_pass.set_vertex_buffer(0, self.teapot_geometry["buffer"])
+            render_pass.draw(self.teapot_geometry["count"])
+
     # ------------------------------------------------------------- skybox
     def _create_skybox_pipeline(self) -> None:
         with open(HDRI_DIR / "Skybox.wgsl", "r") as f:
@@ -531,7 +809,7 @@ class HDRIScene(WebGPUWidget):
 
     # ------------------------------------------------------------------- paint
     def paintWebGPU(self) -> None:
-        if not hasattr(self, "skybox_pipeline"):
+        if not hasattr(self, "skybox_pipeline") or not hasattr(self, "pbr_pipeline"):
             return
         current = self.timer.elapsed() * 0.001
         delta_time = min(current - self.last_frame, 0.05)
@@ -553,6 +831,9 @@ class HDRIScene(WebGPUWidget):
             self.skybox_uniform_buffer, 0, self.skybox_uniforms.tobytes()
         )
 
+        self._write_pbr_scene_uniforms()
+        self._write_grid_transform_uniforms()
+
         command_encoder = self.device.create_command_encoder()
         render_pass = command_encoder.begin_render_pass(
             color_attachments=[
@@ -571,6 +852,9 @@ class HDRIScene(WebGPUWidget):
                 "depth_clear_value": 1.0,
             },
         )
+        # Draw the teapot grid first (writes depth), then the skybox behind
+        # it (depth test only, no depth write) sharing the same depth buffer.
+        self._draw_grid(render_pass)
         render_pass.set_viewport(0, 0, self.texture_size[0], self.texture_size[1], 0, 1)
         render_pass.set_pipeline(self.skybox_pipeline)
         render_pass.set_bind_group(0, self.skybox_uniform_bind_group)
@@ -602,6 +886,17 @@ class HDRIScene(WebGPUWidget):
             self.close()
         elif key == Qt.Key_E:
             self.debug_view = (self.debug_view + 1) % len(DEBUG_VIEWS)
+        elif key == Qt.Key_I:
+            self.use_ibl = not self.use_ibl
+        elif key == Qt.Key_Space:
+            self.camera = FirstPersonCamera(
+                Vec3(0, 0, 30), Vec3(0, 0, 0), Vec3(0, 1, 0), 45.0, PerspMode.WebGPU
+            )
+            width = max(self.width(), 1)
+            height = max(self.height(), 1)
+            self.camera.set_projection(
+                45.0, width / height, 0.05, 350.0, PerspMode.WebGPU
+            )
         self.update()
         super().keyPressEvent(event)
 
