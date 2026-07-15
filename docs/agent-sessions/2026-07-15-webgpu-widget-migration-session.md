@@ -53,3 +53,27 @@ All 18 demos print `SMOKETEST OK` with no tracebacks; tests and linters pass.
 `WebGPUMultiGeo/WebGPUMultiGeo_updated.py` is an untracked scratch file that still
 imports the local widget. It was not part of the worktree, so it is untouched —
 if it is kept, its import needs the same swap.
+
+## Follow-up: read-back ring bug (same day)
+
+After the merge, `OITransparency` and `SimpleComputeWebGPU` came up grey. The
+PyNGL widget's `_update_colour_buffer` reads from a pipelined ring of buffers
+(`readback_buffers` / `_readback_index` / `_readback_pending`) that only its own
+`_create_render_buffer` sets up. Four demos override `_create_render_buffer` and
+built a single `readback_buffer` instead, so the inherited `_update_colour_buffer`
+raised `AttributeError` every frame — swallowed by its try/except, which fills the
+frame grey. My first smoketest check only looked for `SMOKETEST OK` and missed it;
+the stricter check greps for `Failed to update colour buffer` too.
+
+Fix (commit `30f6486` on `Version1.0`):
+
+- `2DDrawingOpenGL/WebGPU2D`, `SimpleComputeWebGPU/WebGPU2D` and `RayMarchingSDF`
+  only duplicated (or were a subset of) the base targets, so their overrides were
+  removed and they inherit the base, ring included.
+- `OITransparency` keeps its custom accum/reveal/composite targets but now calls
+  `super()._create_render_buffer()` first to get the ring.
+
+Verified all 18 demos with the stricter check (no readback failures); 275 tests pass.
+
+The silent-failure class of bug was also fixed at the library level — see the PyNGL
+repo session note for 2026-07-15 (fail loudly on a missing read-back ring).
