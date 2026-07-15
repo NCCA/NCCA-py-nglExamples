@@ -15,10 +15,12 @@ from ncca.ngl import (
     look_at,
     perspective,
 )
+from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication
 from TeapotPipeline import TeapotPipeline
-from WebGPUWidget import WebGPUWidget
+
+# from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 
@@ -86,7 +88,7 @@ class WebGPUScene(WebGPUWidget):
             self._create_render_buffer()
             self._init_buffers()
             self._create_render_pipeline()
-            self.startTimer(16)
+            self.start_update_timer(16)
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
             exit(1)
@@ -179,12 +181,6 @@ class WebGPUScene(WebGPUWidget):
             45.0, width / height if height > 0 else 1, 0.1, 350.0, PerspMode.WebGPU
         )
 
-        # Recreate render buffers for the new window size
-        self._create_render_buffer()
-
-        # Resize the numpy buffer to match new window dimensions
-        if self.frame_buffer is not None:
-            self.frame_buffer = np.zeros([height, width, 4], dtype=np.uint8)
         for pipeline in self.pipelines:
             pipeline.width = width
             pipeline.height = height
@@ -282,9 +278,9 @@ class WebGPUScene(WebGPUWidget):
         """
         num_pixels = event.angleDelta()
         # Zoom in or out by adjusting the Z position of the model
-        if num_pixels.x() > 0:
+        if num_pixels.y() > 0:
             self.model_position.z += self.ZOOM
-        elif num_pixels.x() < 0:
+        elif num_pixels.y() < 0:
             self.model_position.z -= self.ZOOM
         self.update()
 
