@@ -167,8 +167,25 @@ class MainWindow(QOpenGLWindow):
         self._render_lights()
         self._render_scene()
 
+        # Keep repainting while an arrow key is held so movement is continuous
+        # and frame-rate paced, rather than a single step per key event.
+        if self.keys_pressed & self._MOVE_KEYS:
+            self.update()
+
+    # Arrow keys drive the first-person camera (see _update_camera_movement).
+    _MOVE_KEYS = {Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down}
+
     def _update_camera_movement(self) -> None:
         """Calculates and applies camera movement based on currently pressed keys."""
+        # Advance the frame clock every call, not just while a key is held.
+        # If we only updated last_frame inside the movement block it would go
+        # stale between key presses, and the next press would produce a delta
+        # spanning the whole idle gap - giving a large initial jump. Clamping
+        # guards against any remaining gap (e.g. the first press after startup).
+        current_frame = self.timer.elapsed() * 0.001
+        delta_time = min(current_frame - self.last_frame, 0.05)
+        self.last_frame = current_frame
+
         x_direction = 0.0
         y_direction = 0.0
         for key in self.keys_pressed:
@@ -182,9 +199,6 @@ class MainWindow(QOpenGLWindow):
                 x_direction = -1.0
 
         if x_direction != 0.0 or y_direction != 0.0:
-            current_frame = self.timer.elapsed() * 0.001
-            delta_time = current_frame - self.last_frame
-            self.last_frame = current_frame
             self.camera.move(x_direction, y_direction, delta_time)
 
     def _render_lights(self) -> None:

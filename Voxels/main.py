@@ -273,7 +273,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Up/Down move forward/back, Left/Right strafe.
         """
         current_frame = self.move_timer.elapsed() * 0.001  # ms -> seconds
-        delta_time = current_frame - self.last_frame
+        # Clamp the delta so the first press after an idle gap (when no frames
+        # are being drawn) doesn't span the whole gap and jump the camera.
+        delta_time = min(current_frame - self.last_frame, 0.05)
         self.last_frame = current_frame
 
         if not (self.keys_pressed & self._MOVE_KEYS):
