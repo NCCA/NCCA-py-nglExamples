@@ -175,6 +175,10 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self._capture_fbo = gl.glGenFramebuffers(1)
         self._capture_rbo = gl.glGenRenderbuffers(1)
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self._capture_fbo)
+        # Allocate the renderbuffer (first bind + storage) BEFORE attaching it:
+        # glGenRenderbuffers only reserves a name, and attaching a never-bound
+        # name is GL_INVALID_OPERATION on macOS core profile.
+        self._resize_capture_depth(ENV_SIZE)
         gl.glFramebufferRenderbuffer(
             gl.GL_FRAMEBUFFER,
             gl.GL_DEPTH_ATTACHMENT,
@@ -182,7 +186,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             self._capture_rbo,
         )
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0)
-        self._resize_capture_depth(ENV_SIZE)
 
         self.equirect_tex = self._upload_equirect()
         self.env_cubemap = self._new_cubemap(ENV_SIZE, mip=True)
