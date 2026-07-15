@@ -1,9 +1,16 @@
 import numpy as np
 import wgpu
-from ncca.ngl import Mat4, PrimData, Prims, Vec3
+from ncca.ngl import PrimData, Prims
 
 
 class TeapotPipeline:
+    """First pass of the render-to-texture demo.
+
+    Owns an offscreen colour texture and renders a PBR shaded teapot into it.
+    The resolved single sample texture is exposed as ``texture_view`` so the
+    second pass can sample it onto other geometry.
+    """
+
     def __init__(self, device, eye, light_pos, view, project, width, height):
         self.device = device
         self.pipeline = None
@@ -21,14 +28,50 @@ class TeapotPipeline:
         self.light_pos = light_pos
         self.view = view
         self.project = project
+        self.width = width
+        self.height = height
+        self.sample_count = 4
         self._create_render_pipeline()
+        self._create_render_targets()
         teapot = PrimData.primitive(Prims.TEAPOT.value)
         self.teapot_size = teapot.size // 8
         self.vertex_buffer = self.device.create_buffer_with_data(
             data=teapot, usage=wgpu.BufferUsage.VERTEX
         )
-        self.width = width
-        self.height = height
+
+    def _create_render_targets(self) -> None:
+        """Create the offscreen textures the teapot is rendered into.
+
+        We render into a multisampled colour target and resolve it into a
+        single sample texture. Only the resolved texture can be sampled in the
+        second pass, so that is the one we hand out via ``texture_view``.
+        """
+        size = (self.width, self.height, 1)
+        # Resolved single sample colour texture - this is what pass two samples.
+        self.colour_texture = self.device.create_texture(
+            size=size,
+            sample_count=1,
+            format=wgpu.TextureFormat.rgba8unorm,
+            usage=wgpu.TextureUsage.RENDER_ATTACHMENT
+            | wgpu.TextureUsage.TEXTURE_BINDING,
+        )
+        self.texture_view = self.colour_texture.create_view()
+        # Multisampled colour target we actually render into.
+        self.msaa_texture = self.device.create_texture(
+            size=size,
+            sample_count=self.sample_count,
+            format=wgpu.TextureFormat.rgba8unorm,
+            usage=wgpu.TextureUsage.RENDER_ATTACHMENT,
+        )
+        self.msaa_view = self.msaa_texture.create_view()
+        # Multisampled depth buffer to match the colour target.
+        self.depth_texture = self.device.create_texture(
+            size=size,
+            sample_count=self.sample_count,
+            format=wgpu.TextureFormat.depth24plus,
+            usage=wgpu.TextureUsage.RENDER_ATTACHMENT,
+        )
+        self.depth_view = self.depth_texture.create_view()
 
     def _create_render_pipeline(self) -> None:
         """
@@ -215,39 +258,34 @@ class TeapotPipeline:
             data=self.transform_uniforms.tobytes(),
         )
 
-    def paint(self, texture_view, multi_sample_view, depth_buffer_view) -> None:
-        """
-        Paint the WebGPU content.
+    def paint(self) -> None:
+        """Render the teapot into the offscreen colour texture.
 
-        This method renders the WebGPU content for the scene.
+        The resolved result is available afterwards via ``self.texture_view``.
         """
-
-        try:
-            command_encoder = self.device.create_command_encoder()
-            render_pass = command_encoder.begin_render_pass(
-                color_attachments=[
-                    {
-                        "view": multi_sample_view,
-                        "resolve_target": texture_view,
-                        "load_op": wgpu.LoadOp.clear,
-                        "store_op": wgpu.StoreOp.store,
-                        "clear_value": (0.0, 0.4, 0.5, 1.0),
-                    }
-                ],
-                depth_stencil_attachment={
-                    "view": depth_buffer_view,
-                    "depth_load_op": wgpu.LoadOp.clear,
-                    "depth_store_op": wgpu.StoreOp.store,
-                    "depth_clear_value": 1.0,
-                },
-            )
-            render_pass.set_viewport(0, 0, self.width, self.height, 0, 1)
-            render_pass.set_pipeline(self.pipeline)
-            render_pass.set_bind_group(0, self.bind_group_0, [], 0, 999999)
-            render_pass.set_bind_group(1, self.bind_group_1, [], 0, 999999)
-            render_pass.set_vertex_buffer(0, self.vertex_buffer)
-            render_pass.draw(self.teapot_size)
-            render_pass.end()
-            self.device.queue.submit([command_encoder.finish()])
-        except Exception as e:
-            print(f"Failed to paint WebGPU content: {e}")
+        command_encoder = self.device.create_command_encoder()
+        render_pass = command_encoder.begin_render_pass(
+            color_attachments=[
+                {
+                    "view": self.msaa_view,
+                    "resolve_target": self.texture_view,
+                    "load_op": wgpu.LoadOp.clear,
+                    "store_op": wgpu.StoreOp.store,
+                    "clear_value": (0.0, 0.4, 0.5, 1.0),
+                }
+            ],
+            depth_stencil_attachment={
+                "view": self.depth_view,
+                "depth_load_op": wgpu.LoadOp.clear,
+                "depth_store_op": wgpu.StoreOp.store,
+                "depth_clear_value": 1.0,
+            },
+        )
+        render_pass.set_viewport(0, 0, self.width, self.height, 0, 1)
+        render_pass.set_pipeline(self.pipeline)
+        render_pass.set_bind_group(0, self.bind_group_0, [], 0, 999999)
+        render_pass.set_bind_group(1, self.bind_group_1, [], 0, 999999)
+        render_pass.set_vertex_buffer(0, self.vertex_buffer)
+        render_pass.draw(self.teapot_size)
+        render_pass.end()
+        self.device.queue.submit([command_encoder.finish()])
