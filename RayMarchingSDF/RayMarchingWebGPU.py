@@ -154,26 +154,9 @@ class WebGPUScene(WebGPUWidget):
             primitive={"topology": wgpu.PrimitiveTopology.triangle_list},
         )
 
-    # ------------------------------------------------------------------
-    # required override: this demo has no MSAA / depth target, just the
-    # single colour texture the widget reads back into its numpy buffer
-    # ------------------------------------------------------------------
-    def _create_render_buffer(self) -> None:
-        if not hasattr(self, "device"):
-            return
-        colour_buffer_texture = self.device.create_texture(
-            size=self.texture_size,
-            sample_count=1,
-            format=wgpu.TextureFormat.rgba8unorm,
-            usage=wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.COPY_SRC,
-        )
-        self.colour_buffer_texture = colour_buffer_texture
-        self.colour_buffer_texture_view = colour_buffer_texture.create_view()
-        buffer_size = self._calculate_aligned_buffer_size()
-        self.readback_buffer = self.device.create_buffer(
-            size=buffer_size,
-            usage=wgpu.BufferUsage.COPY_DST | wgpu.BufferUsage.MAP_READ,
-        )
+    # this demo renders a full-screen triangle straight into the widget's
+    # colour buffer, so the base _create_render_buffer (which also sets up
+    # the pipelined read-back ring) is exactly what we need - no override.
 
     # ------------------------------------------------------------------
     # camera

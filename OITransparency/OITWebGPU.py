@@ -330,6 +330,10 @@ class WebGPUScene(WebGPUWidget):
         if not hasattr(self, "device"):
             return  # too early: resize during construction
 
+        # the base builds the pipelined read-back ring that
+        # _update_colour_buffer() reads from; we add our OIT targets on top
+        super()._create_render_buffer()
+
         def texture(fmt, usage):
             return self.device.create_texture(
                 size=self.texture_size, sample_count=1, format=fmt, usage=usage
@@ -358,11 +362,6 @@ class WebGPUScene(WebGPUWidget):
         self.reveal_view = texture(
             wgpu.TextureFormat.r16float, render_and_sample
         ).create_view()
-
-        self.readback_buffer = self.device.create_buffer(
-            size=self._calculate_aligned_buffer_size(),
-            usage=wgpu.BufferUsage.COPY_DST | wgpu.BufferUsage.MAP_READ,
-        )
 
         # the composite bind group references the views, so rebuild it too
         self.composite_bind_group = self.device.create_bind_group(
