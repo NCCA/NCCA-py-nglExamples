@@ -113,6 +113,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="PBR/SimplePBR"><img src="PBR/SimplePBR/SimplePBR.png" width="220"></a> | [PBR/SimplePBR](PBR/SimplePBR) | Simple physically based rendering |
 | <a href="PBR/PBRTexture"><img src="PBR/PBRTexture/PBRTexture.png" width="220"></a> | [PBR/PBRTexture](PBR/PBRTexture) | Textured physically based rendering (OpenGL and WebGPU versions) |
 | <a href="PBR/IBL"><img src="PBR/IBL/IBL.png" width="220"></a> | [PBR/IBL](PBR/IBL) | Image-based ambient lighting for PBR: numpy-precomputed irradiance map + BRDF split-sum LUT (OpenGL) |
+| <a href="PBR/HDRI"><img src="PBR/HDRI/HDRI.png" width="220"></a> | [PBR/HDRI](PBR/HDRI) | Full HDRI image-based lighting: GPU-baked irradiance, prefiltered specular chain and BRDF LUT from a real HDR panorama (OpenGL and WebGPU) |
 | <a href="Billboards"><img src="Billboards/Billboards.png" width="220"></a> | [Billboards](Billboards) | Camera-facing quads: fixed / cylindrical / spherical billboarding modes (OpenGL) |
 
 ## Blending &amp; Transparency
