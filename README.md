@@ -111,7 +111,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | <a href="ImageHeightMap"><img src="ImageHeightMap/ImageHeightMap.png" width="220"></a> | [ImageHeightMap](ImageHeightMap) | Displacement from a height map image |
 | <a href="NormalMapping"><img src="NormalMapping/NormalMapping.png" width="220"></a> | [NormalMapping](NormalMapping) | Tangent-space normal mapping |
 | <a href="PBR/SimplePBR"><img src="PBR/SimplePBR/SimplePBR.png" width="220"></a> | [PBR/SimplePBR](PBR/SimplePBR) | Simple physically based rendering |
-| <a href="PBR/PBRTexture"><img src="PBR/PBRTexture/PBRTexture.png" width="220"></a> | [PBR/PBRTexture](PBR/PBRTexture) | Textured physically based rendering |
+| <a href="PBR/PBRTexture"><img src="PBR/PBRTexture/PBRTexture.png" width="220"></a> | [PBR/PBRTexture](PBR/PBRTexture) | Textured physically based rendering (OpenGL and WebGPU versions) |
 | <a href="PBR/IBL"><img src="PBR/IBL/IBL.png" width="220"></a> | [PBR/IBL](PBR/IBL) | Image-based ambient lighting for PBR: numpy-precomputed irradiance map + BRDF split-sum LUT (OpenGL) |
 | <a href="Billboards"><img src="Billboards/Billboards.png" width="220"></a> | [Billboards](Billboards) | Camera-facing quads: fixed / cylindrical / spherical billboarding modes (OpenGL) |
 
