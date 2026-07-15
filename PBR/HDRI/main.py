@@ -9,8 +9,9 @@ from pathlib import Path
 import OpenGL.GL as gl
 from exr_loader import load_equirect_hdr
 from ncca.ngl import (
+    FirstPersonCamera,
     Mat3,
-    Mat4,
+    PerspMode,
     Transform,
     Vec3,
     Vec3Array,
@@ -20,12 +21,11 @@ from ncca.ngl import (
 )
 from ncca.ngl.opengl import (
     Primitives,
-    PySideEventHandlingMixin,
     ShaderLib,
     Text,
 )
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QKeyEvent, QSurfaceFormat
+from PySide6.QtCore import QElapsedTimer, Qt, QTimer
+from PySide6.QtGui import QKeyEvent, QMouseEvent, QSurfaceFormat, QWheelEvent
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 
@@ -58,8 +58,15 @@ _CAPTURE_VIEWS = [
     look_at(Vec3(0, 0, 0), Vec3(0, 0, -1), Vec3(0, -1, 0)),
 ]
 
+# Arrow keys fly the camera; paintGL keeps repainting while any is held so the
+# movement is smooth rather than one step per key event (matches HDRIWebGPU.py).
+_MOVE_KEYS = {Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right}
+# Multiplier on the camera's own speed so a held arrow key crosses the scene in
+# a second or two rather than crawling.
+_MOVE_SPEED = 6.0
 
-class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
+
+class MainWindow(QOpenGLWindow):
     """
     The main window for the HDRI image-based lighting demo.
 
@@ -72,22 +79,27 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Initializes the main window and sets up default scene parameters.
         """
         super().__init__()
-        self.setup_event_handling(
-            rotation_sensitivity=0.5,
-            translation_sensitivity=0.01,
-            zoom_sensitivity=0.1,
-            initial_position=Vec3(0, 0, 0),
-        )  # --- Camera and Transformation Attributes ---
-        self.view: Mat4 = Mat4()  # View matrix (camera's position and orientation)
-        self.project: Mat4 = (
-            Mat4()
-        )  # Projection matrix (defines the camera's viewing frustum)
-
         # --- Window and UI Attributes ---
         self.window_width: int = 1024  # Window width
         self.window_height: int = 720  # Window height
         self.setTitle("HDRI Image-Based Lighting (OpenGL)")
         self.transform = Transform()
+
+        # First-person camera, same control scheme as the WebGPU demo: left
+        # mouse orbits the view, the arrow keys fly it (up/down forward/back,
+        # left/right strafe), the wheel zooms. _update_projection keeps the
+        # camera's projection matching the window whenever it resizes.
+        self.camera = FirstPersonCamera(
+            Vec3(0, 0, 30), Vec3(0, 0, 0), Vec3(0, 1, 0), 45.0, PerspMode.OpenGL
+        )
+        self._update_projection(self.window_width, self.window_height)
+        self.rotate = False
+        self.original_x = 0.0
+        self.original_y = 0.0
+        self.keys_pressed: set = set()
+        self.frame_timer = QElapsedTimer()
+        self.frame_timer.start()
+        self.last_frame = 0.0
 
         self.env_cubemap: int = 0
         self.irradiance_map: int = 0
@@ -99,7 +111,25 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self._empty_vao: int = 0
         self.debug_view: int = 0
         self.use_ibl: bool = True
-        self.eye: Vec3 = Vec3(0, 0, 30)
+
+    def _update_projection(self, w: int, h: int) -> None:
+        """Rebuild the camera's projection for a `w`x`h` viewport.
+
+        FirstPersonCamera.set_projection only returns a matrix (it doesn't store
+        it, and it rebuilds from self.aspect/near/far on zoom), so we set those
+        fields and rebuild _projection here -- that keeps both the aspect ratio
+        correct and wheel-zoom working.
+        """
+        self.camera.aspect = float(w) / float(max(h, 1))
+        self.camera.near = 0.05
+        self.camera.far = 350.0
+        self.camera._projection = perspective(
+            self.camera.zoom,
+            self.camera.aspect,
+            self.camera.near,
+            self.camera.far,
+            PerspMode.OpenGL,
+        )
 
     def initializeGL(self) -> None:
         """
@@ -111,11 +141,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glClearColor(0.05, 0.05, 0.07, 1.0)
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_MULTISAMPLE)
-
-        to = Vec3(0, 0, 0)
-        up = Vec3(0, 1, 0)
-        self.view = look_at(self.eye, to, up)
-        self.project = perspective(45.0, 1024.0 / 720.0, 0.05, 350.0)
 
         ok = ShaderLib.load_shader(
             "equirect2cube",
@@ -226,7 +251,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         ShaderLib.use("pbr")
         ShaderLib.set_uniform("albedo", 0.5, 0.0, 0.0)
         ShaderLib.set_uniform("ao", 1.0)
-        ShaderLib.set_uniform("camPos", self.eye)
+        ShaderLib.set_uniform("camPos", self.camera.eye)
         ShaderLib.set_uniform("irradianceMap", 0)
         ShaderLib.set_uniform("prefilterMap", 1)
         ShaderLib.set_uniform("brdfLUT", 2)
@@ -405,11 +430,11 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             lod = 0.0
         ShaderLib.set_uniform("skybox", 0)
         ShaderLib.set_uniform("lod", lod)
-        view_rotation_only = self.view.copy()
+        view_rotation_only = self.camera.view.copy()
         view_rotation_only[3, 0] = 0.0
         view_rotation_only[3, 1] = 0.0
         view_rotation_only[3, 2] = 0.0
-        ShaderLib.set_uniform("MVP", self.project @ view_rotation_only)
+        ShaderLib.set_uniform("MVP", self.camera.projection @ view_rotation_only)
         Primitives.draw("cube")
         gl.glDepthMask(gl.GL_TRUE)
         gl.glDepthFunc(gl.GL_LESS)
@@ -417,9 +442,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
     def load_matrices_to_shader(self) -> None:
         """Copy the transform's M/MVP/normalMatrix to the currently bound
         shader (copied from PBR/SimplePBR:133-142)."""
-        M = self.mouse_global_tx @ self.transform.matrix()
-        MV = self.view @ M
-        MVP = self.project @ MV
+        M = self.transform.matrix()
+        MV = self.camera.view @ M
+        MVP = self.camera.projection @ MV
 
         normal_matrix = Mat3.from_mat4(MV)
         normal_matrix = normal_matrix.inverse().transposed()
@@ -434,7 +459,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         IBL off)."""
         ShaderLib.use("pbr")
         ShaderLib.set_uniform("useIBL", self.use_ibl)
-        ShaderLib.set_uniform("camPos", self.eye)
+        ShaderLib.set_uniform("camPos", self.camera.eye)
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, self.irradiance_map)
         gl.glActiveTexture(gl.GL_TEXTURE1)
@@ -475,40 +500,89 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glBindVertexArray(0)
         gl.glEnable(gl.GL_DEPTH_TEST)
 
+    def _update_camera_movement(self, delta_time: float) -> None:
+        """Fly the camera from the held arrow keys: up/down move along the view
+        direction (forward/back), left/right strafe. camera.move(x, y, delta)
+        shifts the eye by front*x + right*y."""
+        forward = float(Qt.Key_Up in self.keys_pressed) - float(
+            Qt.Key_Down in self.keys_pressed
+        )
+        strafe = float(Qt.Key_Right in self.keys_pressed) - float(
+            Qt.Key_Left in self.keys_pressed
+        )
+        if forward or strafe:
+            self.camera.move(forward * _MOVE_SPEED, strafe * _MOVE_SPEED, delta_time)
+
     def keyPressEvent(self, event: QKeyEvent) -> None:
-        """`E` cycles the debug view, `I` toggles IBL; everything else falls
-        through to the mixin's defaults (Escape/W/S/Space)."""
-        if event.key() == Qt.Key_E:
+        """`E` cycles the debug view, `I` toggles IBL, Space resets the camera,
+        Escape quits; the arrow keys fly the camera (handled in paintGL)."""
+        key = event.key()
+        self.keys_pressed.add(key)
+        if key == Qt.Key_E:
             self.debug_view = (self.debug_view + 1) % len(DEBUG_VIEWS)
             logger.info(f"debug view: {DEBUG_VIEWS[self.debug_view]}")
-            self.update()
-            return
-        if event.key() == Qt.Key_I:
+        elif key == Qt.Key_I:
             self.use_ibl = not self.use_ibl
             logger.info(f"IBL: {'on' if self.use_ibl else 'off'}")
-            self.update()
-            return
-        super().keyPressEvent(event)
+        elif key == Qt.Key_Space:
+            self.camera = FirstPersonCamera(
+                Vec3(0, 0, 30), Vec3(0, 0, 0), Vec3(0, 1, 0), 45.0, PerspMode.OpenGL
+            )
+            self._update_projection(self.window_width, self.window_height)
+        elif key == Qt.Key_Escape:
+            self.close()
+        self.update()
+
+    def keyReleaseEvent(self, event: QKeyEvent) -> None:
+        self.keys_pressed.discard(event.key())
+        self.update()
 
     def paintGL(self) -> None:
         """
         Called every time the window needs to be redrawn.
         """
         self.makeCurrent()
+        current = self.frame_timer.elapsed() * 0.001
+        delta_time = min(current - self.last_frame, 0.05)
+        self.last_frame = current
+        self._update_camera_movement(delta_time)
+
         gl.glViewport(0, 0, self.window_width, self.window_height)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-
-        rot_x = Mat4().rotate_x(self.spin_x_face)
-        rot_y = Mat4().rotate_y(self.spin_y_face)
-        self.mouse_global_tx = rot_y @ rot_x
-        self.mouse_global_tx[3, 0] = self.model_position.x
-        self.mouse_global_tx[3, 1] = self.model_position.y
-        self.mouse_global_tx[3, 2] = self.model_position.z
 
         self._draw_teapot_grid()
         self._draw_skybox()
         self._draw_debug_overlay()
         self._draw_hud()
+
+        # Keep repainting while an arrow key is held so movement stays smooth.
+        if self.keys_pressed & _MOVE_KEYS:
+            self.update()
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.LeftButton:
+            position = event.position()
+            self.original_x = position.x()
+            self.original_y = position.y()
+            self.rotate = True
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if self.rotate and event.buttons() == Qt.LeftButton:
+            position = event.position()
+            diff_x = position.x() - self.original_x
+            diff_y = position.y() - self.original_y
+            self.original_x = position.x()
+            self.original_y = position.y()
+            self.camera.process_mouse_movement(diff_x, -diff_y)
+            self.update()
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.LeftButton:
+            self.rotate = False
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        self.camera.process_mouse_scroll(event.angleDelta().y() * 0.01)
+        self.update()
 
     def resizeGL(self, w: int, h: int) -> None:
         """
@@ -522,9 +596,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         # Update the stored width and height, considering high-DPI displays
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
-        # Update the projection matrix to match the new aspect ratio.
-        # This creates a perspective projection with a 45-degree field of view.
-        self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
+        self._update_projection(w, h)
         Text.set_screen_size(w, h)
 
 

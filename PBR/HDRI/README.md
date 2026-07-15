@@ -40,16 +40,17 @@ by `(N·V, roughness)`.
 
 ## Controls
 
-| Key | OpenGL (`main.py`) | WebGPU (`HDRIWebGPU.py`) |
-| --- | --- | --- |
-| LMB drag | rotate | rotate |
-| RMB drag | pan | — |
-| Wheel | zoom | zoom |
-| Arrow keys | — | fly camera: up/down forward-back, left/right strafe |
-| `I` | toggle IBL ambient on/off | toggle IBL ambient on/off |
-| `E` | cycle env / irradiance / prefilter debug view | cycle env / irradiance / prefilter debug view |
-| Space | reset camera | reset camera |
-| Esc | quit | quit |
+Both demos share the same first-person camera, so the controls are identical:
+
+| Key | Action |
+| --- | --- |
+| LMB drag | rotate the view |
+| Arrow keys | fly the camera: up/down forward-back, left/right strafe |
+| Wheel | zoom |
+| `I` | toggle IBL ambient on/off |
+| `E` | cycle env / irradiance / prefilter debug view |
+| Space | reset camera |
+| Esc | quit |
 
 ## Running it
 
