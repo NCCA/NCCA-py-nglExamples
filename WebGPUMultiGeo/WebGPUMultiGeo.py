@@ -12,11 +12,11 @@ from ncca.ngl import (
     Transform,
     Vec3,
 )
+from ncca.ngl.webgpu import WebGPUWidget
 from Pipeline import Pipeline
 from PySide6.QtCore import QElapsedTimer, Qt, QTimer
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 

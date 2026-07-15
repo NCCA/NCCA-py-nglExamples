@@ -40,10 +40,10 @@ from layouts import (
     naive_bytes_padded_to_std140,
 )
 from ncca.ngl import Mat4, PerspMode, PrimData, Prims, Vec3, look_at, perspective
+from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 MIN_LIGHTS = 8

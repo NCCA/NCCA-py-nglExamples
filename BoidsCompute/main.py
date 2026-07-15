@@ -32,10 +32,10 @@ import numpy as np
 import wgpu
 from boid_maths import BoidParams
 from ncca.ngl import Mat4, PerspMode, Vec3, look_at, perspective
+from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import QElapsedTimer, Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 DEFAULT_N = 2048

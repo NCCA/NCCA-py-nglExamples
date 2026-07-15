@@ -8,10 +8,11 @@ import numpy as np
 import wgpu
 from Emitter import Emitter
 from ncca.ngl import FirstPersonCamera, Vec3
+from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import QEvent, Qt, QTimer
 from PySide6.QtGui import QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
+from wgpu.utils import get_default_device
 
 
 class WebGPUScene(WebGPUWidget):
@@ -22,8 +23,11 @@ class WebGPUScene(WebGPUWidget):
     painting, and resizing the WebGPU context.
     """
 
-    def __init__(self, width=1024, height=720):
-        super().__init__(width, height)
+    def __init__(self):
+        super().__init__()
+        # The particle pipeline renders single-sampled, so match the base
+        # render targets to it before they are created.
+        self.msaa_sample_count = 1
         self.camera = FirstPersonCamera(
             Vec3(0.0, 1.0, 5.0),
             Vec3(0.0, 0.0, 0.0),
@@ -42,14 +46,17 @@ class WebGPUScene(WebGPUWidget):
         self.INCREMENT: float = 0.01
         self.ZOOM: float = 0.5
         self.circle_square = 1
+        self._initialize_web_gpu()
 
-    def initializeWebGPU(self) -> None:
+    def _initialize_web_gpu(self) -> None:
         """
         Initialize the WebGPU context.
 
-        This method sets up the WebGPU context for the scene.
+        Creates the device and the base render targets, then sets up the
+        emitter, billboard geometry and render pipeline for the scene.
         """
-        super().initializeWebGPU()
+        self.device = get_default_device()
+        self._create_render_buffer()
         self.emitter = Emitter(
             num_particles=50000,
             max_alive=50000,
@@ -194,18 +201,12 @@ class WebGPUScene(WebGPUWidget):
         This method renders the WebGPU content for the scene.
         """
         self.render_text(10, 20, "Particle System", size=20, colour=Qt.white)
-        texture = self.device.create_texture(
-            size=self.texture_size,
-            format=wgpu.TextureFormat.rgba8unorm,
-            usage=wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.COPY_SRC,
-        )
-        texture_view = texture.create_view()
 
         command_encoder = self.device.create_command_encoder()
         render_pass = command_encoder.begin_render_pass(
             color_attachments=[
                 {
-                    "view": texture_view,
+                    "view": self.colour_buffer_texture_view,
                     "resolve_target": None,
                     "load_op": wgpu.LoadOp.clear,
                     "store_op": wgpu.StoreOp.store,
@@ -238,7 +239,7 @@ class WebGPUScene(WebGPUWidget):
         render_pass.draw(6, len(particles) // 12)
         render_pass.end()
         self.device.queue.submit([command_encoder.finish()])
-        self.update_colour_buffer(texture)
+        self._update_colour_buffer()
 
     def resizeWebGPU(self, width: int, height: int) -> None:
         """
@@ -250,7 +251,6 @@ class WebGPUScene(WebGPUWidget):
             width (int): The new width of the widget.
             height (int): The new height of the widget.
         """
-        super().resizeWebGPU(width, height)
         self.camera.set_projection(45.0, width / height, 0.5, 2000.0)
 
     def timerEvent(self, event):
@@ -407,6 +407,7 @@ if __name__ == "__main__":
         app = QApplication(sys.argv)
 
     win = WebGPUScene()
+    win.resize(1024, 720)
     win.show()
 
     if args.smoketest is not None:

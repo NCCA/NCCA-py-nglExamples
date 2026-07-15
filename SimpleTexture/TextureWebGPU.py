@@ -16,10 +16,10 @@ import numpy as np
 import wgpu
 import wgpu.utils
 from ncca.ngl import Image, Mat4, Vec3, look_at, perspective
+from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import QPoint, Qt, QTimer
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 
 
 class WebGPUTextureScene(WebGPUWidget):

@@ -35,10 +35,10 @@ from pathlib import Path
 import numpy as np
 import wgpu
 from ncca.ngl import Vec3
+from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 BASE_DISTANCE = 6.0

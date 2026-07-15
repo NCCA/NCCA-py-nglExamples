@@ -40,7 +40,7 @@ import numpy as np
 import wgpu
 from Manipulator import CENTER, GIZMO_ID_BASE, Axis, ManipMode, Manipulator
 from ncca.ngl import Mat4, PerspMode, PrimData, Prims, Vec3, Vec4, look_at, perspective
-from ncca.ngl.webgpu import PipelineFactory, PipelineType
+from ncca.ngl.webgpu import PipelineFactory, PipelineType, WebGPUWidget
 from ObjectPipeline import GizmoPipeline, ObjectPipeline, PickResolver
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor, QMouseEvent, QWheelEvent
@@ -53,7 +53,6 @@ from SelectionObject import (
     TeapotObject,
     TrollObject,
 )
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 LIGHT_POS = (0.0, 10.0, 10.0)

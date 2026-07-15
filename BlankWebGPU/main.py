@@ -6,9 +6,9 @@ import traceback
 import numpy as np
 import wgpu
 import wgpu.utils
+from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 
