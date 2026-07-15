@@ -8,7 +8,8 @@ levels) rather than a single cubemap object. On top of that it draws the
 same 7x7 PBR teapot grid (rows sweep metallic, columns sweep roughness)
 lit by the split-sum IBL, then the baked HDRI as a skybox behind it.
 
-Controls: left mouse rotates, wheel zooms, `I` toggles IBL ambient, `E`
+Controls: left mouse rotates, wheel zooms, the arrow keys move the camera
+(up/down fly forward/back, left/right strafe), `I` toggles IBL ambient, `E`
 cycles the env/irradiance/prefilter debug cubes, Space resets the camera,
 Escape quits.
 """
@@ -145,7 +146,13 @@ _LIGHT_COLOUR = (300.0, 300.0, 300.0)
 
 GRID_SIZE = 7
 
-_MOVE_KEYS: set = set()
+# Arrow keys drive the camera; paintWebGPU keeps repainting while any of these
+# is held so movement is smooth rather than one step per key event.
+_MOVE_KEYS: set = {Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right}
+
+# Multiplier on the camera's own speed so a held arrow key crosses the scene in
+# a second or two rather than crawling.
+_MOVE_SPEED = 6.0
 
 
 class HDRIScene(WebGPUWidget):
@@ -155,6 +162,9 @@ class HDRIScene(WebGPUWidget):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("WebGPU HDRI Image-Based Lighting")
+        # Grab keyboard focus so the arrow keys reach keyPressEvent rather than
+        # being swallowed by Qt's focus navigation.
+        self.setFocusPolicy(Qt.StrongFocus)
         self.msaa_sample_count = 4
 
         self.debug_view = 0
@@ -877,7 +887,17 @@ class HDRIScene(WebGPUWidget):
         self.update()
 
     def _update_camera_movement(self, delta_time: float) -> None:
-        pass
+        # Arrow keys: up/down move along the view direction (forward/back),
+        # left/right strafe. camera.move(x, y, delta) shifts the eye by
+        # front*x and right*y, so this reads directly off the held keys.
+        forward = float(Qt.Key_Up in self.keys_pressed) - float(
+            Qt.Key_Down in self.keys_pressed
+        )
+        strafe = float(Qt.Key_Right in self.keys_pressed) - float(
+            Qt.Key_Left in self.keys_pressed
+        )
+        if forward or strafe:
+            self.camera.move(forward * _MOVE_SPEED, strafe * _MOVE_SPEED, delta_time)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         key = event.key()
