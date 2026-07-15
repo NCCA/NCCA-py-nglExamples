@@ -1,7 +1,11 @@
+import sys
 from pathlib import Path
 
 import numpy as np
-from exr_loader import load_equirect_hdr
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from exr_loader import load_equirect_hdr  # noqa: E402
 
 HDRI = (
     Path(__file__).resolve().parents[1] / "images" / "historic_cloister_passage_1k.exr"
