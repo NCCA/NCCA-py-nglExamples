@@ -8,7 +8,6 @@
 // used everywhere else in the PBR demos when it's off.
 
 const PI : f32 = 3.14159265359;
-const MAX_REFLECTION_LOD : f32 = 4.0; // PREFILTER_MIPS - 1
 
 // @group(0) per-draw transforms, bound with a dynamic offset (one slot per teapot)
 struct Transforms {
@@ -28,6 +27,9 @@ struct Scene {
     lightColors : array<vec4<f32>, 4>,
     camPos : vec4<f32>,
     useIBL : u32,
+    // prefilter_mips - 1: the roughest mip the chain actually has. Follows the
+    // loaded map set, which is free to be baked with a shorter chain.
+    maxReflectionLod : f32,
 };
 @group(1) @binding(0) var<uniform> scene : Scene;
 
@@ -154,7 +156,7 @@ fn fragment_main(in : VSOut) -> @location(0) vec4<f32> {
         // environment sample (roughness picks the mip) x (F * A + B) from
         // the BRDF LUT.
         let prefilteredColor = textureSampleLevel(
-            prefilterMap, iblSampler, R, roughness * MAX_REFLECTION_LOD
+            prefilterMap, iblSampler, R, roughness * scene.maxReflectionLod
         ).rgb;
         let envBRDF = textureSample(
             brdfLUT, iblSampler, vec2<f32>(max(dot(N, V), 0.0), roughness)

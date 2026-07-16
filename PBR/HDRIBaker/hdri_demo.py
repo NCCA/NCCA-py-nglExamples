@@ -32,14 +32,8 @@ import ncca.ngl.qml  # noqa: F401  (import registers ncca.ngl.qml QML widget typ
 import numpy as np
 import wgpu
 import wgpu.utils
-from ibl_maps import (
-    ENV_SIZE,
-    IRRADIANCE_SIZE,
-    PREFILTER_MIPS,
-    PREFILTER_SIZE,
-    load_maps,
-    prefilter_key,
-)
+from bake_settings import BakeSettings, prefilter_key
+from ibl_maps import load_maps
 from ncca.ngl import (
     FirstPersonCamera,
     Mat4,
@@ -112,14 +106,21 @@ _TRANSFORM_DTYPE = np.dtype(
 # (matches Scene in PBR.wgsl).
 _PBR_SCENE_DTYPE = np.dtype(
     {
-        "names": ["lightPositions", "lightColors", "camPos", "useIBL"],
+        "names": [
+            "lightPositions",
+            "lightColors",
+            "camPos",
+            "useIBL",
+            "maxReflectionLod",
+        ],
         "formats": [
             (np.float32, (4, 4)),
             (np.float32, (4, 4)),
             (np.float32, 4),
             np.uint32,
+            np.float32,
         ],
-        "offsets": [0, 64, 128, 144],
+        "offsets": [0, 64, 128, 144, 148],
         "itemsize": 160,
     }
 )
@@ -351,14 +352,31 @@ class HDRIScene(WebGPUWidget):
         return tex
 
     def _upload_maps(self, maps: dict) -> None:
-        """Upload a loaded map set to GPU cube/2D textures."""
-        self.env_cube = self._upload_cube(maps["env"], ENV_SIZE)
-        self.irradiance_cube = self._upload_cube(maps["irradiance"], IRRADIANCE_SIZE)
-        prefilter_mips = [maps[prefilter_key(m)] for m in range(1, PREFILTER_MIPS)]
+        """Upload a loaded map set to GPU cube/2D textures.
+
+        Sizes come from the file's own settings, not from a constant here --
+        a map set baked at any resolution has to land correctly.
+        """
+        settings: BakeSettings = maps["settings"]
+        self.settings = settings
+        self.env_cube = self._upload_cube(maps["env"], settings.env_size)
+        self.irradiance_cube = self._upload_cube(
+            maps["irradiance"], settings.irradiance_size
+        )
+        prefilter_mips = [
+            maps[prefilter_key(m)] for m in range(1, settings.prefilter_mips)
+        ]
         self.prefilter_cube = self._upload_cube(
-            maps[prefilter_key(0)], PREFILTER_SIZE, prefilter_mips
+            maps[prefilter_key(0)], settings.prefilter_size, prefilter_mips
         )
         self.brdf_lut = self._upload_lut(maps["brdf_lut"])
+
+        # On startup the maps may load before the scene UBO exists; the
+        # pipeline-creation site below covers that case.
+        if hasattr(self, "pbr_scene_uniforms"):
+            self.pbr_scene_uniforms["maxReflectionLod"] = float(
+                settings.prefilter_mips - 1
+            )
 
     def _load_baked_maps(self) -> None:
         try:
@@ -492,6 +510,9 @@ class HDRIScene(WebGPUWidget):
         )
 
         self.pbr_scene_uniforms = np.zeros((), dtype=_PBR_SCENE_DTYPE)
+        self.pbr_scene_uniforms["maxReflectionLod"] = float(
+            self.settings.prefilter_mips - 1
+        )
         for i, pos in enumerate(_LIGHT_POSITIONS):
             self.pbr_scene_uniforms["lightPositions"][i] = (*pos, 1.0)
             self.pbr_scene_uniforms["lightColors"][i] = (*_LIGHT_COLOUR, 1.0)
