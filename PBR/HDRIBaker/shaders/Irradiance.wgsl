@@ -1,4 +1,4 @@
-// Cosine-weighted hemisphere convolution of the env cube into the 32^2
+// Cosine-weighted hemisphere convolution of the env cube into the
 // irradiance cube. Direct port of shaders/IrradianceFragment.glsl.
 
 struct CaptureUniforms {

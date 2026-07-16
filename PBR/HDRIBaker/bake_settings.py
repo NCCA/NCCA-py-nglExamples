@@ -67,6 +67,7 @@ class BakeSettings:
         return mip / (self.prefilter_mips - 1)
 
     def roughness_levels(self) -> list[float]:
+        """Roughness at every mip in the chain, top to bottom."""
         return [self.roughness_for_mip(m) for m in range(self.prefilter_mips)]
 
     def to_meta(self) -> dict:
@@ -88,8 +89,15 @@ class BakeSettings:
 
     @classmethod
     def legacy_v1(cls) -> "BakeSettings":
-        """The fixed shape every schema v1 file was baked at."""
-        return cls()
+        """The one fixed shape every schema v1 file was baked at. Frozen
+        history -- it must not track the defaults, which are free to move."""
+        return cls(
+            env_size=512,
+            irradiance_size=32,
+            prefilter_size=128,
+            prefilter_mips=5,
+            lut_size=512,
+        )
 
 
 def expected_shapes(settings: BakeSettings) -> dict[str, tuple[int, ...]]:

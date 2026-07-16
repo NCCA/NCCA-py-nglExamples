@@ -17,14 +17,7 @@ import numpy as np
 from bake_ibl import bake_maps
 from bake_settings import BakeSettings, prefilter_key
 from hdri_input import load_equirect_hdr
-from ibl_maps import (
-    DEFAULT_ENV_SIZE,
-    DEFAULT_IRRADIANCE_SIZE,
-    DEFAULT_LUT_SIZE,
-    DEFAULT_PREFILTER_MIPS,
-    DEFAULT_PREFILTER_SIZE,
-    save_maps,
-)
+from ibl_maps import save_maps
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
@@ -75,28 +68,29 @@ class SettingsPanel(QGroupBox):
 
     def __init__(self) -> None:
         super().__init__("Bake settings")
-        self.env = _power_of_two_combo([128, 256, 512, 1024, 2048], DEFAULT_ENV_SIZE)
-        self.irradiance = _power_of_two_combo([8, 16, 32, 64], DEFAULT_IRRADIANCE_SIZE)
-        self.prefilter = _power_of_two_combo([32, 64, 128, 256], DEFAULT_PREFILTER_SIZE)
-        self.lut = _power_of_two_combo([64, 128, 256, 512], DEFAULT_LUT_SIZE)
+        d = BakeSettings()
+        self.env = _power_of_two_combo([128, 256, 512, 1024, 2048], d.env_size)
+        self.irradiance = _power_of_two_combo([8, 16, 32, 64], d.irradiance_size)
+        self.prefilter = _power_of_two_combo([32, 64, 128, 256], d.prefilter_size)
+        self.lut = _power_of_two_combo([64, 128, 256, 512], d.lut_size)
 
         self.mips = QSpinBox()
         self.mips.setRange(2, 8)  # 1 mip cannot span a roughness range
-        self.mips.setValue(DEFAULT_PREFILTER_MIPS)
+        self.mips.setValue(d.prefilter_mips)
 
         self.prefilter_samples = QSpinBox()
         self.prefilter_samples.setRange(1, 8192)
-        self.prefilter_samples.setValue(1024)
+        self.prefilter_samples.setValue(d.prefilter_samples)
 
         self.brdf_samples = QSpinBox()
         self.brdf_samples.setRange(1, 8192)
-        self.brdf_samples.setValue(1024)
+        self.brdf_samples.setValue(d.brdf_samples)
 
         self.sample_delta = QDoubleSpinBox()
         self.sample_delta.setRange(0.005, 1.0)
         self.sample_delta.setSingleStep(0.005)
         self.sample_delta.setDecimals(3)
-        self.sample_delta.setValue(0.025)
+        self.sample_delta.setValue(d.irradiance_sample_delta)
 
         form = QFormLayout()
         form.addRow("Environment cube", self.env)

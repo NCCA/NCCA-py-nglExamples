@@ -22,25 +22,11 @@ from bake_settings import BakeSettings, expected_shapes, prefilter_key
 
 __all__ = [
     "SCHEMA_VERSION",
-    "DEFAULT_ENV_SIZE",
-    "DEFAULT_IRRADIANCE_SIZE",
-    "DEFAULT_PREFILTER_SIZE",
-    "DEFAULT_PREFILTER_MIPS",
-    "DEFAULT_LUT_SIZE",
-    "prefilter_key",
     "save_maps",
     "load_maps",
 ]
 
 SCHEMA_VERSION = 2
-
-# Seeds for the baker's GUI only. Nothing may derive a map's shape from these
-# -- that is the settings block's job.
-DEFAULT_ENV_SIZE = 512
-DEFAULT_IRRADIANCE_SIZE = 32
-DEFAULT_PREFILTER_SIZE = 128
-DEFAULT_PREFILTER_MIPS = 5
-DEFAULT_LUT_SIZE = 512
 
 
 def _array_keys(settings: BakeSettings) -> list[str]:

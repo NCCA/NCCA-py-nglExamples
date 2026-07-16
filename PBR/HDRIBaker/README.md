@@ -121,7 +121,8 @@ teapot for a troll or a helix.
 
 If you regenerate `ibl_maps.npz` from a different HDRI, the demo will use
 whatever it finds at the given path — there's no dependency on which HDRI
-produced it, only on the array shapes matching `ibl_maps.py`'s schema.
+produced it, only on the arrays matching the settings block the file
+carries.
 
 ## References
 

@@ -63,14 +63,15 @@ _VERTEX_STRIDE = 8 * _FLOAT  # pos3, normal3, uv2 (only pos is used here)
 HDRI_DIR = Path(__file__).resolve().parent
 SHADER_DIR = HDRI_DIR / "shaders"
 
-# Map sizes come from ibl_maps so the schema stays the single source of truth.
-
 BAKE_FORMAT = wgpu.TextureFormat.rgba16float
 LUT_FORMAT = wgpu.TextureFormat.rg16float
 PRESENT_FORMAT = wgpu.TextureFormat.rgba8unorm
 
 # Cycled by the `E` key: which cube to draw as the skybox, and at what lod.
-DEBUG_VIEWS = ("env", "irradiance", "prefilter mip 2")
+# The prefilter entry always shows the roughest mip the loaded file has --
+# the mip count varies with the file's own settings, so it can't name a
+# specific mip here.
+DEBUG_VIEWS = ("env", "irradiance", "prefilter (roughest)")
 
 # Matches SkyboxUniforms in Skybox.wgsl: mvp + lod (padded to a vec4).
 _SKYBOX_DTYPE = np.dtype(
@@ -371,8 +372,9 @@ class HDRIScene(WebGPUWidget):
         )
         self.brdf_lut = self._upload_lut(maps["brdf_lut"])
 
-        # On startup the maps may load before the scene UBO exists; the
-        # pipeline-creation site below covers that case.
+        # On startup this runs before the scene UBO exists, so there's
+        # nothing to update yet -- the pipeline-creation site sets the
+        # initial value instead. This guard only fires on reload_maps.
         if hasattr(self, "pbr_scene_uniforms"):
             self.pbr_scene_uniforms["maxReflectionLod"] = float(
                 settings.prefilter_mips - 1
@@ -759,8 +761,8 @@ class HDRIScene(WebGPUWidget):
         name = DEBUG_VIEWS[self.debug_view]
         if name == "irradiance":
             cube, lod = self.irradiance_cube, 0.0
-        elif name == "prefilter mip 2":
-            cube, lod = self.prefilter_cube, 2.0
+        elif name == "prefilter (roughest)":
+            cube, lod = self.prefilter_cube, float(self.settings.prefilter_mips - 1)
         else:
             cube, lod = self.env_cube, 0.0
         view = cube.create_view(dimension=wgpu.TextureViewDimension.cube)

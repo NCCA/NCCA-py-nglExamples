@@ -125,7 +125,7 @@ Item {
                     id: envCombo
                     width: 160
                     // Order matches DEBUG_VIEWS in hdri_demo.py.
-                    model: ["Environment", "Irradiance", "Prefilter mip 2"]
+                    model: ["Environment", "Irradiance", "Prefilter (roughest)"]
                     currentIndex: 0
                     onActivated: scene.set_debug_view(currentIndex)
                     Connections {
