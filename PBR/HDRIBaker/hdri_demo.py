@@ -596,7 +596,13 @@ class HDRIScene(WebGPUWidget):
         model = self.teapot_model
         model_view = self.camera.view @ model
         mvp = self.camera.projection @ model_view
-        normal_matrix = model_view.copy().inverse().transposed()
+        # PBR.wgsl lights in world space (V = camPos - WorldPos, and N/R
+        # index the IBL cube maps directly), so the normal matrix comes from
+        # the model alone. Deriving it from model_view drags the normals into
+        # view space: the moment the camera rotates, dot(N, V) collapses to
+        # grazing over parts of the mesh (Fresnel whites out the albedo) and
+        # the reflection vector flips.
+        normal_matrix = model.copy().inverse().transposed()
         slot = self.teapot_transform_uniforms
         slot["MVP"] = mvp.to_numpy()
         slot["M"] = model.to_numpy()
