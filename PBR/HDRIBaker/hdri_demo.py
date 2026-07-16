@@ -768,12 +768,22 @@ class OverlayQuickWidget(QQuickWidget):
     Clicks (and wheel) that land outside any registered panel are forwarded
     to the WebGPU scene beneath so the camera still rotates/zooms; clicks on a
     panel go to QML as normal. Mirrors GUIDemos/QMLWebGPUOverlay.
+
+    Drag ownership is decided once, on press: a drag that starts on a panel
+    stays with QML for its whole life, and one that starts on empty space
+    stays with the camera - even if the cursor briefly crosses the other's
+    area mid-drag. Re-running hit_test per move event instead let a fast panel
+    drag (whose cursor can outrun the panel's trailing rect) leak moves to the
+    camera, panning it while repositioning a panel.
     """
 
     def __init__(self, scene: HDRIScene, registry: PanelRegistry, parent=None) -> None:
         super().__init__(parent)
         self._scene = scene
         self._registry = registry
+        # While a mouse button is held, True routes the drag to the scene
+        # (camera), False to QML (panel). Set on press, used until release.
+        self._drag_to_scene = False
         ncca.ngl.qml.add_import_path(self.engine())
         self.setAttribute(Qt.WidgetAttribute.WA_AlwaysStackOnTop)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -794,25 +804,33 @@ class OverlayQuickWidget(QQuickWidget):
         QApplication.sendEvent(self._scene, forwarded)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
-        if self._registry.hit_test(event.position()):
-            super().mousePressEvent(event)
-        else:
+        self._drag_to_scene = not self._registry.hit_test(event.position())
+        if self._drag_to_scene:
             event.ignore()
             self._forward_mouse(event)
+        else:
+            super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        if self._registry.hit_test(event.position()):
-            super().mouseMoveEvent(event)
+        # Mid-drag (a button is held) stick with the press's decision; only a
+        # button-free hover re-tests, so QML still gets hover events over panels.
+        if event.buttons():
+            to_scene = self._drag_to_scene
         else:
+            to_scene = not self._registry.hit_test(event.position())
+        if to_scene:
             event.ignore()
             self._forward_mouse(event)
+        else:
+            super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        if self._registry.hit_test(event.position()):
-            super().mouseReleaseEvent(event)
-        else:
+        if self._drag_to_scene:
             event.ignore()
             self._forward_mouse(event)
+        else:
+            super().mouseReleaseEvent(event)
+        self._drag_to_scene = False
 
     def wheelEvent(self, event) -> None:
         if self._registry.hit_test(event.position()):
