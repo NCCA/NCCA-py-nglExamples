@@ -63,6 +63,11 @@ DEBUG_VIEWS = ("env", "irradiance", "prefilter mip 2")
 # (LearnOpenGL "Diffuse irradiance"). Order matches +X, -X, +Y, -Y, +Z, -Z,
 # i.e. wgpu's cube-map array-layer order.
 _CAPTURE_PROJECTION = perspective(90.0, 1.0, 0.1, 10.0, PerspMode.WebGPU)
+# Those views assume GL's bottom-left origin render target; WebGPU's is
+# top-left, so without this the faces bake in vertically mirrored. Safe:
+# nothing here culls faces, and which face we write is decided by the texture
+# view, not by the winding. The OpenGL demo needs no such flip.
+_CAPTURE_PROJECTION[1, 1] *= -1.0
 _CAPTURE_VIEWS = [
     look_at(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, -1, 0)),
     look_at(Vec3(0, 0, 0), Vec3(-1, 0, 0), Vec3(0, -1, 0)),

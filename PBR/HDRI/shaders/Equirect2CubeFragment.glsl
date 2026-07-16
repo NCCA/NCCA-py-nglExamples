@@ -2,7 +2,10 @@
 out vec4 FragColour;
 in vec3 localPos;
 uniform sampler2D equirectangularMap;
-const vec2 invAtan = vec2(0.1591, 0.3183);
+// v is negated against the usual GLSL constant: we upload the panorama
+// unflipped, so its first row (straight up) lands at v == 0. The stock sign
+// assumes a bottom-up upload and would fetch the ground when looking up.
+const vec2 invAtan = vec2(0.1591, -0.3183);
 vec2 sampleSphericalMap(vec3 v) {
     vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
     uv *= invAtan;
