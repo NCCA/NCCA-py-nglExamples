@@ -11,10 +11,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import ibl_maps
 import numpy as np
 import wgpu
 import wgpu.utils
+from bake_settings import BakeSettings, prefilter_key
 from ncca.ngl import PerspMode, PrimData, Prims, Vec3, look_at, perspective
 
 _FLOAT = np.dtype(np.float32).itemsize
@@ -50,42 +50,49 @@ _PREFILTER_CAPTURE_DTYPE = np.dtype(
 )
 
 
-def bake_maps(image: np.ndarray, source: str = "") -> dict:
+def bake_maps(
+    image: np.ndarray,
+    settings: BakeSettings | None = None,
+    source: str = "",
+) -> dict:
     """Bake every IBL map from an ``(H, W, 3)`` float32 equirect image."""
+    settings = settings or BakeSettings()
+    settings.validate()
+
     device = wgpu.utils.get_default_device()
-    baker = _Baker(device)
+    baker = _Baker(device, settings)
     rgba = np.dstack([image, np.ones(image.shape[:2], np.float32)]).astype(np.float32)
     equirect = baker.upload_2d(rgba, BAKE_FORMAT)
 
-    env = baker.bake_cube("Equirect2Cube.wgsl", ibl_maps.ENV_SIZE, "2d", equirect)
+    env = baker.bake_cube("Equirect2Cube.wgsl", settings.env_size, "2d", equirect)
     irradiance = baker.bake_cube(
-        "Irradiance.wgsl", ibl_maps.IRRADIANCE_SIZE, "cube", env
+        "Irradiance.wgsl", settings.irradiance_size, "cube", env
     )
     prefilter = baker.bake_prefilter(env)
     lut = baker.bake_brdf()
 
     out = {
-        "env": baker.read_cube(env, ibl_maps.ENV_SIZE, 0),
-        "irradiance": baker.read_cube(irradiance, ibl_maps.IRRADIANCE_SIZE, 0),
-        "brdf_lut": baker.read_2d(lut, ibl_maps.LUT_SIZE, ibl_maps.LUT_SIZE, 2, 0),
+        "env": baker.read_cube(env, settings.env_size, 0),
+        "irradiance": baker.read_cube(irradiance, settings.irradiance_size, 0),
+        "brdf_lut": baker.read_2d(lut, settings.lut_size, settings.lut_size, 2, 0),
     }
-    for mip in range(ibl_maps.PREFILTER_MIPS):
-        size = ibl_maps.PREFILTER_SIZE >> mip
-        out[ibl_maps.prefilter_key(mip)] = baker.read_cube(prefilter, size, mip)
+    for mip in range(settings.prefilter_mips):
+        size = settings.prefilter_size >> mip
+        out[prefilter_key(mip)] = baker.read_cube(prefilter, size, mip)
     out["meta"] = {
         "source": source,
-        "prefilter_mips": ibl_maps.PREFILTER_MIPS,
-        "prefilter_roughness": [
-            m / (ibl_maps.PREFILTER_MIPS - 1) for m in range(ibl_maps.PREFILTER_MIPS)
-        ],
+        "settings": settings.to_meta(),
+        "prefilter_mips": settings.prefilter_mips,
+        "prefilter_roughness": settings.roughness_levels(),
         "format": "rgba16float / rg16float",
     }
     return out
 
 
 class _Baker:
-    def __init__(self, device: "wgpu.GPUDevice") -> None:
+    def __init__(self, device: "wgpu.GPUDevice", settings: BakeSettings) -> None:
         self.device = device
+        self.settings = settings
         cube = PrimData.primitive(Prims.CUBE.value).astype(np.float32)
         self.cube_buffer = device.create_buffer_with_data(
             data=cube, usage=wgpu.BufferUsage.VERTEX
@@ -255,21 +262,21 @@ class _Baker:
         )
         source_bind_group = self._source_bind_group(pipe["source_bgl"], src, "cube")
 
+        size0 = self.settings.prefilter_size
         cube = self.device.create_texture(
-            size=(ibl_maps.PREFILTER_SIZE, ibl_maps.PREFILTER_SIZE, 6),
-            mip_level_count=ibl_maps.PREFILTER_MIPS,
+            size=(size0, size0, 6),
+            mip_level_count=self.settings.prefilter_mips,
             format=BAKE_FORMAT,
             usage=wgpu.TextureUsage.RENDER_ATTACHMENT
             | wgpu.TextureUsage.TEXTURE_BINDING
             | wgpu.TextureUsage.COPY_SRC,
         )
 
-        for mip in range(ibl_maps.PREFILTER_MIPS):
-            size = ibl_maps.PREFILTER_SIZE >> mip
-            roughness = mip / (ibl_maps.PREFILTER_MIPS - 1)
+        for mip in range(self.settings.prefilter_mips):
+            size = size0 >> mip
             uniforms = np.zeros((), dtype=_PREFILTER_CAPTURE_DTYPE)
             uniforms["projection"] = _CAPTURE_PROJECTION.to_numpy()
-            uniforms["roughness"] = roughness
+            uniforms["roughness"] = self.settings.roughness_for_mip(mip)
             for face in range(6):
                 uniforms["view"] = _CAPTURE_VIEWS[face].to_numpy()
                 self.device.queue.write_buffer(
@@ -328,8 +335,9 @@ class _Baker:
             primitive={"topology": wgpu.PrimitiveTopology.triangle_list},
         )
 
+        lut_size = self.settings.lut_size
         lut = self.device.create_texture(
-            size=(ibl_maps.LUT_SIZE, ibl_maps.LUT_SIZE, 1),
+            size=(lut_size, lut_size, 1),
             format=LUT_FORMAT,
             usage=wgpu.TextureUsage.RENDER_ATTACHMENT
             | wgpu.TextureUsage.TEXTURE_BINDING
@@ -346,7 +354,7 @@ class _Baker:
                 }
             ],
         )
-        render_pass.set_viewport(0, 0, ibl_maps.LUT_SIZE, ibl_maps.LUT_SIZE, 0, 1)
+        render_pass.set_viewport(0, 0, lut_size, lut_size, 0, 1)
         render_pass.set_pipeline(pipeline)
         render_pass.draw(3)
         render_pass.end()
