@@ -19,6 +19,7 @@ dependencies = [
     "marimo>=0.17.2",
     "matplotlib>=3.10.7",
     "ncca-ngl>=0.5.0",
+    "openexr>=3.4.13",
 ]
 
 
