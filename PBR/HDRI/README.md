@@ -1,6 +1,5 @@
 # HDRI — Image Based Lighting
 
-![](HDRI.png)
 ![](HDRIWebGPU.png)
 
 This is the full version of [`PBR/IBL`](../IBL). That demo lit its sphere
@@ -19,12 +18,12 @@ stonework as roughness climbs.
 Everything is baked once at startup, straight to the GPU, no numpy
 precompute this time:
 
-| Stage | Size | What it does |
-| --- | --- | --- |
-| Equirectangular → cubemap | 512² × 6 faces | reprojects the `.exr` panorama onto a cube so it can be sampled/convolved as an environment |
-| Irradiance convolution | 32² × 6 faces | cosine-weighted hemisphere integral per texel — the diffuse ambient term |
-| Prefiltered specular chain | 128² × 6 faces, 5 mips | GGX importance-sampled per roughness level, one mip per roughness band |
-| BRDF LUT | 512² | Karis's split-sum `A`/`B` scale-and-bias table, same for every scene |
+| Stage                      | Size                   | What it does                                                                                |
+| -------------------------- | ---------------------- | ------------------------------------------------------------------------------------------- |
+| Equirectangular -> cubemap | 512² × 6 faces         | reprojects the `.exr` panorama onto a cube so it can be sampled/convolved as an environment |
+| Irradiance convolution     | 32² × 6 faces          | cosine-weighted hemisphere integral per texel — the diffuse ambient term                    |
+| Prefiltered specular chain | 128² × 6 faces, 5 mips | GGX importance-sampled per roughness level, one mip per roughness band                      |
+| BRDF LUT                   | 512²                   | Karis's split-sum `A`/`B` scale-and-bias table, same for every scene                        |
 
 ## The split-sum ambient term
 
@@ -42,15 +41,15 @@ by `(N·V, roughness)`.
 
 Both demos share the same first-person camera, so the controls are identical:
 
-| Key | Action |
-| --- | --- |
-| LMB drag | rotate the view |
+| Key        | Action                                                  |
+| ---------- | ------------------------------------------------------- |
+| LMB drag   | rotate the view                                         |
 | Arrow keys | fly the camera: up/down forward-back, left/right strafe |
-| Wheel | zoom |
-| `I` | toggle IBL ambient on/off |
-| `E` | cycle env / irradiance / prefilter debug view |
-| Space | reset camera |
-| Esc | quit |
+| Wheel      | zoom                                                    |
+| `I`        | toggle IBL ambient on/off                               |
+| `E`        | cycle env / irradiance / prefilter debug view           |
+| Space      | reset camera                                            |
+| Esc        | quit                                                    |
 
 ## Running it
 
@@ -83,3 +82,4 @@ the same.
   this demo completes.
 - [`PBR/SimplePBR`](../SimplePBR) — the direct-lighting Cook-Torrance shader
   both IBL demos extend with an ambient term.
+- [historic_cloister_passage_1k.exr](https://polyhaven.com/a/historic_cloister_passage)
