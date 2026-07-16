@@ -17,6 +17,8 @@ struct Transforms {
     normalMatrix : mat4x4<f32>,
     // (metallic, roughness, ao, unused)
     material : vec4<f32>,
+    // base colour in .rgb (.a unused)
+    albedo : vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> transforms : Transforms;
 
@@ -99,7 +101,7 @@ fn fresnelSchlickRoughness(cosTheta : f32, F0 : vec3<f32>, roughness : f32) -> v
 
 @fragment
 fn fragment_main(in : VSOut) -> @location(0) vec4<f32> {
-    let albedo = vec3<f32>(0.5, 0.0, 0.0);
+    let albedo = transforms.albedo.rgb;
     let metallic = transforms.material.x;
     let roughness = transforms.material.y;
     let ao = transforms.material.z;

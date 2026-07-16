@@ -5,15 +5,19 @@ Where ``PBR/HDRI/HDRIWebGPU.py`` bakes the split-sum IBL textures on
 startup, this demo loads them ready-made from an ``.npz`` written by
 ``bake_ibl.py`` (see ``ibl_maps.py``) - env cube, irradiance cube,
 prefiltered specular cube and BRDF LUT - and uploads them straight to
-the GPU. Everything downstream is identical to the OpenGL ``main.py``:
-the same 7x7 PBR teapot grid (rows sweep metallic, columns sweep
-roughness) lit by the split-sum IBL, with the baked HDRI drawn behind
-it as a skybox.
+the GPU.
 
-Controls: left mouse rotates, wheel zooms, the arrow keys move the camera
-(up/down fly forward/back, left/right strafe), `I` toggles IBL ambient, `E`
-cycles the env/irradiance/prefilter debug cubes, Space resets the camera,
-Escape quits.
+Rather than the sibling grid, this shows a single teapot whose PBR
+material you drive live from a floating QML control panel: metallic,
+roughness and ambient-occlusion sliders, an albedo colour picker, an
+IBL on/off toggle and an env/irradiance/prefilter cube selector. The
+overlay reuses ``GUIDemos/QMLWebGPUOverlay``'s pattern - a transparent
+``QQuickWidget`` on top of the offscreen WebGPU surface, with clicks
+outside any panel forwarded through to the camera.
+
+Controls: left mouse rotates, wheel zooms; the panel drives the material
+and IBL. Everything downstream is identical to the OpenGL ``main.py`` PBR
+shader, with the baked HDRI drawn behind the teapot as a skybox.
 """
 
 import argparse
@@ -21,6 +25,7 @@ import sys
 import traceback
 from pathlib import Path
 
+import ncca.ngl.qml  # noqa: F401  (import registers ncca.ngl.qml QML widget types)
 import numpy as np
 import wgpu
 import wgpu.utils
@@ -42,9 +47,12 @@ from ncca.ngl import (
     perspective,
 )
 from ncca.ngl.webgpu import WebGPUWidget
-from PySide6.QtCore import QElapsedTimer, Qt, QTimer
+from panel_registry import PanelRegistry
+from PySide6.QtCore import QElapsedTimer, QEvent, Qt, QTimer, QUrl, Slot
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
-from PySide6.QtWidgets import QApplication
+from PySide6.QtQuickControls2 import QQuickStyle
+from PySide6.QtQuickWidgets import QQuickWidget
+from PySide6.QtWidgets import QApplication, QMainWindow
 
 _FLOAT = np.dtype(np.float32).itemsize
 _VERTEX_STRIDE = 8 * _FLOAT  # pos3, normal3, uv2 (only pos is used here)
@@ -75,17 +83,18 @@ _SKYBOX_DTYPE = np.dtype(
 # the maximum any device requires, so it is always a safe stride to use.
 _DYNAMIC_STRIDE = 256
 
-# One padded slot of per-teapot transforms (matches Transforms in PBR.wgsl).
+# The teapot's transforms + material (matches Transforms in PBR.wgsl).
 _TRANSFORM_DTYPE = np.dtype(
     {
-        "names": ["MVP", "M", "normalMatrix", "material"],
+        "names": ["MVP", "M", "normalMatrix", "material", "albedo"],
         "formats": [
             (np.float32, (4, 4)),
             (np.float32, (4, 4)),
             (np.float32, (4, 4)),
             (np.float32, 4),
+            (np.float32, 4),
         ],
-        "offsets": [0, 64, 128, 192],
+        "offsets": [0, 64, 128, 192, 208],
         "itemsize": _DYNAMIC_STRIDE,
     }
 )
@@ -115,7 +124,11 @@ _LIGHT_POSITIONS = [
 ]
 _LIGHT_COLOUR = (300.0, 300.0, 300.0)
 
-GRID_SIZE = 7
+# Default material for the single teapot, overwritten live by the QML panel.
+_DEFAULT_METALLIC = 1.0
+_DEFAULT_ROUGHNESS = 0.25
+_DEFAULT_AO = 1.0
+_DEFAULT_ALBEDO = (1.0, 1.0, 1.0)
 
 # Arrow keys drive the camera; paintWebGPU keeps repainting while any of these
 # is held so movement is smooth rather than one step per key event.
@@ -146,12 +159,18 @@ class HDRIScene(WebGPUWidget):
         self.original_y_rotation = 0
         self.keys_pressed: set = set()
 
+        # Live PBR material for the single teapot, driven by the QML panel.
+        self.metallic = _DEFAULT_METALLIC
+        self.roughness = _DEFAULT_ROUGHNESS
+        self.ao = _DEFAULT_AO
+        self.albedo = _DEFAULT_ALBEDO
+
         self.timer = QElapsedTimer()
         self.timer.start()
         self.last_frame = 0.0
 
         self.camera = FirstPersonCamera(
-            Vec3(0, 0, 30), Vec3(0, 0, 0), Vec3(0, 1, 0), 45.0, PerspMode.WebGPU
+            Vec3(0, 0, 6), Vec3(0, 0, 0), Vec3(0, 1, 0), 45.0, PerspMode.WebGPU
         )
         self._update_projection(max(self.width(), 1), max(self.height(), 1))
 
@@ -171,7 +190,7 @@ class HDRIScene(WebGPUWidget):
             self._load_baked_maps()
 
             self._create_pbr_pipeline()
-            self._build_grid()
+            self._build_teapot()
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
             traceback.print_exc()
@@ -403,34 +422,22 @@ class HDRIScene(WebGPUWidget):
             ],
         )
 
-    def _build_grid(self) -> None:
-        """Lay out the 7x7 teapot grid: rows sweep metallic, columns sweep
-        roughness, matching main.py's `_draw_teapot_grid`."""
-        self.grid_objects = []  # (model Mat4, metallic, roughness)
-        for row in range(GRID_SIZE):
-            for col in range(GRID_SIZE):
-                model = Mat4()
-                model[3, 0] = (col - 3) * 3.0
-                model[3, 1] = (row - 3) * 3.0
-                model[3, 2] = 0.0
-                metallic = row / 6.0
-                roughness = max(0.05, col / 6.0)
-                self.grid_objects.append((model, metallic, roughness))
-
-        count = len(self.grid_objects)
-        self.grid_transform_uniforms = np.zeros(count, dtype=_TRANSFORM_DTYPE)
-        self.grid_transform_buffer = self.device.create_buffer(
-            size=self.grid_transform_uniforms.nbytes,
+    def _build_teapot(self) -> None:
+        """Set up the single teapot's transform/material uniform buffer."""
+        self.teapot_model = Mat4()
+        self.teapot_transform_uniforms = np.zeros((), dtype=_TRANSFORM_DTYPE)
+        self.teapot_transform_buffer = self.device.create_buffer(
+            size=self.teapot_transform_uniforms.nbytes,
             usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
-            label="grid_transform_buffer",
+            label="teapot_transform_buffer",
         )
-        self.grid_transform_bind_group = self.device.create_bind_group(
+        self.teapot_transform_bind_group = self.device.create_bind_group(
             layout=self.pbr_transform_bgl,
             entries=[
                 {
                     "binding": 0,
                     "resource": {
-                        "buffer": self.grid_transform_buffer,
+                        "buffer": self.teapot_transform_buffer,
                         "offset": 0,
                         "size": _DYNAMIC_STRIDE,
                     },
@@ -450,33 +457,61 @@ class HDRIScene(WebGPUWidget):
             self.pbr_scene_buffer, 0, self.pbr_scene_uniforms.tobytes()
         )
 
-    def _write_grid_transform_uniforms(self) -> None:
-        view = self.camera.view
-        projection = self.camera.projection
-        for i, (model, metallic, roughness) in enumerate(self.grid_objects):
-            model_view = view @ model
-            mvp = projection @ model_view
-            normal_matrix = model_view.copy().inverse().transposed()
-            slot = self.grid_transform_uniforms[i]
-            slot["MVP"] = mvp.to_numpy()
-            slot["M"] = model.to_numpy()
-            slot["normalMatrix"] = normal_matrix.to_numpy()
-            slot["material"] = (metallic, roughness, 1.0, 0.0)
+    def _write_teapot_transform_uniforms(self) -> None:
+        model = self.teapot_model
+        model_view = self.camera.view @ model
+        mvp = self.camera.projection @ model_view
+        normal_matrix = model_view.copy().inverse().transposed()
+        slot = self.teapot_transform_uniforms
+        slot["MVP"] = mvp.to_numpy()
+        slot["M"] = model.to_numpy()
+        slot["normalMatrix"] = normal_matrix.to_numpy()
+        slot["material"] = (self.metallic, self.roughness, self.ao, 0.0)
+        slot["albedo"] = (*self.albedo, 1.0)
         self.device.queue.write_buffer(
-            self.grid_transform_buffer, 0, self.grid_transform_uniforms.tobytes()
+            self.teapot_transform_buffer, 0, self.teapot_transform_uniforms.tobytes()
         )
 
-    def _draw_grid(self, render_pass: "wgpu.GPURenderPassEncoder") -> None:
+    def _draw_teapot(self, render_pass: "wgpu.GPURenderPassEncoder") -> None:
         render_pass.set_viewport(0, 0, self.texture_size[0], self.texture_size[1], 0, 1)
         render_pass.set_pipeline(self.pbr_pipeline)
+        render_pass.set_bind_group(0, self.teapot_transform_bind_group, [0])
         render_pass.set_bind_group(1, self.pbr_scene_bind_group)
         render_pass.set_bind_group(2, self.pbr_ibl_bind_group)
-        for i in range(len(self.grid_objects)):
-            render_pass.set_bind_group(
-                0, self.grid_transform_bind_group, [i * _DYNAMIC_STRIDE]
-            )
-            render_pass.set_vertex_buffer(0, self.teapot_geometry["buffer"])
-            render_pass.draw(self.teapot_geometry["count"])
+        render_pass.set_vertex_buffer(0, self.teapot_geometry["buffer"])
+        render_pass.draw(self.teapot_geometry["count"])
+
+    # --------------------------------------------------------- QML panel slots
+    @Slot(float)
+    def set_metallic(self, value: float) -> None:
+        self.metallic = value
+        self.update()
+
+    @Slot(float)
+    def set_roughness(self, value: float) -> None:
+        # Clamp away from zero so perfectly smooth mirrors don't alias.
+        self.roughness = max(0.05, value)
+        self.update()
+
+    @Slot(float)
+    def set_ao(self, value: float) -> None:
+        self.ao = value
+        self.update()
+
+    @Slot(float, float, float)
+    def set_albedo(self, r: float, g: float, b: float) -> None:
+        self.albedo = (r, g, b)
+        self.update()
+
+    @Slot(bool)
+    def set_use_ibl(self, enabled: bool) -> None:
+        self.use_ibl = enabled
+        self.update()
+
+    @Slot(int)
+    def set_debug_view(self, index: int) -> None:
+        self.debug_view = index % len(DEBUG_VIEWS)
+        self.update()
 
     # ------------------------------------------------------------- skybox
     def _create_skybox_pipeline(self) -> None:
@@ -598,7 +633,7 @@ class HDRIScene(WebGPUWidget):
         )
 
         self._write_pbr_scene_uniforms()
-        self._write_grid_transform_uniforms()
+        self._write_teapot_transform_uniforms()
 
         command_encoder = self.device.create_command_encoder()
         render_pass = command_encoder.begin_render_pass(
@@ -618,9 +653,9 @@ class HDRIScene(WebGPUWidget):
                 "depth_clear_value": 1.0,
             },
         )
-        # Draw the teapot grid first (writes depth), then the skybox behind
-        # it (depth test only, no depth write) sharing the same depth buffer.
-        self._draw_grid(render_pass)
+        # Draw the teapot first (writes depth), then the skybox behind it
+        # (depth test only, no depth write) sharing the same depth buffer.
+        self._draw_teapot(render_pass)
         render_pass.set_viewport(0, 0, self.texture_size[0], self.texture_size[1], 0, 1)
         render_pass.set_pipeline(self.skybox_pipeline)
         render_pass.set_bind_group(0, self.skybox_uniform_bind_group)
@@ -685,7 +720,7 @@ class HDRIScene(WebGPUWidget):
             self.use_ibl = not self.use_ibl
         elif key == Qt.Key_Space:
             self.camera = FirstPersonCamera(
-                Vec3(0, 0, 30), Vec3(0, 0, 0), Vec3(0, 1, 0), 45.0, PerspMode.WebGPU
+                Vec3(0, 0, 6), Vec3(0, 0, 0), Vec3(0, 1, 0), 45.0, PerspMode.WebGPU
             )
             self._update_projection(max(self.width(), 1), max(self.height(), 1))
         self.update()
@@ -723,6 +758,89 @@ class HDRIScene(WebGPUWidget):
         self.update()
 
 
+class OverlayQuickWidget(QQuickWidget):
+    """Transparent QQuickWidget carrying the PBR control panels.
+
+    Clicks (and wheel) that land outside any registered panel are forwarded
+    to the WebGPU scene beneath so the camera still rotates/zooms; clicks on a
+    panel go to QML as normal. Mirrors GUIDemos/QMLWebGPUOverlay.
+    """
+
+    def __init__(self, scene: HDRIScene, registry: PanelRegistry, parent=None) -> None:
+        super().__init__(parent)
+        self._scene = scene
+        self._registry = registry
+        ncca.ngl.qml.add_import_path(self.engine())
+        self.setAttribute(Qt.WidgetAttribute.WA_AlwaysStackOnTop)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setClearColor(Qt.GlobalColor.transparent)
+        self.setResizeMode(QQuickWidget.ResizeMode.SizeRootObjectToView)
+        # Let the arrow keys / Space reach the scene rather than the overlay.
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+    def _forward_mouse(self, event: QMouseEvent) -> None:
+        forwarded = QMouseEvent(
+            event.type(),
+            self._scene.mapFromGlobal(event.globalPosition()),
+            event.globalPosition(),
+            event.button(),
+            event.buttons(),
+            event.modifiers(),
+        )
+        QApplication.sendEvent(self._scene, forwarded)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if self._registry.hit_test(event.position()):
+            super().mousePressEvent(event)
+        else:
+            event.ignore()
+            self._forward_mouse(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if self._registry.hit_test(event.position()):
+            super().mouseMoveEvent(event)
+        else:
+            event.ignore()
+            self._forward_mouse(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if self._registry.hit_test(event.position()):
+            super().mouseReleaseEvent(event)
+        else:
+            event.ignore()
+            self._forward_mouse(event)
+
+    def wheelEvent(self, event) -> None:
+        if self._registry.hit_test(event.position()):
+            super().wheelEvent(event)
+        else:
+            event.ignore()
+            QApplication.sendEvent(self._scene, event)
+
+
+class MainWindow(QMainWindow):
+    """Hosts the WebGPU teapot scene with the QML control overlay on top."""
+
+    def __init__(self, maps_path: str) -> None:
+        super().__init__()
+        self.setWindowTitle("WebGPU HDRI IBL - single teapot with PBR controls")
+        self.resize(1024, 720)
+
+        self.scene = HDRIScene(maps_path)
+        self.setCentralWidget(self.scene)
+
+        self.registry = PanelRegistry()
+        self.overlay = OverlayQuickWidget(self.scene, self.registry, self.scene)
+        self.overlay.rootContext().setContextProperty("panelRegistry", self.registry)
+        self.overlay.rootContext().setContextProperty("scene", self.scene)
+        self.overlay.setSource(QUrl.fromLocalFile(str(HDRI_DIR / "main.qml")))
+        self.overlay.setGeometry(self.scene.rect())
+
+    def resizeEvent(self, event: QEvent) -> None:
+        super().resizeEvent(event)
+        self.overlay.setGeometry(self.scene.rect())
+
+
 class DebugApplication(QApplication):
     def __init__(self, argv):
         super().__init__(argv)
@@ -758,9 +876,15 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    # Fusion so ncca.ngl.qml's controls and DraggablePanel's dark chrome render
+    # consistently (the native macOS style ignores the Frame background); see
+    # GUIDemos/QMLWebGPUOverlay/main.py for the full rationale.
+    QQuickStyle.setStyle("Fusion")
     app = DebugApplication(sys.argv) if args.debug else QApplication(sys.argv)
-    win = HDRIScene(args.maps)
-    win.resize(1024, 720)
+    app.setOrganizationName("NCCA")
+    app.setApplicationName("HDRIBakerDemo")
+
+    win = MainWindow(args.maps)
     win.show()
 
     if args.smoketest is not None:

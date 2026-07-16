@@ -50,17 +50,31 @@ copy baked from the bundled cloister HDRI ships in this folder so
 
 ## The demo — `hdri_demo.py`
 
+![](HDRIDemo.png)
+
 ```bash
 uv run PBR/HDRIBaker/hdri_demo.py --maps ibl_maps.npz
 ```
 
 WebGPU only. Loads the `.npz`, uploads the four maps as GPU textures, and
-lights the same 7×7 teapot grid as `PBR/HDRI` — metallic down the rows,
-roughness across the columns — plus a skybox from the environment cube. No
-convolution happens at runtime; it's the same split-sum ambient term as the
-sibling demo, just sampling textures that were baked ahead of time instead
-of ones this process just rendered. `--maps` defaults to the bundled
-`ibl_maps.npz`, so leaving it off also works.
+lights a single teapot with the split-sum IBL plus a skybox from the
+environment cube. No convolution happens at runtime; it's the same
+split-sum ambient term as `PBR/HDRI`, just sampling textures that were
+baked ahead of time instead of ones this process just rendered. `--maps`
+defaults to the bundled `ibl_maps.npz`, so leaving it off also works.
+
+Where `PBR/HDRI` fixes the material and sweeps it across a 7×7 grid, this
+one hands the material to you. A floating control panel — a transparent
+QML overlay borrowed from
+[`GUIDemos/QMLWebGPUOverlay`](../../GUIDemos/QMLWebGPUOverlay) — drives the
+teapot's PBR inputs live: metallic, roughness and ambient-occlusion
+sliders, an albedo colour picker, an IBL on/off toggle, and a selector that
+puts the environment, irradiance or a prefilter mip in the skybox so you
+can see the maps the shader actually samples. Drag a panel anywhere; click
+off a panel and the drag rotates the camera (wheel zooms). Turn metallic
+down and the albedo colour shows through; push roughness up and the
+reflection walks up the prefiltered mip chain — the split sum made
+tangible.
 
 ## Notes
 
