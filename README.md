@@ -133,7 +133,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | Preview | Demo | Description |
 | :---: | :--- | :--- |
 | <a href="CurveDemos"><img src="CurveDemos/CurveDemos.png" width="220"></a> | [CurveDemos](CurveDemos) | Curve types and evaluation |
-| <a href="EasingFunctions"><img src="EasingFunctions/EasingFunctions.png" width="220"></a> | [EasingFunctions](EasingFunctions) | Full Penner easing set with combo box selection and live matplotlib graph |
+| <a href="EasingFunctions"><img src="EasingFunctions/EasingFunctionsApp.png" width="220"></a> | [EasingFunctions](EasingFunctions) | Full Penner easing set with combo box selection and live matplotlib graph |
 | <a href="Interpolation"><img src="Interpolation/Interpolation.png" width="220"></a> | [Interpolation](Interpolation) | Interpolation techniques |
 | <a href="QuatSlerp"><img src="QuatSlerp/QuatSlerp.png" width="220"></a> | [QuatSlerp](QuatSlerp) | Quaternion spherical interpolation |
 | <a href="GimbalLock"><img src="GimbalLock/GimbalLock.png" width="220"></a> | [GimbalLock](GimbalLock) | Euler vs quaternion orientation, side by side, with a scripted gimbal-lock demonstration |
