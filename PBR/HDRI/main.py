@@ -49,6 +49,12 @@ DEBUG_VIEWS = ("off", "irradiance", "prefilter mip 2", "brdf lut")
 # The six view matrices that look out the six cube faces from the origin
 # (LearnOpenGL "Diffuse irradiance"). Order matches GL_TEXTURE_CUBE_MAP_POSITIVE_X..+5.
 _CAPTURE_PROJECTION = perspective(90.0, 1.0, 0.1, 10.0)
+# OpenGL's render-to-cubemap FBO has a bottom-left origin, so the baked faces
+# come out vertically flipped relative to the WebGPU demo (whose render target
+# is top-left) even though both share the same capture views. Negate clip-space
+# Y in the capture projection to compensate, so the skybox and reflections
+# match the WebGPU version rather than appearing upside down.
+_CAPTURE_PROJECTION[1, 1] *= -1.0
 _CAPTURE_VIEWS = [
     look_at(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, -1, 0)),
     look_at(Vec3(0, 0, 0), Vec3(-1, 0, 0), Vec3(0, -1, 0)),
