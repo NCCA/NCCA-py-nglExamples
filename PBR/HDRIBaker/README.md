@@ -26,14 +26,43 @@ image library just for that one format.
 
 The bake itself (`bake_ibl.py`) is the same split-sum pipeline as
 `PBR/HDRI`: reproject the panorama to a cube, convolve it for irradiance,
-importance-sample a GGX prefiltered specular chain across five roughness
+importance-sample a GGX prefiltered specular chain across the roughness
 mips, and compute the BRDF split-sum LUT. What's different here is that it
 runs once, offscreen, and the results are read back to numpy and saved
 rather than staying GPU-resident for an immediate render.
 
+### Bake settings
+
+Everything the bake can be tuned with lives in `BakeSettings`
+(`bake_settings.py`) and the "Bake settings" panel just edits one of those.
+It falls into two groups:
+
+- **Sizes** (environment cube, irradiance cube, prefilter cube + mip count,
+  BRDF LUT) — these are the resolution of each map. Bigger costs you file
+  size and bake time; the LUT and irradiance map barely need it (they're
+  already blurry by construction) but a small prefilter cube shows up as
+  blocky reflections at low roughness.
+- **Sample counts** (prefilter samples, BRDF samples, irradiance sample
+  delta) — these buy you less noise per texel for the same size, at the
+  cost of bake time. The prefilter is Monte-Carlo GGX importance sampling,
+  so it's the one where sample count actually matters visually.
+
+Worth trying: bake once at 8 prefilter samples, then again at 2048, and
+compare the prefilter thumbnail and the `baked in …s` readout under the
+panel. The low-sample bake is fast and speckled; the high-sample one is
+smooth and much slower. That trade-off is the entire point of Monte-Carlo
+convolution, and it's otherwise invisible unless you can see both ends of
+it side by side.
+
 ## The `.npz` schema
 
-`ibl_maps.py` defines the layout and validates it on load:
+`ibl_maps.py` defines the layout and validates it on load. This is schema
+v2: the file carries the `BakeSettings` it was baked at in its `meta`
+block, so `hdri_demo.py` reads that block and sizes its GPU textures from
+the file rather than from constants in the code — bake at a 1024 env cube
+and 3 prefilter mips and the demo just goes and does that. A v1 file (no
+`settings` block) still loads; it's assumed baked at the old fixed shape
+below, which is also `BakeSettings`'s defaults.
 
 | Array               | Shape                       | dtype     |
 | -------------------- | --------------------------- | --------- |
@@ -41,12 +70,13 @@ rather than staying GPU-resident for an immediate render.
 | `irradiance`          | 6 × 32 × 32 × 4               | float16   |
 | `prefilter_0..4`      | 6 × (128 >> mip) × (128 >> mip) × 4 | float16 |
 | `brdf_lut`            | 512 × 512 × 2                | float16   |
-| `meta`                | JSON string (schema version, source path, …) | — |
+| `meta`                | JSON string (schema version, bake settings, source path, …) | — |
 
 Everything is `float16` to match the GPU bake format and keep the file
 small, and `np.savez_compressed` packs it all into one `ibl_maps.npz`. A
-copy baked from the bundled cloister HDRI ships in this folder so
-`hdri_demo.py` runs out of the box without anyone having to bake first.
+copy baked from the bundled cloister HDRI at the default settings ships in
+this folder so `hdri_demo.py` runs out of the box without anyone having to
+bake first.
 
 ## The demo — `hdri_demo.py`
 
