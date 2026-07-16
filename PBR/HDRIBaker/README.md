@@ -79,6 +79,14 @@ zooms). Turn metallic down and the
 albedo colour shows through; push roughness up and the reflection walks up
 the prefiltered mip chain — the split sum made tangible.
 
+The `File` menu swaps things out at runtime. `Load IBL Maps…` opens a
+different `.npz` — bake another HDRI with `hdri_baker.py` and load it here
+to relight the mesh in a new environment without restarting. `Load Mesh…`
+opens a triangulated `.obj` (I centre it and scale it to fit, so any model
+lands in front of the camera at a sensible size) — point it at one of the
+meshes under `NormalMapping/models` or `ObjViewer/models` to swap the
+teapot for a troll or a helix.
+
 ## Notes
 
 If you regenerate `ibl_maps.npz` from a different HDRI, the demo will use

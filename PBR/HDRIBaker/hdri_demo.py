@@ -43,6 +43,7 @@ from ibl_maps import (
 from ncca.ngl import (
     FirstPersonCamera,
     Mat4,
+    Obj,
     PerspMode,
     PrimData,
     Prims,
@@ -52,10 +53,15 @@ from ncca.ngl import (
 from ncca.ngl.webgpu import WebGPUWidget
 from panel_registry import PanelRegistry
 from PySide6.QtCore import QElapsedTimer, QEvent, Qt, QTimer, QUrl, Slot
-from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
+from PySide6.QtGui import QAction, QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtQuickControls2 import QQuickStyle
 from PySide6.QtQuickWidgets import QQuickWidget
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QMainWindow,
+    QMessageBox,
+)
 
 _FLOAT = np.dtype(np.float32).itemsize
 _VERTEX_STRIDE = 8 * _FLOAT  # pos3, normal3, uv2 (only pos is used here)
@@ -149,6 +155,11 @@ _ORBIT_VERTICAL_SPEED = 4.0
 _ORBIT_RADIAL_SPEED = 5.0
 _ORBIT_MIN_RADIUS = 1.5
 
+# A loaded OBJ can be modelled at any scale or origin, so centre it and fit its
+# largest dimension to this many world units - roughly the teapot's size - so it
+# always lands in front of the camera at a sensible size.
+_MESH_FIT_SIZE = 2.5
+
 
 class HDRIScene(WebGPUWidget):
     """WebGPU widget that loads pre-baked split-sum IBL textures and draws
@@ -233,6 +244,60 @@ class HDRIScene(WebGPUWidget):
         )
         return {"buffer": buffer, "count": data.size // 8}
 
+    def load_obj(self, path) -> None:
+        """Replace the drawn mesh with a triangulated OBJ loaded from ``path``.
+
+        Raises ``ValueError`` if the file will not parse or is not triangular,
+        so the menu handler can report it without crashing the app.
+        """
+        obj = Obj()
+        try:
+            loaded = obj.load(str(path))
+        except Exception as err:
+            # ncca.ngl raises ObjParse*Error on a malformed file rather than
+            # returning False; fold both outcomes into one clear message.
+            raise ValueError(f"could not parse OBJ file {path}: {err}") from err
+        if not loaded:
+            raise ValueError(f"could not parse OBJ file {path}")
+        if not obj.is_triangular():
+            raise ValueError("only triangulated OBJ meshes are supported")
+        data = self._obj_to_vertex_array(obj)
+        if data.size == 0:
+            raise ValueError("OBJ file contained no faces")
+        self.teapot_geometry = self._make_vertex_buffer(data)
+        self.update()
+
+    def _obj_to_vertex_array(self, obj) -> np.ndarray:
+        """Flatten an Obj's triangles to the pos3/normal3/uv2 vertex layout."""
+        has_normals = bool(obj.normals)
+        has_uv = bool(obj.uv)
+        verts: list[float] = []
+        for face in obj.faces:
+            for i in range(3):
+                v = obj.vertex[face.vertex[i]]
+                nx = ny = nz = 0.0
+                u = uv = 0.0
+                if has_normals:
+                    n = obj.normals[face.normal[i]]
+                    nx, ny, nz = n.x, n.y, n.z
+                if has_uv:
+                    t = obj.uv[face.uv[i]]
+                    u, uv = t.x, 1.0 - t.y  # flip V to match the teapot's UVs
+                verts.extend((v.x, v.y, v.z, nx, ny, nz, u, uv))
+        return self._fit_mesh(np.array(verts, dtype=np.float32))
+
+    def _fit_mesh(self, data: np.ndarray) -> np.ndarray:
+        """Centre a flat vertex array on the origin and scale it to fit."""
+        if data.size == 0:
+            return data
+        verts = data.reshape(-1, 8)
+        pos = verts[:, 0:3]
+        lo, hi = pos.min(axis=0), pos.max(axis=0)
+        extent = float((hi - lo).max())
+        scale = _MESH_FIT_SIZE / extent if extent > 1e-6 else 1.0
+        verts[:, 0:3] = (pos - (lo + hi) * 0.5) * scale
+        return verts.reshape(-1)
+
     def _create_sampler(self) -> None:
         self.linear_sampler = self.device.create_sampler(
             address_mode_u=wgpu.AddressMode.clamp_to_edge,
@@ -285,11 +350,8 @@ class HDRIScene(WebGPUWidget):
         )
         return tex
 
-    def _load_baked_maps(self) -> None:
-        try:
-            maps = load_maps(self.maps_path)
-        except (OSError, ValueError) as err:
-            raise SystemExit(f"Could not load IBL maps from {self.maps_path!r}: {err}")
+    def _upload_maps(self, maps: dict) -> None:
+        """Upload a loaded map set to GPU cube/2D textures."""
         self.env_cube = self._upload_cube(maps["env"], ENV_SIZE)
         self.irradiance_cube = self._upload_cube(maps["irradiance"], IRRADIANCE_SIZE)
         prefilter_mips = [maps[prefilter_key(m)] for m in range(1, PREFILTER_MIPS)]
@@ -297,6 +359,28 @@ class HDRIScene(WebGPUWidget):
             maps[prefilter_key(0)], PREFILTER_SIZE, prefilter_mips
         )
         self.brdf_lut = self._upload_lut(maps["brdf_lut"])
+
+    def _load_baked_maps(self) -> None:
+        try:
+            maps = load_maps(self.maps_path)
+        except (OSError, ValueError) as err:
+            raise SystemExit(f"Could not load IBL maps from {self.maps_path!r}: {err}")
+        self._upload_maps(maps)
+
+    def reload_maps(self, path) -> None:
+        """Load a different IBL ``.npz`` at runtime and rebind it.
+
+        Raises ``OSError``/``ValueError`` (from :func:`load_maps`) so the menu
+        handler can report a bad file without tearing the whole app down.
+        """
+        maps = load_maps(path)
+        self._upload_maps(maps)
+        self.maps_path = path
+        # The PBR bind group holds views of the irradiance/prefilter/LUT
+        # textures we just replaced, so rebuild it; the skybox rebinds its
+        # source per frame and picks up the new cubes on its own.
+        self._create_ibl_bind_group()
+        self.update()
 
     # --------------------------------------------------------- PBR teapots
     def _create_pbr_pipeline(self) -> None:
@@ -421,6 +505,10 @@ class HDRIScene(WebGPUWidget):
             entries=[{"binding": 0, "resource": {"buffer": self.pbr_scene_buffer}}],
         )
 
+        self._create_ibl_bind_group()
+
+    def _create_ibl_bind_group(self) -> None:
+        """(Re)bind the current IBL textures into @group(2) for the PBR pass."""
         self.pbr_ibl_bind_group = self.device.create_bind_group(
             layout=self.pbr_ibl_bgl,
             entries=[
@@ -921,12 +1009,57 @@ class MainWindow(QMainWindow):
         self.scene = HDRIScene(maps_path)
         self.setCentralWidget(self.scene)
 
+        self._build_menu()
+
         self.registry = PanelRegistry()
         self.overlay = OverlayQuickWidget(self.scene, self.registry, self.scene)
         self.overlay.rootContext().setContextProperty("panelRegistry", self.registry)
         self.overlay.rootContext().setContextProperty("scene", self.scene)
         self.overlay.setSource(QUrl.fromLocalFile(str(HDRI_DIR / "main.qml")))
         self.overlay.setGeometry(self.scene.rect())
+
+    def _build_menu(self) -> None:
+        """A File menu to swap the IBL maps or the drawn mesh at runtime."""
+        file_menu = self.menuBar().addMenu("&File")
+
+        load_maps_action = QAction("Load IBL &Maps…", self)
+        load_maps_action.triggered.connect(self._on_load_maps)
+        file_menu.addAction(load_maps_action)
+
+        load_mesh_action = QAction("Load &Mesh…", self)
+        load_mesh_action.triggered.connect(self._on_load_mesh)
+        file_menu.addAction(load_mesh_action)
+
+        file_menu.addSeparator()
+        quit_action = QAction("&Quit", self)
+        quit_action.setShortcut("Ctrl+Q")
+        quit_action.triggered.connect(self.close)
+        file_menu.addAction(quit_action)
+
+    def _on_load_maps(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Load IBL maps",
+            str(Path(self.scene.maps_path).parent),
+            "IBL maps (*.npz)",
+        )
+        if not path:
+            return
+        try:
+            self.scene.reload_maps(path)
+        except (OSError, ValueError) as err:
+            QMessageBox.critical(self, "Could not load IBL maps", str(err))
+
+    def _on_load_mesh(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Load OBJ mesh", str(HDRI_DIR), "Wavefront OBJ (*.obj)"
+        )
+        if not path:
+            return
+        try:
+            self.scene.load_obj(path)
+        except (OSError, ValueError) as err:
+            QMessageBox.critical(self, "Could not load mesh", str(err))
 
     def resizeEvent(self, event: QEvent) -> None:
         super().resizeEvent(event)
