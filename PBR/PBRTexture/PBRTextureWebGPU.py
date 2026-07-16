@@ -461,7 +461,11 @@ class PBRTextureScene(WebGPUWidget):
         for i, (_, model, tex_rot, _) in enumerate(self.scene_objects):
             model_view = view @ model
             mvp = projection @ model_view
-            normal_matrix = model_view.copy().inverse().transposed()
+            # PBRTexture.wgsl lights in world space (V = camPos - WorldPos),
+            # so the normal matrix comes from the model alone -- model_view
+            # would drag the normals into view space and the shading would
+            # rotate with the camera.
+            normal_matrix = model.copy().inverse().transposed()
             slot = self.transform_uniforms[i]
             slot["MVP"] = mvp.to_numpy()
             slot["M"] = model.to_numpy()

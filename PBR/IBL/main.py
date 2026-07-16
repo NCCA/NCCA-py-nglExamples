@@ -243,6 +243,34 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         tx[3, 2] = self.model_position.z
         return tx
 
+    def _draw_sphere_grid(self, global_tx: Mat4) -> None:
+        """The 7x7 sphere grid: rows sweep metallic 0..1, columns sweep
+        roughness 0.05..1, all under the arcball rotation `global_tx`."""
+        for row in range(7):
+            for col in range(7):
+                metallic = row / 6.0
+                roughness = max(0.05, col / 6.0)
+                model = Mat4()
+                model[3, 0] = (col - 3) * 1.3
+                model[3, 1] = (row - 3) * 1.3
+                model = global_tx @ model
+                MV = self.view @ model
+                MVP = self.project @ MV
+                # IBLFragment.glsl lights in world space (V = camPos -
+                # WorldPos, N indexes the irradiance cube directly), so the
+                # normal matrix comes from the model alone -- MV would drag
+                # the normals into view space and the lighting would rotate
+                # with the camera.
+                normal_matrix = Mat3.from_mat4(model).inverse().transposed()
+
+                ShaderLib.set_uniform("albedo", 0.5, 0.0, 0.0)
+                ShaderLib.set_uniform("metallic", metallic)
+                ShaderLib.set_uniform("roughness", roughness)
+                ShaderLib.set_uniform("MVP", MVP)
+                ShaderLib.set_uniform("normalMatrix", normal_matrix)
+                ShaderLib.set_uniform("M", model)
+                Primitives.draw("sphere")
+
     # ------------------------------------------------------------------
     def paintGL(self) -> None:
         self.makeCurrent()
@@ -268,25 +296,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             ShaderLib.set_uniform(f"lightPositions[{i}]", self.light_positions[i])
             ShaderLib.set_uniform(f"lightColors[{i}]", self.light_colors[i])
 
-        for row in range(7):
-            for col in range(7):
-                metallic = row / 6.0
-                roughness = max(0.05, col / 6.0)
-                model = Mat4()
-                model[3, 0] = (col - 3) * 1.3
-                model[3, 1] = (row - 3) * 1.3
-                model = global_tx @ model
-                MV = self.view @ model
-                MVP = self.project @ MV
-                normal_matrix = Mat3.from_mat4(MV).inverse().transposed()
-
-                ShaderLib.set_uniform("albedo", 0.5, 0.0, 0.0)
-                ShaderLib.set_uniform("metallic", metallic)
-                ShaderLib.set_uniform("roughness", roughness)
-                ShaderLib.set_uniform("MVP", MVP)
-                ShaderLib.set_uniform("normalMatrix", normal_matrix)
-                ShaderLib.set_uniform("M", model)
-                Primitives.draw("sphere")
+        self._draw_sphere_grid(global_tx)
 
         self._draw_skybox()
         self._draw_debug_overlay()

@@ -135,7 +135,10 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         MV = self.view @ M
         MVP = self.project @ MV
 
-        normalMatrix = Mat3.from_mat4(MV)
+        # PBRFragment.glsl lights in world space (V = camPos - WorldPos), so
+        # the normal matrix comes from the model (which carries the arcball
+        # rotation) -- MV would fold the look_at view in and tilt the normals.
+        normalMatrix = Mat3.from_mat4(M)
         normalMatrix = normalMatrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", MVP)
         ShaderLib.set_uniform("normalMatrix", normalMatrix)

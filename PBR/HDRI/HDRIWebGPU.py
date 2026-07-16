@@ -702,7 +702,11 @@ class HDRIScene(WebGPUWidget):
         for i, (model, metallic, roughness) in enumerate(self.grid_objects):
             model_view = view @ model
             mvp = projection @ model_view
-            normal_matrix = model_view.copy().inverse().transposed()
+            # PBR.wgsl lights in world space (V = camPos - WorldPos, N/R
+            # index the IBL cubes directly), so the normal matrix comes from
+            # the model alone -- model_view would drag the normals into view
+            # space and the shading would rotate with the camera.
+            normal_matrix = model.copy().inverse().transposed()
             slot = self.grid_transform_uniforms[i]
             slot["MVP"] = mvp.to_numpy()
             slot["M"] = model.to_numpy()

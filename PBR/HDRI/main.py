@@ -446,7 +446,10 @@ class MainWindow(QOpenGLWindow):
         MV = self.camera.view @ M
         MVP = self.camera.projection @ MV
 
-        normal_matrix = Mat3.from_mat4(MV)
+        # PBRFragment.glsl lights in world space (V = camPos - WorldPos), so
+        # the normal matrix comes from the model alone -- MV would drag the
+        # normals into view space and the shading would rotate with the camera.
+        normal_matrix = Mat3.from_mat4(M)
         normal_matrix = normal_matrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", MVP)
         ShaderLib.set_uniform("normalMatrix", normal_matrix)

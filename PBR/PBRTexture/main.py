@@ -253,10 +253,12 @@ class MainWindow(QOpenGLWindow):
         Calculates and sends the required matrices and uniforms to the PBR shader.
         """
         M = self.transform.matrix()
-        MV = self.camera.view @ M
         MVP = self.camera.get_vp() @ M
 
-        normal_matrix = Mat3.from_mat4(MV)
+        # PBRFragment.glsl lights in world space (V = camPos - WorldPos), so
+        # the normal matrix comes from the model alone -- MV would drag the
+        # normals into view space and the shading would rotate with the camera.
+        normal_matrix = Mat3.from_mat4(M)
         normal_matrix = normal_matrix.inverse().transposed()
 
         ShaderLib.use(PBR_SHADER)
