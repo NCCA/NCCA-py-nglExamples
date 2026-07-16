@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import pytest
 from bake_settings import BakeSettings, expected_shapes, prefilter_key
 
@@ -63,17 +65,32 @@ def test_from_meta_falls_back_to_v1_shape_when_settings_absent():
     assert BakeSettings.from_meta({"source": "old.exr"}) == BakeSettings.legacy_v1()
 
 
-def test_legacy_v1_is_pinned_to_the_historic_shape_not_the_defaults():
-    # legacy_v1() must stay the fixed shape every v1 file was actually baked
-    # at, even if a future change moves BakeSettings()'s defaults elsewhere.
-    # Literal numbers on purpose -- comparing against BakeSettings() would
-    # pass today and re-couple the two the moment a default changes.
+def test_legacy_v1_matches_the_historic_shape():
+    # Documents the fixed shape every v1 file was actually baked at. Literal
+    # numbers on purpose, as a record of that shape -- but see the test below
+    # for the one that actually catches legacy_v1() drifting off it.
     legacy = BakeSettings.legacy_v1()
     assert legacy.env_size == 512
     assert legacy.irradiance_size == 32
     assert legacy.prefilter_size == 128
     assert legacy.prefilter_mips == 5
     assert legacy.lut_size == 512
+
+
+def test_legacy_v1_does_not_track_the_defaults():
+    # A literal-values test alone won't catch legacy_v1() regressing to a
+    # bare cls(): today's defaults happen to equal the v1 shape, so a revert
+    # would pass silently until some unrelated future default change. Move
+    # the defaults ourselves so a revert fails right here, right now.
+    @dataclass(frozen=True)
+    class Drifted(BakeSettings):
+        env_size: int = 1024
+        prefilter_mips: int = 3
+
+    assert Drifted().env_size == 1024  # the drift really took effect
+    legacy = Drifted.legacy_v1()
+    assert legacy.env_size == 512
+    assert legacy.prefilter_mips == 5
 
 
 def test_expected_shapes_tracks_the_settings():
