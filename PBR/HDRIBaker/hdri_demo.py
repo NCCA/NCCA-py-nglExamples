@@ -21,6 +21,7 @@ shader, with the baked HDRI drawn behind the teapot as a skybox.
 """
 
 import argparse
+import math
 import sys
 import traceback
 from pathlib import Path
@@ -164,6 +165,15 @@ class HDRIScene(WebGPUWidget):
         self.roughness = _DEFAULT_ROUGHNESS
         self.ao = _DEFAULT_AO
         self.albedo = _DEFAULT_ALBEDO
+
+        # Auto-orbit: when on, the camera circles the origin (the teapot's
+        # centre) at whatever radius/height it had when orbit was switched on,
+        # so every side comes into view. orbit_speed is radians/second.
+        self.orbit = False
+        self.orbit_speed = 1.0
+        self._orbit_angle = 0.0
+        self._orbit_radius = 6.0
+        self._orbit_height = 0.0
 
         self.timer = QElapsedTimer()
         self.timer.start()
@@ -517,6 +527,38 @@ class HDRIScene(WebGPUWidget):
         self.debug_view = index % len(DEBUG_VIEWS)
         self.update()
 
+    @Slot(bool)
+    def set_orbit(self, enabled: bool) -> None:
+        # Capture the current radius/height/angle so the orbit picks up from
+        # wherever the camera is now, without a jump.
+        if enabled:
+            eye = self.camera.eye
+            radius = math.hypot(eye.x, eye.z)
+            self._orbit_radius = radius if radius > 1e-3 else 6.0
+            self._orbit_height = eye.y
+            self._orbit_angle = math.atan2(eye.x, eye.z)
+        self.orbit = enabled
+        self.update()
+
+    @Slot(float)
+    def set_orbit_speed(self, value: float) -> None:
+        self.orbit_speed = value
+
+    def _advance_orbit(self, delta_time: float) -> None:
+        if not self.orbit:
+            return
+        self._orbit_angle += self.orbit_speed * delta_time
+        r = self._orbit_radius
+        a = self._orbit_angle
+        self.camera.eye = Vec3(r * math.sin(a), self._orbit_height, r * math.cos(a))
+        # Point the camera back at the origin by deriving yaw/pitch from the
+        # eye->centre direction, then let the camera rebuild its view.
+        front = Vec3(-self.camera.eye.x, -self.camera.eye.y, -self.camera.eye.z)
+        front = front.normalized()
+        self.camera.yaw = math.degrees(math.atan2(front.z, front.x))
+        self.camera.pitch = math.degrees(math.asin(max(-1.0, min(1.0, front.y))))
+        self.camera._update_camera_vectors()
+
     # ------------------------------------------------------------- skybox
     def _create_skybox_pipeline(self) -> None:
         with open(SHADER_DIR / "Skybox.wgsl", "r") as f:
@@ -620,6 +662,7 @@ class HDRIScene(WebGPUWidget):
         delta_time = min(current - self.last_frame, 0.05)
         self.last_frame = current
         self._update_camera_movement(delta_time)
+        self._advance_orbit(delta_time)
 
         # Strip translation from the view so the skybox never moves relative
         # to the camera, whichever way we pan/orbit.

@@ -70,11 +70,12 @@ QML overlay borrowed from
 teapot's PBR inputs live: metallic, roughness and ambient-occlusion
 sliders, an albedo colour picker, an IBL on/off toggle, and a selector that
 puts the environment, irradiance or a prefilter mip in the skybox so you
-can see the maps the shader actually samples. Drag a panel anywhere; click
-off a panel and the drag rotates the camera (wheel zooms). Turn metallic
-down and the albedo colour shows through; push roughness up and the
-reflection walks up the prefiltered mip chain — the split sum made
-tangible.
+can see the maps the shader actually samples. There's also an orbit toggle
+that circles the camera around the teapot so you can see every side, with a
+speed slider to set how fast. Drag a panel anywhere; click off a panel and
+the drag rotates the camera (wheel zooms). Turn metallic down and the
+albedo colour shows through; push roughness up and the reflection walks up
+the prefiltered mip chain — the split sum made tangible.
 
 ## Notes
 

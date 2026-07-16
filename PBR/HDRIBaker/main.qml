@@ -139,6 +139,32 @@ Item {
         }
     }
 
+    // -------------------------------------------------------------- camera
+    ThemedPanel {
+        id: cameraPanel
+        panelId: "camera"
+        x: 20
+        y: 505
+        Column {
+            spacing: 8
+            Label { text: "Camera"; font.bold: true }
+            CheckBox {
+                id: orbitCheck
+                text: "Orbit the mesh"
+                checked: false
+                onToggled: scene.set_orbit(checked)
+            }
+            LabeledSlider {
+                id: orbitSpeedSlider
+                label: "Orbit speed"
+                from: 0.0
+                to: 3.0
+                value: 1.0
+                onMoved: scene.set_orbit_speed(value)
+            }
+        }
+    }
+
     // Persist each panel's position between runs (QtCore Settings, backed by
     // the QSettings store keyed on the org/app name set in main()).
     Settings {
@@ -149,6 +175,8 @@ Item {
         property alias albedoY: albedoPanel.y
         property alias lightingX: lightingPanel.x
         property alias lightingY: lightingPanel.y
+        property alias cameraX: cameraPanel.x
+        property alias cameraY: cameraPanel.y
     }
 
     // Push the panels' initial values into the scene so the teapot's starting
@@ -169,6 +197,8 @@ Item {
             scene.set_albedo(albedoWidget.model.r, albedoWidget.model.g, albedoWidget.model.b)
             scene.set_use_ibl(iblCheck.checked)
             scene.set_debug_view(envCombo.currentIndex)
+            scene.set_orbit_speed(orbitSpeedSlider.sliderValue)
+            scene.set_orbit(orbitCheck.checked)
         }
     }
 }
