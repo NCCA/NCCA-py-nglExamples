@@ -9,23 +9,37 @@ without baking anything itself.
 
 import argparse
 import sys
+import time
 import traceback
 from pathlib import Path
 
 import numpy as np
 from bake_ibl import bake_maps
+from bake_settings import BakeSettings, prefilter_key
 from hdri_input import load_equirect_hdr
-from ibl_maps import prefilter_key, save_maps
+from ibl_maps import (
+    DEFAULT_ENV_SIZE,
+    DEFAULT_IRRADIANCE_SIZE,
+    DEFAULT_LUT_SIZE,
+    DEFAULT_PREFILTER_MIPS,
+    DEFAULT_PREFILTER_SIZE,
+    save_maps,
+)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
+    QComboBox,
+    QDoubleSpinBox,
     QFileDialog,
+    QFormLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QSpinBox,
     QToolBar,
     QVBoxLayout,
     QWidget,
@@ -43,6 +57,69 @@ def _tonemap_to_qimage(rgb: np.ndarray) -> QImage:
     buf = np.ascontiguousarray((srgb * 255).astype(np.uint8))
     h, w, _ = buf.shape
     return QImage(buf.data, w, h, 3 * w, QImage.Format_RGB888).copy()
+
+
+def _power_of_two_combo(choices: list[int], current: int) -> QComboBox:
+    """A combo of power-of-two sizes -- a free-text spin box would only invite
+    values the bake has to reject."""
+    box = QComboBox()
+    for value in choices:
+        box.addItem(str(value), value)
+    box.setCurrentIndex(choices.index(current))
+    return box
+
+
+class SettingsPanel(QGroupBox):
+    """The bake's knobs. Sizes trade file size and detail; sample counts trade
+    bake time against noise."""
+
+    def __init__(self) -> None:
+        super().__init__("Bake settings")
+        self.env = _power_of_two_combo([128, 256, 512, 1024, 2048], DEFAULT_ENV_SIZE)
+        self.irradiance = _power_of_two_combo([8, 16, 32, 64], DEFAULT_IRRADIANCE_SIZE)
+        self.prefilter = _power_of_two_combo([32, 64, 128, 256], DEFAULT_PREFILTER_SIZE)
+        self.lut = _power_of_two_combo([64, 128, 256, 512], DEFAULT_LUT_SIZE)
+
+        self.mips = QSpinBox()
+        self.mips.setRange(2, 8)  # 1 mip cannot span a roughness range
+        self.mips.setValue(DEFAULT_PREFILTER_MIPS)
+
+        self.prefilter_samples = QSpinBox()
+        self.prefilter_samples.setRange(1, 8192)
+        self.prefilter_samples.setValue(1024)
+
+        self.brdf_samples = QSpinBox()
+        self.brdf_samples.setRange(1, 8192)
+        self.brdf_samples.setValue(1024)
+
+        self.sample_delta = QDoubleSpinBox()
+        self.sample_delta.setRange(0.005, 1.0)
+        self.sample_delta.setSingleStep(0.005)
+        self.sample_delta.setDecimals(3)
+        self.sample_delta.setValue(0.025)
+
+        form = QFormLayout()
+        form.addRow("Environment cube", self.env)
+        form.addRow("Irradiance cube", self.irradiance)
+        form.addRow("Prefilter cube", self.prefilter)
+        form.addRow("Prefilter mips", self.mips)
+        form.addRow("BRDF LUT", self.lut)
+        form.addRow("Prefilter samples", self.prefilter_samples)
+        form.addRow("BRDF samples", self.brdf_samples)
+        form.addRow("Irradiance sample delta", self.sample_delta)
+        self.setLayout(form)
+
+    def settings(self) -> BakeSettings:
+        return BakeSettings(
+            env_size=self.env.currentData(),
+            irradiance_size=self.irradiance.currentData(),
+            prefilter_size=self.prefilter.currentData(),
+            prefilter_mips=self.mips.value(),
+            lut_size=self.lut.currentData(),
+            prefilter_samples=self.prefilter_samples.value(),
+            brdf_samples=self.brdf_samples.value(),
+            irradiance_sample_delta=self.sample_delta.value(),
+        )
 
 
 class HDRIBakerWindow(QMainWindow):
@@ -82,8 +159,21 @@ class HDRIBakerWindow(QMainWindow):
             col.addWidget(cap)
             thumb_row.addLayout(col)
 
+        self.settings_panel = SettingsPanel()
+        self.timing = QLabel("")
+        self.timing.setAlignment(Qt.AlignCenter)
+
+        side = QVBoxLayout()
+        side.addWidget(self.settings_panel)
+        side.addWidget(self.timing)
+        side.addStretch(1)
+
+        top = QHBoxLayout()
+        top.addWidget(self.preview, 1)
+        top.addLayout(side)
+
         layout = QVBoxLayout()
-        layout.addWidget(self.preview, 1)
+        layout.addLayout(top, 1)
         layout.addLayout(thumb_row)
         central = QWidget()
         central.setLayout(layout)
@@ -115,14 +205,31 @@ class HDRIBakerWindow(QMainWindow):
     def on_bake(self) -> None:
         if self.image is None:
             return
+        settings = self.settings_panel.settings()
         try:
-            self.maps = bake_maps(self.image, source=Path(self._source).name)
+            settings.validate()
+        except ValueError as err:
+            self._show_error("Invalid bake settings", err)
+            return
+
+        # A big bake blocks the event loop for a while; at least let the
+        # button look pressed and the cursor say so.
+        self.bake_btn.setEnabled(False)
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        start = time.perf_counter()
+        try:
+            self.maps = bake_maps(self.image, settings, source=Path(self._source).name)
         except Exception as err:  # noqa: BLE001
             self._show_error("Bake failed", err)
             return
+        finally:
+            QApplication.restoreOverrideCursor()
+            self.bake_btn.setEnabled(True)
+        self.timing.setText(f"baked in {time.perf_counter() - start:.2f}s")
+        thumb_mip = min(2, settings.prefilter_mips - 1)
         previews = (
             self.maps["irradiance"][0],
-            self.maps[prefilter_key(2)][0],
+            self.maps[prefilter_key(thumb_mip)][0],
             # BRDF LUT is 2-channel; pad a zero blue so it tonemaps as RGB
             np.dstack(
                 [
@@ -163,7 +270,7 @@ def main() -> None:
 
     app = QApplication(sys.argv)
     win = HDRIBakerWindow()
-    win.resize(760, 620)
+    win.resize(1040, 640)
     win.show()
     if args.smoketest is not None:
         QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
