@@ -172,3 +172,78 @@ def test_irradiance_sample_delta_changes_the_irradiance(gpu):
     a = np.asarray(coarse["irradiance"], np.float32)
     b = np.asarray(fine["irradiance"], np.float32)
     assert not np.allclose(a, b, atol=1e-3)
+
+
+# Face order of a cube texture's array layers: +X, -X, +Y, -Y, +Z, -Z.
+_POS_Y, _NEG_Y, _POS_Z = 2, 3, 4
+
+
+def _sky_and_ground_equirect() -> np.ndarray:
+    """A panorama whose top half (the sky) is red and bottom half (the ground)
+    is blue. Row 0 of an equirect is straight up, the last row straight down.
+    """
+    height, width = 32, 64
+    image = np.zeros((height, width, 3), dtype=np.float32)
+    image[: height // 2, :, 0] = 1.0  # sky: red
+    image[height // 2 :, :, 2] = 1.0  # ground: blue
+    return image
+
+
+def _dominant_channel(face: np.ndarray) -> int:
+    return int(np.argmax(np.asarray(face, np.float32).mean(axis=(0, 1))[:3]))
+
+
+def test_bake_does_not_swap_the_poles(gpu):
+    """The +Y face must be the sky and -Y the ground.
+
+    The equirect maths and the capture projection each flip vertically. On the
+    four side faces those flips cancel, so a sign error there hides; on the
+    poles they do not, and the ceiling ends up underfoot.
+    """
+    from bake_ibl import bake_maps
+    from bake_settings import BakeSettings
+
+    maps = bake_maps(
+        _sky_and_ground_equirect(),
+        BakeSettings(
+            env_size=32,
+            irradiance_size=8,
+            prefilter_size=16,
+            prefilter_mips=2,
+            lut_size=32,
+            prefilter_samples=16,
+            brdf_samples=16,
+        ),
+    )
+    env = np.asarray(maps["env"], np.float32)
+
+    assert _dominant_channel(env[_POS_Y]) == 0, "+Y (up) should be the red sky"
+    assert _dominant_channel(env[_NEG_Y]) == 2, "-Y (down) should be the blue ground"
+
+
+def test_bake_keeps_side_faces_upright(gpu):
+    """A side face must have sky along its top rows, not its bottom ones.
+
+    This is the other half of the pair: negating only the equirect v mapping
+    fixes the poles but leaves every side face upside down.
+    """
+    from bake_ibl import bake_maps
+    from bake_settings import BakeSettings
+
+    maps = bake_maps(
+        _sky_and_ground_equirect(),
+        BakeSettings(
+            env_size=32,
+            irradiance_size=8,
+            prefilter_size=16,
+            prefilter_mips=2,
+            lut_size=32,
+            prefilter_samples=16,
+            brdf_samples=16,
+        ),
+    )
+    face = np.asarray(maps["env"], np.float32)[_POS_Z]
+    top, bottom = face[:8], face[-8:]
+
+    assert _dominant_channel(top) == 0, "top of a side face should be sky"
+    assert _dominant_channel(bottom) == 2, "bottom of a side face should be ground"

@@ -24,6 +24,11 @@ LUT_FORMAT = wgpu.TextureFormat.rg16float
 _SHADER_DIR = Path(__file__).resolve().parent / "shaders"
 
 _CAPTURE_PROJECTION = perspective(90.0, 1.0, 0.1, 10.0, PerspMode.WebGPU)
+# The capture views below are the standard GL ones, which assume a bottom-left
+# origin render target; WebGPU's is top-left, so without this the faces bake in
+# vertically mirrored. Safe: nothing here culls faces, and which face we write
+# is decided by the texture view, not by the winding.
+_CAPTURE_PROJECTION[1, 1] *= -1.0
 _CAPTURE_VIEWS = [
     look_at(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, -1, 0)),
     look_at(Vec3(0, 0, 0), Vec3(-1, 0, 0), Vec3(0, -1, 0)),
