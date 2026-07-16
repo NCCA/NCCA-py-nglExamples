@@ -784,7 +784,10 @@ class HDRIScene(WebGPUWidget):
         key = event.key()
         self.keys_pressed.add(key)
         if key == Qt.Key_Escape:
-            self.close()
+            # The scene is the central widget of a QMainWindow, so closing
+            # itself only hides the scene and leaves the window (and app)
+            # running - close the top-level window instead.
+            self.window().close()
         elif key == Qt.Key_E:
             self.debug_view = (self.debug_view + 1) % len(DEBUG_VIEWS)
         elif key == Qt.Key_I:
