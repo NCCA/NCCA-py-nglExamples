@@ -24,7 +24,14 @@ from pathlib import Path
 import numpy as np
 import wgpu
 import wgpu.utils
-from ibl_maps import load_maps, prefilter_key
+from ibl_maps import (
+    ENV_SIZE,
+    IRRADIANCE_SIZE,
+    PREFILTER_MIPS,
+    PREFILTER_SIZE,
+    load_maps,
+    prefilter_key,
+)
 from ncca.ngl import (
     FirstPersonCamera,
     Mat4,
@@ -45,13 +52,7 @@ _VERTEX_STRIDE = 8 * _FLOAT  # pos3, normal3, uv2 (only pos is used here)
 HDRI_DIR = Path(__file__).resolve().parent
 SHADER_DIR = HDRI_DIR / "shaders"
 
-ENV_SIZE, IRRADIANCE_SIZE, PREFILTER_SIZE, PREFILTER_MIPS, LUT_SIZE = (
-    512,
-    32,
-    128,
-    5,
-    512,
-)
+# Map sizes come from ibl_maps so the schema stays the single source of truth.
 
 BAKE_FORMAT = wgpu.TextureFormat.rgba16float
 LUT_FORMAT = wgpu.TextureFormat.rg16float
@@ -242,7 +243,10 @@ class HDRIScene(WebGPUWidget):
         return tex
 
     def _load_baked_maps(self) -> None:
-        maps = load_maps(self.maps_path)
+        try:
+            maps = load_maps(self.maps_path)
+        except (OSError, ValueError) as err:
+            raise SystemExit(f"Could not load IBL maps from {self.maps_path!r}: {err}")
         self.env_cube = self._upload_cube(maps["env"], ENV_SIZE)
         self.irradiance_cube = self._upload_cube(maps["irradiance"], IRRADIANCE_SIZE)
         prefilter_mips = [maps[prefilter_key(m)] for m in range(1, PREFILTER_MIPS)]

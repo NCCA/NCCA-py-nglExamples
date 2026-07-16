@@ -51,6 +51,7 @@ class HDRIBakerWindow(QMainWindow):
         self.setWindowTitle("HDRI IBL Baker")
         self.image: np.ndarray | None = None
         self.maps: dict | None = None
+        self._source: str | None = None
 
         toolbar = QToolBar()
         self.addToolBar(toolbar)
@@ -132,7 +133,11 @@ class HDRIBakerWindow(QMainWindow):
         )
         for label, data in zip(self.thumbs, previews):
             img = _tonemap_to_qimage(np.asarray(data, np.float32))
-            label.setPixmap(QPixmap.fromImage(img).scaled(128, 128, Qt.KeepAspectRatio))
+            label.setPixmap(
+                QPixmap.fromImage(img).scaled(
+                    128, 128, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                )
+            )
         self.save_btn.setEnabled(True)
 
     def on_save(self) -> None:
