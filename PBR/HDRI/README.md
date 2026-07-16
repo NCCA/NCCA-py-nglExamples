@@ -62,6 +62,15 @@ uv run PBR/HDRI/HDRIWebGPU.py   # WebGPU
 Reading the `.exr` needs [OpenEXR](https://pypi.org/project/OpenEXR/),
 already a project dependency (`PBR/HDRI/exr_loader.py`).
 
+## Notes
+
+One small difference between the backends: the OpenGL bake gives the
+environment cubemap a full mip chain (`glGenerateMipmap`) that the prefilter
+step samples to knock back specular fireflies, whereas wgpu has no equivalent,
+so the WebGPU prefilter reads the base level only. In practice that's just a
+touch more sparkle on the roughest WebGPU teapots — the two demos are otherwise
+the same.
+
 ## References
 
 - LearnOpenGL — [Diffuse Irradiance](https://learnopengl.com/PBR/IBL/Diffuse-irradiance)

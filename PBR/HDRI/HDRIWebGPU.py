@@ -181,9 +181,7 @@ class HDRIScene(WebGPUWidget):
         self.camera = FirstPersonCamera(
             Vec3(0, 0, 30), Vec3(0, 0, 0), Vec3(0, 1, 0), 45.0, PerspMode.WebGPU
         )
-        width = max(self.width(), 1)
-        height = max(self.height(), 1)
-        self.camera.set_projection(45.0, width / height, 0.05, 350.0, PerspMode.WebGPU)
+        self._update_projection(max(self.width(), 1), max(self.height(), 1))
 
         self._initialize_web_gpu()
         self.startTimer(16)
@@ -621,7 +619,7 @@ class HDRIScene(WebGPUWidget):
             entries=[{"binding": 0, "resource": {"buffer": self.pbr_scene_buffer}}],
         )
 
-        ibl_view = self.pbr_ibl_bind_group = self.device.create_bind_group(
+        self.pbr_ibl_bind_group = self.device.create_bind_group(
             layout=self.pbr_ibl_bgl,
             entries=[
                 {
@@ -645,7 +643,6 @@ class HDRIScene(WebGPUWidget):
                 {"binding": 3, "resource": self.linear_sampler},
             ],
         )
-        del ibl_view  # created for clarity above; bind group is the useful part
 
     def _build_grid(self) -> None:
         """Lay out the 7x7 teapot grid: rows sweep metallic, columns sweep
@@ -879,11 +876,30 @@ class HDRIScene(WebGPUWidget):
             self.update()
 
     # ------------------------------------------------------------------- input
+    def _update_projection(self, w: int, h: int) -> None:
+        """Rebuild the camera's projection for a `w`x`h` viewport.
+
+        FirstPersonCamera.set_projection only returns a matrix (it never stores
+        it, and rebuilds from self.aspect/near/far on zoom), so we set those
+        fields and rebuild _projection here -- that keeps the aspect matching
+        the window (so the grid isn't stretched) and wheel-zoom working.
+        """
+        self.camera.aspect = float(w) / float(max(h, 1))
+        self.camera.near = 0.05
+        self.camera.far = 350.0
+        self.camera._projection = perspective(
+            self.camera.zoom,
+            self.camera.aspect,
+            self.camera.near,
+            self.camera.far,
+            PerspMode.WebGPU,
+        )
+
     def resizeWebGPU(self, width: int, height: int) -> None:
         ratio = self.devicePixelRatio()
         w = max(width * ratio, 1)
         h = max(height * ratio, 1)
-        self.camera.set_projection(45.0, w / h, 0.05, 350.0, PerspMode.WebGPU)
+        self._update_projection(w, h)
         self.update()
 
     def _update_camera_movement(self, delta_time: float) -> None:
@@ -912,11 +928,7 @@ class HDRIScene(WebGPUWidget):
             self.camera = FirstPersonCamera(
                 Vec3(0, 0, 30), Vec3(0, 0, 0), Vec3(0, 1, 0), 45.0, PerspMode.WebGPU
             )
-            width = max(self.width(), 1)
-            height = max(self.height(), 1)
-            self.camera.set_projection(
-                45.0, width / height, 0.05, 350.0, PerspMode.WebGPU
-            )
+            self._update_projection(max(self.width(), 1), max(self.height(), 1))
         self.update()
         super().keyPressEvent(event)
 
