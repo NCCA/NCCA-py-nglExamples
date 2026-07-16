@@ -22,7 +22,10 @@ fn vertex_main(@location(0) inVert : vec3<f32>) -> VSOut {
     return out;
 }
 
-const invAtan : vec2<f32> = vec2<f32>(0.1591, 0.3183);
+// v is negated against the usual GLSL (0.1591, 0.3183): WGSL puts v = 0 at the
+// *top* texel row, where GL puts it at the bottom, so the GL sign would send
+// straight up (asin(y) == +1) to the bottom of the panorama -- the ground.
+const invAtan : vec2<f32> = vec2<f32>(0.1591, -0.3183);
 
 fn sampleSphericalMap(v : vec3<f32>) -> vec2<f32> {
     var uv = vec2<f32>(atan2(v.z, v.x), asin(v.y));
