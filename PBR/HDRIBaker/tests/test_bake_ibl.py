@@ -99,3 +99,76 @@ def test_omitting_settings_bakes_at_the_defaults(gpu):
     maps = bake_maps(_tiny_equirect())
     for key, shape in expected_shapes(BakeSettings()).items():
         assert maps[key].shape == shape, key
+
+
+def test_sample_count_changes_the_prefiltered_result(gpu):
+    # The whole point of exposing SAMPLE_COUNT: it must actually reach the
+    # shader. A 4-sample GGX prefilter cannot match a 512-sample one.
+    from bake_ibl import bake_maps
+    from bake_settings import BakeSettings, prefilter_key
+
+    base = dict(
+        env_size=64,
+        irradiance_size=8,
+        prefilter_size=16,
+        prefilter_mips=3,
+        lut_size=32,
+        irradiance_sample_delta=0.5,
+    )
+    noisy = bake_maps(
+        _tiny_equirect(), BakeSettings(**base, prefilter_samples=4, brdf_samples=16)
+    )
+    clean = bake_maps(
+        _tiny_equirect(), BakeSettings(**base, prefilter_samples=512, brdf_samples=16)
+    )
+    # mip 2 is the roughest level, where sampling noise shows up most
+    a = np.asarray(noisy[prefilter_key(2)], np.float32)
+    b = np.asarray(clean[prefilter_key(2)], np.float32)
+    assert not np.allclose(a, b, atol=1e-3)
+
+
+def test_brdf_sample_count_changes_the_lut(gpu):
+    from bake_ibl import bake_maps
+    from bake_settings import BakeSettings
+
+    base = dict(
+        env_size=32,
+        irradiance_size=8,
+        prefilter_size=16,
+        prefilter_mips=2,
+        lut_size=64,
+        irradiance_sample_delta=0.5,
+    )
+    coarse = bake_maps(
+        _tiny_equirect(), BakeSettings(**base, brdf_samples=4, prefilter_samples=16)
+    )
+    fine = bake_maps(
+        _tiny_equirect(), BakeSettings(**base, brdf_samples=512, prefilter_samples=16)
+    )
+    a = np.asarray(coarse["brdf_lut"], np.float32)
+    b = np.asarray(fine["brdf_lut"], np.float32)
+    assert not np.allclose(a, b, atol=1e-3)
+
+
+def test_irradiance_sample_delta_changes_the_irradiance(gpu):
+    from bake_ibl import bake_maps
+    from bake_settings import BakeSettings
+
+    base = dict(
+        env_size=64,
+        irradiance_size=8,
+        prefilter_size=16,
+        prefilter_mips=2,
+        lut_size=32,
+        prefilter_samples=16,
+        brdf_samples=16,
+    )
+    coarse = bake_maps(
+        _tiny_equirect(), BakeSettings(**base, irradiance_sample_delta=0.5)
+    )
+    fine = bake_maps(
+        _tiny_equirect(), BakeSettings(**base, irradiance_sample_delta=0.05)
+    )
+    a = np.asarray(coarse["irradiance"], np.float32)
+    b = np.asarray(fine["irradiance"], np.float32)
+    assert not np.allclose(a, b, atol=1e-3)

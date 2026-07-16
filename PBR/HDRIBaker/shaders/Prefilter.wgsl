@@ -5,9 +5,8 @@ struct CaptureUniforms {
     projection : mat4x4<f32>,
     view : mat4x4<f32>,
     roughness : f32,
-    _pad0 : f32,
-    _pad1 : f32,
-    _pad2 : f32,
+    sampleCount : u32,
+    envResolution : f32,  // source cube's per-face size, for the mip selection below
 };
 @group(0) @binding(0) var<uniform> capture : CaptureUniforms;
 @group(1) @binding(0) var environmentMap : texture_cube<f32>;
@@ -83,7 +82,7 @@ fn fragment_main(in : VSOut) -> @location(0) vec4<f32> {
     let V = R;
     let roughness = capture.roughness;
 
-    const SAMPLE_COUNT : u32 = 1024u;
+    let SAMPLE_COUNT = capture.sampleCount;
     var prefilteredColor = vec3<f32>(0.0);
     var totalWeight = 0.0;
 
@@ -99,7 +98,7 @@ fn fragment_main(in : VSOut) -> @location(0) vec4<f32> {
             let HdotV = max(dot(H, V), 0.0);
             let pdf = D * NdotH / (4.0 * HdotV) + 0.0001;
 
-            let resolution = 512.0; // source cubemap per-face size (keep in sync with ENV_SIZE)
+            let resolution = capture.envResolution;
             let saTexel = 4.0 * PI / (6.0 * resolution * resolution);
             let saSample = 1.0 / (f32(SAMPLE_COUNT) * pdf + 0.0001);
 

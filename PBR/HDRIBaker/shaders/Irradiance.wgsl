@@ -4,6 +4,7 @@
 struct CaptureUniforms {
     projection : mat4x4<f32>,
     view : mat4x4<f32>,
+    sampleDelta : f32,
 };
 @group(0) @binding(0) var<uniform> capture : CaptureUniforms;
 @group(1) @binding(0) var environmentMap : texture_cube<f32>;
@@ -32,7 +33,7 @@ fn fragment_main(in : VSOut) -> @location(0) vec4<f32> {
     let right = normalize(cross(up, N));
     up = normalize(cross(N, right));
 
-    let sampleDelta = 0.025;
+    let sampleDelta = capture.sampleDelta;
     var nrSamples = 0.0;
     var phi = 0.0;
     loop {

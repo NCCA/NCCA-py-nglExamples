@@ -19,6 +19,11 @@ fn vertex_main(@builtin(vertex_index) vertex_index : u32) -> VSOut {
 
 const PI : f32 = 3.14159265359;
 
+struct BRDFUniforms {
+    sampleCount : u32,
+};
+@group(0) @binding(0) var<uniform> brdf : BRDFUniforms;
+
 fn RadicalInverse_VdC(bits_in : u32) -> f32 {
     var bits = bits_in;
     bits = (bits << 16u) | (bits >> 16u);
@@ -84,7 +89,7 @@ fn IntegrateBRDF(NdotV : f32, roughness : f32) -> vec2<f32> {
 
     let N = vec3<f32>(0.0, 0.0, 1.0);
 
-    const SAMPLE_COUNT : u32 = 1024u;
+    let SAMPLE_COUNT = brdf.sampleCount;
     for (var i : u32 = 0u; i < SAMPLE_COUNT; i++) {
         let Xi = Hammersley(i, SAMPLE_COUNT);
         let H = ImportanceSampleGGX(Xi, N, roughness);

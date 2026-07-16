@@ -40,12 +40,34 @@ _CAPTURE_DTYPE = np.dtype(
         "itemsize": 128,
     }
 )
-_PREFILTER_CAPTURE_DTYPE = np.dtype(
+_IRRADIANCE_CAPTURE_DTYPE = np.dtype(
     {
-        "names": ["projection", "view", "roughness"],
+        "names": ["projection", "view", "sample_delta"],
         "formats": [(np.float32, (4, 4)), (np.float32, (4, 4)), np.float32],
         "offsets": [0, 64, 128],
         "itemsize": 144,
+    }
+)
+_PREFILTER_CAPTURE_DTYPE = np.dtype(
+    {
+        "names": ["projection", "view", "roughness", "sample_count", "env_resolution"],
+        "formats": [
+            (np.float32, (4, 4)),
+            (np.float32, (4, 4)),
+            np.float32,
+            np.uint32,
+            np.float32,
+        ],
+        "offsets": [0, 64, 128, 132, 136],
+        "itemsize": 144,
+    }
+)
+_BRDF_UNIFORM_DTYPE = np.dtype(
+    {
+        "names": ["sample_count"],
+        "formats": [np.uint32],
+        "offsets": [0],
+        "itemsize": 16,
     }
 )
 
@@ -66,7 +88,12 @@ def bake_maps(
 
     env = baker.bake_cube("Equirect2Cube.wgsl", settings.env_size, "2d", equirect)
     irradiance = baker.bake_cube(
-        "Irradiance.wgsl", settings.irradiance_size, "cube", env
+        "Irradiance.wgsl",
+        settings.irradiance_size,
+        "cube",
+        env,
+        capture_dtype=_IRRADIANCE_CAPTURE_DTYPE,
+        extra={"sample_delta": settings.irradiance_sample_delta},
     )
     prefilter = baker.bake_prefilter(env)
     lut = baker.bake_brdf()
@@ -222,10 +249,19 @@ class _Baker:
         )
 
     def bake_cube(
-        self, shader_name: str, size: int, src_view_dim: str, src
+        self,
+        shader_name: str,
+        size: int,
+        src_view_dim: str,
+        src,
+        capture_dtype: np.dtype = _CAPTURE_DTYPE,
+        extra: dict | None = None,
     ) -> "wgpu.GPUTexture":
-        """Bake `shader_name` into all six faces of a new `size`^2 cube texture."""
-        pipe = self._make_cube_pipeline(shader_name, src_view_dim, _CAPTURE_DTYPE)
+        """Bake `shader_name` into all six faces of a new `size`^2 cube texture.
+
+        `extra` sets any shader-specific uniform fields beyond projection/view.
+        """
+        pipe = self._make_cube_pipeline(shader_name, src_view_dim, capture_dtype)
         source_bind_group = self._source_bind_group(
             pipe["source_bgl"], src, src_view_dim
         )
@@ -238,8 +274,10 @@ class _Baker:
             | wgpu.TextureUsage.COPY_SRC,
         )
 
-        uniforms = np.zeros((), dtype=_CAPTURE_DTYPE)
+        uniforms = np.zeros((), dtype=capture_dtype)
         uniforms["projection"] = _CAPTURE_PROJECTION.to_numpy()
+        for name, value in (extra or {}).items():
+            uniforms[name] = value
         for face in range(6):
             uniforms["view"] = _CAPTURE_VIEWS[face].to_numpy()
             self.device.queue.write_buffer(
@@ -277,6 +315,8 @@ class _Baker:
             uniforms = np.zeros((), dtype=_PREFILTER_CAPTURE_DTYPE)
             uniforms["projection"] = _CAPTURE_PROJECTION.to_numpy()
             uniforms["roughness"] = self.settings.roughness_for_mip(mip)
+            uniforms["sample_count"] = self.settings.prefilter_samples
+            uniforms["env_resolution"] = float(self.settings.env_size)
             for face in range(6):
                 uniforms["view"] = _CAPTURE_VIEWS[face].to_numpy()
                 self.device.queue.write_buffer(
@@ -324,8 +364,29 @@ class _Baker:
         with open(_SHADER_DIR / "BRDF.wgsl", "r") as f:
             shader = self.device.create_shader_module(code=f.read())
 
+        bgl = self.device.create_bind_group_layout(
+            entries=[
+                {
+                    "binding": 0,
+                    "visibility": wgpu.ShaderStage.FRAGMENT,
+                    "buffer": {"type": wgpu.BufferBindingType.uniform},
+                }
+            ],
+        )
+        uniform_buffer = self.device.create_buffer(
+            size=_BRDF_UNIFORM_DTYPE.itemsize,
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+        )
+        uniforms = np.zeros((), dtype=_BRDF_UNIFORM_DTYPE)
+        uniforms["sample_count"] = self.settings.brdf_samples
+        self.device.queue.write_buffer(uniform_buffer, 0, uniforms.tobytes())
+        bind_group = self.device.create_bind_group(
+            layout=bgl,
+            entries=[{"binding": 0, "resource": {"buffer": uniform_buffer}}],
+        )
+
         pipeline = self.device.create_render_pipeline(
-            layout=self.device.create_pipeline_layout(bind_group_layouts=[]),
+            layout=self.device.create_pipeline_layout(bind_group_layouts=[bgl]),
             vertex={"module": shader, "entry_point": "vertex_main"},
             fragment={
                 "module": shader,
@@ -356,6 +417,7 @@ class _Baker:
         )
         render_pass.set_viewport(0, 0, lut_size, lut_size, 0, 1)
         render_pass.set_pipeline(pipeline)
+        render_pass.set_bind_group(0, bind_group)
         render_pass.draw(3)
         render_pass.end()
         self.device.queue.submit([encoder.finish()])
