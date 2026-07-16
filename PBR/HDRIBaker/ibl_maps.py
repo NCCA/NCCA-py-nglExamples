@@ -44,7 +44,17 @@ def save_maps(maps: dict, path: str | Path) -> None:
 
 def load_maps(path: str | Path) -> dict:
     """Load a ``.npz`` written by :func:`save_maps`; validate and return it."""
-    with np.load(path, allow_pickle=False) as npz:
+    try:
+        npz = np.load(path, allow_pickle=False)
+    except ValueError as err:
+        # A non-.npz file (e.g. a stray .py passed to --maps) makes np.load
+        # fall back to pickle and raise a confusing "pickled data" message;
+        # translate it into something a user can act on.
+        raise ValueError(
+            f"{path} is not a NumPy .npz IBL maps file "
+            f"(expected one written by the baker's Save)"
+        ) from err
+    with npz:
         missing = [k for k in _array_keys() if k not in npz]
         if "meta" not in npz:
             missing.append("meta")

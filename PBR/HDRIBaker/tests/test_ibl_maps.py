@@ -38,3 +38,12 @@ def test_load_rejects_missing_array(tmp_path):
     np.savez_compressed(path, **{k: v for k, v in maps.items() if k != "meta"})
     with pytest.raises(ValueError, match="irradiance"):
         load_maps(path)
+
+
+def test_load_rejects_non_npz_file_with_clear_message(tmp_path):
+    # A stray non-.npz path (e.g. someone passing a .py to --maps) should give
+    # an actionable message, not numpy's confusing "pickled data" fallback.
+    path = tmp_path / "not_maps.py"
+    path.write_text("print('hello')\n")
+    with pytest.raises(ValueError, match="not a NumPy .npz IBL maps file"):
+        load_maps(path)
