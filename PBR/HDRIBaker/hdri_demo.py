@@ -175,8 +175,12 @@ class HDRIScene(WebGPUWidget):
         self._update_projection(max(self.width(), 1), max(self.height(), 1))
 
         self._initialize_web_gpu()
-        self.startTimer(16)
-        self.update()
+        # Drive a continuous ~60fps repaint via the base widget's render timer
+        # (self.startTimer would need a timerEvent override, which WebGPUWidget
+        # does not have). Without this the scene only repaints on camera drags,
+        # so a single click on the IBL toggle or skybox combo - which changes
+        # state but generates no follow-up events - would not flush a new frame.
+        self.start_update_timer(16)
 
     # ------------------------------------------------------------------ setup
     def _initialize_web_gpu(self) -> None:
