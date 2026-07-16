@@ -55,7 +55,7 @@ def decode_rgbe(data: bytes) -> np.ndarray:
     pos = data.find(b"\n\n")
     if pos < 0 or not data.startswith(b"#?"):
         raise ValueError("not a Radiance .hdr file")
-    header, body = data[:pos], data[pos + 2 :]
+    body = data[pos + 2 :]
 
     # Resolution line, e.g. "-Y 512 +X 1024"; we only handle the common
     # top-down, left-to-right orientation used by every panorama we bake.
