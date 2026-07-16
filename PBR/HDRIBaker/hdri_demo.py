@@ -15,9 +15,11 @@ overlay reuses ``GUIDemos/QMLWebGPUOverlay``'s pattern - a transparent
 ``QQuickWidget`` on top of the offscreen WebGPU surface, with clicks
 outside any panel forwarded through to the camera.
 
-Controls: left mouse rotates, wheel zooms; the panel drives the material
-and IBL. Everything downstream is identical to the OpenGL ``main.py`` PBR
-shader, with the baked HDRI drawn behind the teapot as a skybox.
+Controls: left mouse rotates, wheel zooms; the panel drives the material,
+IBL and camera orbit. While orbiting, the arrow keys reshape the orbit -
+up/down raise/lower the camera, left/right widen/tighten the radius.
+Everything downstream is identical to the OpenGL ``main.py`` PBR shader,
+with the baked HDRI drawn behind the teapot as a skybox.
 """
 
 import argparse
@@ -138,6 +140,14 @@ _MOVE_KEYS: set = {Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right}
 # Multiplier on the camera's own speed so a held arrow key crosses the scene in
 # a second or two rather than crawling.
 _MOVE_SPEED = 6.0
+
+# While orbiting, the arrow keys reshape the orbit instead of free-flying:
+# up/down raise/lower the camera, left/right widen/tighten the radius. Units
+# per second at which a held key changes each, and the closest the radius may
+# get to the mesh.
+_ORBIT_VERTICAL_SPEED = 4.0
+_ORBIT_RADIAL_SPEED = 5.0
+_ORBIT_MIN_RADIUS = 1.5
 
 
 class HDRIScene(WebGPUWidget):
@@ -744,17 +754,31 @@ class HDRIScene(WebGPUWidget):
         self.update()
 
     def _update_camera_movement(self, delta_time: float) -> None:
-        # Arrow keys: up/down move along the view direction (forward/back),
-        # left/right strafe. camera.move(x, y, delta) shifts the eye by
-        # front*x and right*y, so this reads directly off the held keys.
-        forward = float(Qt.Key_Up in self.keys_pressed) - float(
+        vertical = float(Qt.Key_Up in self.keys_pressed) - float(
             Qt.Key_Down in self.keys_pressed
         )
-        strafe = float(Qt.Key_Right in self.keys_pressed) - float(
+        horizontal = float(Qt.Key_Right in self.keys_pressed) - float(
             Qt.Key_Left in self.keys_pressed
         )
-        if forward or strafe:
-            self.camera.move(forward * _MOVE_SPEED, strafe * _MOVE_SPEED, delta_time)
+        if self.orbit:
+            # While orbiting the arrow keys reshape the orbit rather than
+            # free-fly: up/down raise/lower the camera, left/right widen or
+            # tighten the radius. _advance_orbit reads these back this frame.
+            if vertical:
+                self._orbit_height += vertical * _ORBIT_VERTICAL_SPEED * delta_time
+            if horizontal:
+                self._orbit_radius = max(
+                    _ORBIT_MIN_RADIUS,
+                    self._orbit_radius + horizontal * _ORBIT_RADIAL_SPEED * delta_time,
+                )
+            return
+        # Free-fly: up/down move along the view direction (forward/back),
+        # left/right strafe. camera.move(x, y, delta) shifts the eye by
+        # front*x and right*y, so this reads directly off the held keys.
+        if vertical or horizontal:
+            self.camera.move(
+                vertical * _MOVE_SPEED, horizontal * _MOVE_SPEED, delta_time
+            )
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         key = event.key()
