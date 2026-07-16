@@ -1,5 +1,3 @@
-import struct
-
 import numpy as np
 import pytest
 from hdri_input import decode_rgbe, load_equirect_hdr
