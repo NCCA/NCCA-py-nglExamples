@@ -47,7 +47,7 @@ Item {
             from: ls.from
             to: ls.to
             value: ls.value
-            onMoved: ls.moved(value)
+            onMoved: ls.moved(slider.value)
         }
     }
 
@@ -64,20 +64,20 @@ Item {
                 id: metallicSlider
                 label: "Metallic"
                 value: 1.0
-                onMoved: scene.set_metallic(value)
+                onMoved: (value) => scene.set_metallic(value)
             }
             LabeledSlider {
                 id: roughnessSlider
                 label: "Roughness"
                 from: 0.05
                 value: 0.25
-                onMoved: scene.set_roughness(value)
+                onMoved: (value) => scene.set_roughness(value)
             }
             LabeledSlider {
                 id: aoSlider
                 label: "AO"
                 value: 1.0
-                onMoved: scene.set_ao(value)
+                onMoved: (value) => scene.set_ao(value)
             }
         }
     }
@@ -160,7 +160,7 @@ Item {
                 from: 0.0
                 to: 3.0
                 value: 1.0
-                onMoved: scene.set_orbit_speed(value)
+                onMoved: (value) => scene.set_orbit_speed(value)
             }
         }
     }
