@@ -103,4 +103,3 @@ Mass spring systems:
   change this port had to make.
 - [Soft body dynamics](https://en.wikipedia.org/wiki/Soft-body_dynamics) -- for
   where you go next, once a chain of springs turns into cloth.
-
