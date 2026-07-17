@@ -23,6 +23,9 @@ from PySide6.QtCore import Slot
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
 _MASS_SCALE = 0.1
+# Ghosts are smaller than the masses so they read as reference markers rather
+# than competing with the chain itself.
+_GHOST_SCALE = 0.06
 _FIXED_COLOUR = (1.0, 0.0, 0.0, 1.0)
 _FREE_COLOUR = (0.0, 1.0, 0.0, 1.0)
 _GHOST_COLOUR = (0.4, 0.4, 0.8, 1.0)
@@ -131,12 +134,17 @@ class MassSpringScene(PySideEventHandlingMixin, QOpenGLWidget):
             v.draw()
 
     def _draw_mass(
-        self, position: np.ndarray, colour, prim: str, global_tx: Mat4
+        self,
+        position: np.ndarray,
+        colour,
+        prim: str,
+        global_tx: Mat4,
+        scale: float = _MASS_SCALE,
     ) -> None:
         ShaderLib.use(DefaultShader.DIFFUSE)
         ShaderLib.set_uniform("Colour", *colour)
         self.transform.reset()
-        self.transform.set_scale(_MASS_SCALE, _MASS_SCALE, _MASS_SCALE)
+        self.transform.set_scale(scale, scale, scale)
         self.transform.set_position(
             float(position[0]), float(position[1]), float(position[2])
         )
@@ -153,8 +161,16 @@ class MassSpringScene(PySideEventHandlingMixin, QOpenGLWidget):
         for i in range(self.chain.num_masses):
             colour = _FIXED_COLOUR if self.chain.is_fixed(i) else _FREE_COLOUR
             self._draw_mass(self.chain.positions[i], colour, "cube", global_tx)
-        # ghosts of where each mass started, as the original drew its targets
+        # Ghosts of where each mass started, as the original drew its targets.
+        # A pinned mass never leaves its start, so its ghost would sit exactly
+        # on top of it and hide the red cube that says it is pinned -- skip it.
         for i in range(self.chain.num_masses):
+            if self.chain.is_fixed(i):
+                continue
             self._draw_mass(
-                self.chain.initial_positions[i], _GHOST_COLOUR, "sphere", global_tx
+                self.chain.initial_positions[i],
+                _GHOST_COLOUR,
+                "sphere",
+                global_tx,
+                scale=_GHOST_SCALE,
             )

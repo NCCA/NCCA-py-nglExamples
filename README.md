@@ -100,6 +100,7 @@ Each demo lives in its own folder with a `README.md` explaining it. Click a prev
 | Preview | Demo | Description |
 | :---: | :--- | :--- |
 | <a href="SkeletalAnimation"><img src="SkeletalAnimation/SkeletalAnimation.png" width="220"></a> | [SkeletalAnimation](SkeletalAnimation) | Linear blend skinning vs dual-quaternion skinning, and the "candy wrapper" artefact that tells them apart (OpenGL) |
+| <a href="MassSpring"><img src="MassSpring/MassSpring.png" width="220"></a> | [MassSpring](MassSpring) | Damped mass spring chain with RK4 integration, from a single spring up to a rope |
 
 ## Textures &amp; Materials
 
