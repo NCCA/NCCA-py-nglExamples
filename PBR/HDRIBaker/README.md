@@ -18,7 +18,7 @@ uv run PBR/HDRIBaker/hdri_baker.py
 
 Open an `.exr` or `.hdr` equirectangular panorama (there's a default —
 `images/historic_cloister_passage_1k.exr` — loaded on startup), look at the
-tonemapped preview, hit bake, and eyeball thumbnails of the four maps it
+tonemapped preview, hit bake, and thumbnails of the four maps it
 produced before saving them out. The `.exr` path goes through
 [OpenEXR](https://pypi.org/project/OpenEXR/); `.hdr` is decoded by a small
 Radiance RGBE reader in `hdri_input.py` so the tool doesn't need another
