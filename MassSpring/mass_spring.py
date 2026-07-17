@@ -53,6 +53,7 @@ class MassSpringChain(AbstractRK4Integrator):
         self._gravity_strength = 9.81
         self._fix_first = False
         self._fix_last = False
+        self._dragged = None
         self._t = 0.0
         self.reset()
 
@@ -60,6 +61,11 @@ class MassSpringChain(AbstractRK4Integrator):
     @property
     def num_masses(self) -> int:
         return self._num_masses
+
+    @property
+    def dragged(self) -> int | None:
+        """Index of the mass the mouse is holding, or None."""
+        return self._dragged
 
     @property
     def positions(self) -> np.ndarray:
@@ -118,6 +124,29 @@ class MassSpringChain(AbstractRK4Integrator):
         self._fix_last = fixed
         self._rebuild_fixed_mask()
 
+    def set_dragged(self, index: int | None) -> None:
+        """Mark a mass as held by the mouse, or pass None to let go.
+
+        A held mass is kinematic: it goes into the fixed mask so the
+        integrator leaves it alone and the mouse can place it freely.
+        """
+        if index is not None and not 0 <= index < self._num_masses:
+            raise ValueError(f"no mass {index} in a chain of {self._num_masses}")
+        self._dragged = index
+        self._rebuild_fixed_mask()
+
+    def move_dragged(self, position: np.ndarray) -> None:
+        """Put the held mass exactly at `position`. Does nothing if nothing is held.
+
+        The anchor moves too: a pinned mass is clamped back to its anchor by
+        _apply_fixed, so without this dragging one would snap straight back.
+        """
+        if self._dragged is None:
+            return
+        self.state.position[self._dragged] = position
+        self.state.velocity[self._dragged] = 0.0
+        self._initial_positions[self._dragged] = position
+
     # ----------------------------------------------------------------- sim
     def reset(self) -> None:
         """Space the masses evenly between start and end and stop them dead."""
@@ -131,6 +160,9 @@ class MassSpringChain(AbstractRK4Integrator):
         )
         self._initial_positions = positions.copy()
         self._t = 0.0
+        # the state arrays have just been rebuilt, so a held index could be
+        # dangling -- let go rather than point at a mass that may not exist
+        self._dragged = None
         self._rebuild_fixed_mask()
 
     def update(self) -> None:
@@ -153,6 +185,10 @@ class MassSpringChain(AbstractRK4Integrator):
         mask = np.zeros(self._num_masses, dtype=bool)
         mask[0] = self._fix_first
         mask[-1] = self._fix_last
+        # a held mass is kinematic, which is the same thing as pinned as far
+        # as the integrator is concerned
+        if self._dragged is not None:
+            mask[self._dragged] = True
         self._fixed_mask = mask
 
     def _apply_fixed(self) -> None:

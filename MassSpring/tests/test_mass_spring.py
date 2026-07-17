@@ -146,3 +146,74 @@ def test_pinning_a_moving_mass_stops_it_dead():
         chain.positions[1], chain.initial_positions[1], atol=1e-9
     )
     np.testing.assert_allclose(chain.state.velocity[1], [0.0, 0.0, 0.0], atol=1e-9)
+
+
+def test_a_dragged_mass_does_not_fall():
+    chain = MassSpringChain(start=Vec3(0, 2, 0), end=Vec3(0, -2, 0), num_masses=3)
+    chain.set_gravity(True)
+    chain.set_dragged(1)
+    held = chain.positions[1].copy()
+    _settled(chain, 50)
+    np.testing.assert_allclose(chain.positions[1], held, atol=1e-9)
+
+
+def test_move_dragged_puts_the_mass_exactly_where_asked():
+    chain = MassSpringChain(num_masses=3)
+    chain.set_dragged(1)
+    chain.move_dragged(np.array([1.5, -0.5, 0.25]))
+    np.testing.assert_allclose(chain.positions[1], [1.5, -0.5, 0.25], atol=1e-9)
+    chain.update()
+    # still exactly there after a step, because it is kinematic while held
+    np.testing.assert_allclose(chain.positions[1], [1.5, -0.5, 0.25], atol=1e-9)
+
+
+def test_releasing_a_dragged_mass_lets_it_move_again():
+    chain = MassSpringChain(start=Vec3(0, 2, 0), end=Vec3(0, -2, 0), num_masses=3)
+    chain.set_gravity(True)
+    chain.set_dragged(1)
+    _settled(chain, 10)
+    chain.set_dragged(None)
+    assert chain.dragged is None
+    held = chain.positions[1].copy()
+    _settled(chain, 20)
+    assert chain.positions[1][1] < held[1]
+
+
+def test_dragging_a_pinned_mass_carries_its_anchor():
+    # without this the pinned mass snaps straight back to its old anchor
+    chain = MassSpringChain(start=Vec3(0, 2, 0), end=Vec3(0, -2, 0), num_masses=3)
+    chain.set_fix_first(True)
+    chain.set_dragged(0)
+    chain.move_dragged(np.array([1.0, 2.0, 0.0]))
+    _settled(chain, 20)
+    np.testing.assert_allclose(chain.positions[0], [1.0, 2.0, 0.0], atol=1e-9)
+    chain.set_dragged(None)
+    _settled(chain, 20)
+    # still pinned, and pinned at the new spot
+    np.testing.assert_allclose(chain.positions[0], [1.0, 2.0, 0.0], atol=1e-9)
+
+
+def test_a_held_free_mass_does_not_bank_momentum():
+    # it is being teleported, so it must not accumulate velocity and fling
+    # itself the moment it is released
+    chain = MassSpringChain(start=Vec3(0, 2, 0), end=Vec3(0, -2, 0), num_masses=3)
+    chain.set_gravity(True)
+    chain.set_dragged(1)
+    for step in range(20):
+        chain.move_dragged(np.array([step * 0.05, 1.0, 0.0]))
+        chain.update()
+    np.testing.assert_allclose(chain.state.velocity[1], [0.0, 0.0, 0.0], atol=1e-9)
+
+
+def test_rejects_dragging_a_mass_that_does_not_exist():
+    chain = MassSpringChain(num_masses=3)
+    with pytest.raises(ValueError):
+        chain.set_dragged(3)
+
+
+def test_changing_the_mass_count_drops_the_drag():
+    # the state arrays are rebuilt, so a held index could dangle
+    chain = MassSpringChain(num_masses=3)
+    chain.set_dragged(2)
+    chain.set_num_masses(2)
+    assert chain.dragged is None
