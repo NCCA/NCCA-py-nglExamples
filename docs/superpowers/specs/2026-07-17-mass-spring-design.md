@@ -136,7 +136,69 @@ The physics core is Qt-free and GL-free, so it is all headless unit tests in
 Rendering and GUI wiring are covered by `--smoketest`, as elsewhere in this
 repo, not by unit tests.
 
+## Picking and dragging a mass
+
+Added after the first version shipped; this section supersedes the original
+"no dragging" exclusion below.
+
+Left-press runs a colour-ID pick pass. If it hits a mass you drag that mass;
+if it hits the background the camera rotates exactly as before. That resolves
+the binding conflict without needing a modifier key.
+
+### Kinematic while held
+
+A held mass is kinematic -- the mouse owns its position and the integrator must
+not fight it. That is mechanically the pin path the chain already has, so
+rather than invent a second concept the fixed mask grows to include the dragged
+index: `motion_function` already zeroes acceleration for masses in the mask and
+`_apply_fixed` already clamps them.
+
+Two consequences follow from that reuse:
+
+- **Dragging a pinned mass moves its anchor.** `_apply_fixed` clamps pinned
+  masses back to `_initial_positions`, so without this the mass snaps back and
+  the drag looks broken.
+- **A held free mass has its velocity zeroed every frame.** It is being
+  teleported, so otherwise it accumulates momentum and is flung on release.
+
+On release the mass goes free again from a standstill (it does not keep the
+mouse's velocity, and it is not left pinned).
+
+### Drag plane
+
+The mass follows the cursor in a plane parallel to the screen passing through
+the mass, so grabbing feels direct at any camera angle.
+
+The scene rotates everything by the arcball `global_tx`, so the ray is computed
+in *chain space* by folding `global_tx` into the MVP, and the plane normal is
+the camera forward pushed through `global_tx` inverted (it is a pure rotation,
+so a transpose).
+
+### Components
+
+- `picking.py` -- pure maths, no Qt or GL: `encode_id`/`decode_id` (black is
+  reserved for the background), `ray_from_screen` (the tested pattern from
+  `RayPickingSelection/picking_maths.py`, copied rather than imported since
+  demos here are self-contained) and `intersect_plane`.
+- `mass_spring.py` -- `set_dragged(index | None)` and `move_dragged(position)`.
+- `MassSpringScene.py` -- the ID pass and the press/move/release routing. The
+  held mass draws yellow so it is obvious what is grabbed.
+
+**MSAA matters here.** The scene enables multisampling, and blended edge pixels
+in the ID pass decode to garbage indices. So the pick reads a 9x9 block around
+the cursor and accepts only exact colour matches, ignoring the rest -- the same
+trick `SelectionManipulator` uses.
+
+### Testing
+
+Headless, since the maths has no Qt in it: ID encode/decode round-trips over
+the full index range and rejects black; a ray hits an expected point on a
+plane; a ray parallel to the plane returns nothing. Chain side: a dragged mass
+does not move under gravity, `move_dragged` puts it exactly where asked,
+releasing restores it to free, and dragging a pinned mass carries its anchor.
+The pick-pass rendering itself is smoke-tested.
+
 ## Out of scope
 
-Per-mass mass values (all 1.0), per-spring parameters, arbitrary spring
-topology (the chain order is fixed), and dragging masses during the sim.
+Per-mass mass values (all 1.0), per-spring parameters, and arbitrary spring
+topology (the chain order is fixed).
