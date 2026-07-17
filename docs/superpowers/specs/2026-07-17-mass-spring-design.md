@@ -184,10 +184,24 @@ so a transpose).
 - `MassSpringScene.py` -- the ID pass and the press/move/release routing. The
   held mass draws yellow so it is obvious what is grabbed.
 
-**MSAA matters here.** The scene enables multisampling, and blended edge pixels
-in the ID pass decode to garbage indices. So the pick reads a 9x9 block around
-the cursor and accepts only exact colour matches, ignoring the rest -- the same
-trick `SelectionManipulator` uses.
+**MSAA turned out to matter more than expected** (corrected after building it;
+the original guess here was that blended edge pixels merely decode to garbage,
+and that reading a block would be enough).
+
+A `QOpenGLWidget` renders into a *multisampled* framebuffer, and `glReadPixels`
+on a multisampled buffer is `GL_INVALID_OPERATION` -- so the ID pass cannot be
+drawn over the widget's own target at all. `SelectionManipulator` gets away
+with that only because it is a `QOpenGLWindow` drawing to a real surface, and
+this demo has to be a widget to sit in the layout next to the panel.
+
+So the ID pass renders into its own single-sample framebuffer, which is the
+right target regardless: with no antialiasing, no pixel is ever a blend of two
+IDs decoding to a third.
+
+The 9x9 block is kept, but for a different reason than first assumed: the
+masses are small on screen, so the pick prefers the pixel directly under the
+cursor and falls back to the block only when that is background. That keeps
+grabbing forgiving while leaving two nearby masses separable.
 
 ### Testing
 

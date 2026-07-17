@@ -23,10 +23,26 @@ cd MassSpring
 uv run main.py
 ```
 
-Left mouse rotates; everything else is on the panel. Pin either end, turn on
-gravity and watch it swing. The cubes are the masses (red when pinned, green
-when free) and the small blue spheres are ghosts showing where each mass
-started.
+Left mouse drags a mass if you grab one and rotates the camera if you miss.
+Everything else is on the panel. Pin either end, turn on gravity and watch it
+swing. The cubes are the masses -- red when pinned, yellow while you are
+holding one, green otherwise -- and the small blue spheres are ghosts showing
+where each mass started.
+
+Picking is done by colour: the masses are rendered flat, each in a unique
+colour keyed to its index, and the pixel under the cursor is read back and
+decoded. The catch on the way there is worth knowing about. A `QOpenGLWidget`
+draws into a *multisampled* framebuffer, and `glReadPixels` on a multisampled
+buffer is an invalid operation, so you cannot simply draw the ID pass over the
+widget's own target -- which is what you can get away with in a
+`QOpenGLWindow` demo like `SelectionManipulator`. So the ID pass renders into
+its own single-sample framebuffer instead, which is what you want regardless:
+with no antialiasing no pixel is ever a blend of two IDs decoding to a third.
+
+A mass you are holding is kinematic -- it goes into the same fixed set as a
+pinned mass, so the integrator leaves it alone rather than fighting the mouse.
+Let go and it drops from a standstill. Drag a pinned mass and you move where
+it is pinned to.
 
 Worth a play: with soft springs a long chain under full gravity stretches a
 very long way -- which is correct, not a bug, and is easier to see here than to
@@ -44,7 +60,9 @@ same acceleration slot.
 - `rk4.py` -- the integrator, straight from the C++ `AbstractRK4Integrator`,
   over `(N,3)` arrays rather than a single `Vec3`. No Qt, no OpenGL.
 - `mass_spring.py` -- the chain and the spring force law.
-- `MassSpringScene.py` -- the drawing.
+- `picking.py` -- the colour ID encoding, the unproject and the ray/plane
+  intersection used to drag a mass. No Qt, no OpenGL.
+- `MassSpringScene.py` -- the drawing and the ID pass.
 - `main.py` -- the GUI, using `Vec3Widget` from `ncca.ngl.widgets` for the two
   ends.
 
