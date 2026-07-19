@@ -42,13 +42,19 @@ class Loader(QUiLoader):
         """
         Create a custom widget by name.
 
-        Args:
-            class_name: The name of the class to create.
-            parent: The parent widget.
-            name: The name of the widget.
+        Parameters
+        ----------
+            class_name : str
+                The name of the class to create.
+            parent : QWidget | None
+                The parent widget.
+            name : str
+                The name of the widget.
 
-        Returns:
-            The created widget.
+        Returns
+        -------
+            QWidget
+                The created widget.
         """
         if class_name == "RGBColourWidget":
             return RGBColourWidget(parent)
@@ -159,12 +165,17 @@ class MainWindow(QMainWindow):
         """
         Filter events to catch double-clicks on editor viewports.
 
-        Args:
-            obj: The object that sent the event.
-            event: The event.
+        Parameters
+        ----------
+            obj : QObject
+                The object that sent the event.
+            event : QEvent
+                The event.
 
-        Returns:
-            True if the event was handled, False otherwise.
+        Returns
+        -------
+            bool
+                True if the event was handled, False otherwise.
         """
         if (
             event.type() == QEvent.Type.Wheel
@@ -317,11 +328,16 @@ class MainWindow(QMainWindow):
         """
         Add a widget to the UI for a uniform variable using a factory pattern.
 
-        Args:
-            name: The name of the uniform.
-            data_type: The type of the uniform.
-            vrange: The range of the uniform value.
-            value: The value of the uniform.
+        Parameters
+        ----------
+            name : str
+                The name of the uniform.
+            data_type : str
+                The type of the uniform.
+            vrange : Any
+                The range of the uniform value.
+            value : Any
+                The value of the uniform.
         """
         creator_func = self._widget_factory.get(data_type.lower())
         if creator_func:
@@ -343,8 +359,10 @@ class MainWindow(QMainWindow):
         """
         Generate the UI layout for the shader.
 
-        Args:
-            file_path: The path to the shader file.
+        Parameters
+        ----------
+            file_path : str
+                The path to the shader file.
         """
         # Clear existing widgets from the form layout
         while self.uniform_layout.count():
@@ -438,8 +456,10 @@ class DebugApplication(QApplication):
         """
         Initialize the DebugApplication.
 
-        Args:
-            argv: The command line arguments.
+        Parameters
+        ----------
+            argv : list[str]
+                The command line arguments.
         """
         super().__init__(argv)
         logger.info("Running in full debug mode")

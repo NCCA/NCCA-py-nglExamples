@@ -183,8 +183,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles keyboard press events.
 
-        Args:
-            event: The QKeyEvent object containing information about the key press.
+        Parameters
+        ----------
+            event
+                The QKeyEvent object containing information about the key press.
         """
         key = event.key()
         if key == Qt.Key_Escape:

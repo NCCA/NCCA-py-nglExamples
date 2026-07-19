@@ -12,8 +12,10 @@ class GLSLHighlighter(QSyntaxHighlighter):
         """
         Initialize the GLSLHighlighter.
 
-        Args:
-            parent: The parent QObject, typically a QTextDocument.
+        Parameters
+        ----------
+            parent
+                The parent QObject, typically a QTextDocument.
         """
         super().__init__(parent)
         # common GLSL keywords / types / builtins (extend as needed)
@@ -64,8 +66,10 @@ class GLSLHighlighter(QSyntaxHighlighter):
         This method is called by Qt whenever a block of text needs to be
         re-highlighted.
 
-        Args:
-            text: The block of text to highlight.
+        Parameters
+        ----------
+            text
+                The block of text to highlight.
         """
         for pattern, fmt in self.rules:
             for m in pattern.finditer(text):

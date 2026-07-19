@@ -86,11 +86,15 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         based on an algorithm by Paul Bourke.
         http://astronomy.swin.edu.au/~pbourke/opengl/sphere/
 
-        Args:
-            radius: The radius of the sphere.
-            precision: The number of divisions around the sphere. Higher is more detailed.
+        Parameters
+        ----------
+            radius : float
+                The radius of the sphere.
+            precision : int
+                The number of divisions around the sphere. Higher is more detailed.
 
-        Returns:
+        Returns
+        -------
             A configured ngl.AbstractVAO containing the sphere geometry.
         """
         # In NGL, "simpleVAO" is a basic VAO that holds interleaved data in a single buffer.
@@ -187,9 +191,12 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         """
         Handle window resizing and update the projection matrix.
 
-        Args:
-            w: New window width.
-            h: New window height.
+        Parameters
+        ----------
+            w : int
+                New window width.
+            h : int
+                New window height.
         """
 
         self.window_width = int(w * self.devicePixelRatio())

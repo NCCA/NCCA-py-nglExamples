@@ -28,12 +28,18 @@ class PanelRegistry(QObject):
     ) -> None:
         """Record (or replace) the current screen rect of a panel.
 
-        Args:
-            panel_id: A stable identifier for the panel (e.g. its QML `objectName`).
-            x: Left edge, in overlay-widget-local pixels.
-            y: Top edge, in overlay-widget-local pixels.
-            w: Width in pixels.
-            h: Height in pixels.
+        Parameters
+        ----------
+            panel_id : str
+                A stable identifier for the panel (e.g. its QML `objectName`).
+            x : float
+                Left edge, in overlay-widget-local pixels.
+            y : float
+                Top edge, in overlay-widget-local pixels.
+            w : float
+                Width in pixels.
+            h : float
+                Height in pixels.
         """
         self._rects[panel_id] = QRectF(x, y, w, h)
 
@@ -50,11 +56,15 @@ class PanelRegistry(QObject):
     def hit_test(self, pos: QPointF) -> bool:
         """Return True if pos falls inside any currently-registered panel rect.
 
-        Args:
-            pos: A position in overlay-widget-local pixels.
+        Parameters
+        ----------
+            pos : QPointF
+                A position in overlay-widget-local pixels.
 
-        Returns:
-            True if a popup is open, or any registered panel rect contains pos.
+        Returns
+        -------
+            bool
+                True if a popup is open, or any registered panel rect contains pos.
         """
         if self._open_popups > 0:
             return True

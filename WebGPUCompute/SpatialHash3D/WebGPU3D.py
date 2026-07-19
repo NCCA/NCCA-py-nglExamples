@@ -518,9 +518,12 @@ class WebGPUScene3D(WebGPUWidget):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            w: The new width of the window.
-            h: The new height of the window.
+        Parameters
+        ----------
+            w
+                The new width of the window.
+            h
+                The new height of the window.
         """
 
         # Update texture size to match window dimensions

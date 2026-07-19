@@ -27,9 +27,12 @@ class Scene:
         """
         Initializes the scene and sets up default parameters.
 
-        Args:
-            width: The initial width of the window.
-            height: The initial height of the window.
+        Parameters
+        ----------
+            width : int
+                The initial width of the window.
+            height : int
+                The initial height of the window.
         """
         # --- Camera and Transformation Attributes ---
         self.mouseGlobalTX: Mat4 = (
@@ -79,11 +82,15 @@ class Scene:
         """
         Process a single SDL event and update the scene state.
 
-        Args:
-            event: The SDL_Event to process.
+        Parameters
+        ----------
+            event : sdl3.SDL_Event
+                The SDL_Event to process.
 
-        Returns:
-            False if the application should quit, True otherwise.
+        Returns
+        -------
+            bool
+                False if the application should quit, True otherwise.
         """
         if event.type == sdl3.SDL_EVENT_QUIT:
             return False

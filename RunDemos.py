@@ -276,8 +276,10 @@ class DemoRunner(QMainWindow):
         Shows only the demo buttons whose name contains the search text
         (case-insensitive), hiding the rest.
 
-        Args:
-            text: The current contents of the search box.
+        Parameters
+        ----------
+            text : str
+                The current contents of the search box.
         """
         needle = text.lower()
         for button in self.button_group.buttons():
@@ -287,8 +289,10 @@ class DemoRunner(QMainWindow):
         """
         Loads and displays the first PNG image found in the demo's directory.
 
-        Args:
-            path: The root directory path of the demo.
+        Parameters
+        ----------
+            path : str
+                The root directory path of the demo.
         """
         image_path = Path(path)
         # Clear the label first
@@ -305,8 +309,10 @@ class DemoRunner(QMainWindow):
         """
         Loads and displays the README.md file from the demo's directory.
 
-        Args:
-            path: The root directory path of the demo.
+        Parameters
+        ----------
+            path : str
+                The root directory path of the demo.
         """
         try:
             readme_path = Path(path) / "README.md"
@@ -324,9 +330,12 @@ class DemoRunner(QMainWindow):
         If a button is checked, it finds the corresponding Demo object,
         sets it as the active demo, and loads its image and README.
 
-        Args:
-            button: The button that was toggled.
-            checked: True if the button was checked, False if unchecked.
+        Parameters
+        ----------
+            button : QPushButton
+                The button that was toggled.
+            checked : bool
+                True if the button was checked, False if unchecked.
         """
         if checked:
             button_name = button.objectName()
@@ -347,8 +356,10 @@ class DemoRunner(QMainWindow):
         - Return/Enter runs the selected demo.
         - Escape closes the application.
 
-        Args:
-            event: The key event.
+        Parameters
+        ----------
+            event : QKeyEvent
+                The key event.
         """
         key = event.key()
         buttons = [b for b in self.button_group.buttons() if b.isVisible()]
