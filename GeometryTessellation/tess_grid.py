@@ -23,16 +23,21 @@ import numpy as np
 def build_patch_grid(resolution: int, size: float) -> np.ndarray:
     """Build a flat (N*N*4, 3) float32 array of quad-patch control points.
 
-    Args:
-        resolution: number of patches per side (e.g. 16 -> 16x16 patches).
-        size: total width/depth of the grid, centred on the origin.
+    Parameters
+    ----------
+        resolution : int
+            number of patches per side (e.g. 16 -> 16x16 patches).
+        size : float
+            total width/depth of the grid, centred on the origin.
 
-    Returns:
-        A (resolution*resolution*4, 3) float32 array. Every consecutive
-        group of 4 rows is one patch's corners in the order
-        (x0,z0) (x1,z0) (x1,z1) (x0,z1) -- i.e. counter-clockwise looking
-        down the -y axis -- which is what GL_PATCHES with GL_PATCH_VERTICES=4
-        expects to feed to a quads-domain tessellation evaluation shader.
+    Returns
+    -------
+        np.ndarray
+            A (resolution*resolution*4, 3) float32 array. Every consecutive
+            group of 4 rows is one patch's corners in the order
+            (x0,z0) (x1,z0) (x1,z1) (x0,z1) -- i.e. counter-clockwise looking
+            down the -y axis -- which is what GL_PATCHES with GL_PATCH_VERTICES=4
+            expects to feed to a quads-domain tessellation evaluation shader.
     """
     if resolution < 1:
         raise ValueError("resolution must be >= 1")

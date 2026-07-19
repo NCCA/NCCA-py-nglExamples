@@ -32,9 +32,12 @@ class MainWindow(QMainWindow):
     OpenGL widget, and connects UI signals (e.g., button clicks, slider changes)
     to the corresponding slots in the OpenGL scene to manipulate the 3D object.
 
-    Attributes:
-        colour_update (Signal): A signal that emits RGB float values when a new color is selected.
-        scene (PyNGLScene): The OpenGL widget where the 3D scene is rendered.
+    Attributes
+    ----------
+        colour_update : Signal
+            A signal that emits RGB float values when a new color is selected.
+        scene : PyNGLScene
+            The OpenGL widget where the 3D scene is rendered.
     """
 
     # signal to emit when the colour is changed

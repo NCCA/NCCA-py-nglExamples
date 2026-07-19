@@ -97,9 +97,12 @@ class WebGPUScene(WebGPUWidget):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            width: The new width of the window.
-            height: The new height of the window.
+        Parameters
+        ----------
+            width
+                The new width of the window.
+            height
+                The new height of the window.
 
         """
 
@@ -137,8 +140,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles keyboard press events.
 
-        Args:
-            event: The QKeyEvent object containing information about the key press.
+        Parameters
+        ----------
+            event
+                The QKeyEvent object containing information about the key press.
         """
         key = event.key()
         if key == Qt.Key_Escape:

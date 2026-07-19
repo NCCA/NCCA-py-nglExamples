@@ -247,9 +247,12 @@ class WebGPUScene(WebGPUWidget):
 
         This method handles resizing of the WebGPU context for the scene.
 
-        Args:
-            width (int): The new width of the widget.
-            height (int): The new height of the widget.
+        Parameters
+        ----------
+            width : int
+                The new width of the widget.
+            height : int
+                The new height of the widget.
         """
         self.camera.set_projection(45.0, width / height, 0.5, 2000.0)
 
@@ -276,8 +279,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handle the mouse press event.
 
-        Args:
-            event (QMouseEvent): The mouse press event.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The mouse press event.
         """
         pos = event.position()
         if event.button() == Qt.MouseButton.LeftButton:
@@ -290,8 +295,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handle the mouse move event.
 
-        Args:
-            event (QMouseEvent): The mouse move event.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The mouse move event.
         """
         if event.buttons() == Qt.MouseButton.LeftButton:
             pos = event.position()
@@ -308,8 +315,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handle the mouse release event.
 
-        Args:
-            event (QMouseEvent): The mouse release event.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The mouse release event.
         """
         if event.button() == Qt.MouseButton.LeftButton:
             self.rotate = False
@@ -322,8 +331,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handle the mouse wheel event.
 
-        Args:
-            event (QWheelEvent): The mouse wheel event.
+        Parameters
+        ----------
+            event : QWheelEvent
+                The mouse wheel event.
         """
         _ = event.pixelDelta()
 
@@ -333,8 +344,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handle the key release event.
 
-        Args:
-            event (QEvent): The key release event.
+        Parameters
+        ----------
+            event : QEvent
+                The key release event.
         """
         key = event.key()
         self.key_pressed.remove(key)

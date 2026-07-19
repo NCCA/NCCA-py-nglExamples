@@ -220,8 +220,10 @@ class MainWindow(QOpenGLWindow):
         """
         Loads matrices and color to the default color shader for drawing light indicators.
 
-        Args:
-            colour: The color of the light.
+        Parameters
+        ----------
+            colour : Vec3
+                The color of the light.
         """
         ShaderLib.use(DefaultShader.COLOUR)
         MVP = self.project @ self.view @ self.mouse_global_tx @ self.transform.matrix()
@@ -249,8 +251,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles timer events for animations.
 
-        Args:
-            event: The QTimerEvent object.
+        Parameters
+        ----------
+            event : QTimerEvent
+                The QTimerEvent object.
         """
         if event.timerId() == self.rotation_timer:
             self.teapot_rotation += 1
@@ -265,9 +269,12 @@ class MainWindow(QOpenGLWindow):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            w: The new width of the window.
-            h: The new height of the window.
+        Parameters
+        ----------
+            w : int
+                The new width of the window.
+            h : int
+                The new height of the window.
         """
         # Update the stored width and height, considering high-DPI displays
         self.window_width = int(w * self.devicePixelRatio())
@@ -278,8 +285,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles keyboard press events.
 
-        Args:
-            event: The QKeyEvent object containing information about the key press.
+        Parameters
+        ----------
+            event : QKeyEvent
+                The QKeyEvent object containing information about the key press.
         """
         key = event.key()
         if key == Qt.Key_Escape:
@@ -311,8 +320,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse movement events for camera control.
 
-        Args:
-            event: The QMouseEvent object containing the new mouse position.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
         if self.rotate and event.buttons() == Qt.LeftButton:
@@ -339,8 +350,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse button press events to initiate rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The QMouseEvent object.
         """
         position = event.position()
         # Left button initiates rotation
@@ -358,8 +371,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse button release events to stop rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The QMouseEvent object.
         """
         # Stop rotating when the left button is released
         if event.button() == Qt.LeftButton:
@@ -372,8 +387,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse wheel events for zooming.
 
-        Args:
-            event: The QWheelEvent object.
+        Parameters
+        ----------
+            event : QWheelEvent
+                The QWheelEvent object.
         """
         # Use the vertical wheel delta (angleDelta().y()) -- .x() is only
         # populated by horizontal scroll gestures, which left plain vertical

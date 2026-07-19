@@ -30,23 +30,40 @@ class WebGPUTextureScene(WebGPUWidget):
     creating buffers for a cube, loading a texture, and managing user
     input for camera control.
 
-    Attributes:
-        pipeline (Optional[wgpu.GPURenderPipeline]): The render pipeline.
-        msaa_sample_count (int): The number of samples for multisample anti-aliasing.
-        mouse_global_tx (Mat4): The transformation matrix controlled by the mouse.
-        view (Mat4): The camera's view matrix.
-        project (Mat4): The camera's projection matrix.
-        model_position (Vec3): The position of the cube in the scene.
-        rotate (bool): Flag indicating if rotation mode is active.
-        translate (bool): Flag indicating if translation mode is active.
-        spin_x_face (int): The rotation angle around the X-axis.
-        spin_y_face (int): The rotation angle around the Y-axis.
-        original_x_rotation (int): The initial X position for mouse rotation.
-        original_y_rotation (int): The initial Y position for mouse rotation.
-        original_x_pos (int): The initial X position for mouse translation.
-        original_y_pos (int): The initial Y position for mouse translation.
-        INCREMENT (float): The movement speed for panning.
-        ZOOM (float): The movement speed for zooming.
+    Attributes
+    ----------
+        pipeline : Optional[wgpu.GPURenderPipeline]
+            The render pipeline.
+        msaa_sample_count : int
+            The number of samples for multisample anti-aliasing.
+        mouse_global_tx : Mat4
+            The transformation matrix controlled by the mouse.
+        view : Mat4
+            The camera's view matrix.
+        project : Mat4
+            The camera's projection matrix.
+        model_position : Vec3
+            The position of the cube in the scene.
+        rotate : bool
+            Flag indicating if rotation mode is active.
+        translate : bool
+            Flag indicating if translation mode is active.
+        spin_x_face : int
+            The rotation angle around the X-axis.
+        spin_y_face : int
+            The rotation angle around the Y-axis.
+        original_x_rotation : int
+            The initial X position for mouse rotation.
+        original_y_rotation : int
+            The initial Y position for mouse rotation.
+        original_x_pos : int
+            The initial X position for mouse translation.
+        original_y_pos : int
+            The initial Y position for mouse translation.
+        INCREMENT : float
+            The movement speed for panning.
+        ZOOM : float
+            The movement speed for zooming.
     """
 
     def __init__(self) -> None:
@@ -309,9 +326,12 @@ class WebGPUTextureScene(WebGPUWidget):
         """
         Update projection matrix on window resize.
 
-        Args:
-            width (int): The new width of the window.
-            height (int): The new height of the window.
+        Parameters
+        ----------
+            width : int
+                The new width of the window.
+            height : int
+                The new height of the window.
         """
         self.project = perspective(45.0, float(width) / height, 0.01, 100.0)
         self.update()
@@ -367,8 +387,10 @@ class WebGPUTextureScene(WebGPUWidget):
         """
         Handle key press events.
 
-        Args:
-            event (QKeyEvent): The key event.
+        Parameters
+        ----------
+            event : QKeyEvent
+                The key event.
         """
         key = event.key()
         if key == Qt.Key.Key_Escape:
@@ -385,8 +407,10 @@ class WebGPUTextureScene(WebGPUWidget):
         """
         Handle mouse move events for rotation and translation.
 
-        Args:
-            event (QMouseEvent): The mouse event.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The mouse event.
         """
         position: QPoint = event.position()
         if self.rotate and event.buttons() == Qt.MouseButton.LeftButton:
@@ -409,8 +433,10 @@ class WebGPUTextureScene(WebGPUWidget):
         """
         Handle mouse press events to initiate rotation or translation.
 
-        Args:
-            event (QMouseEvent): The mouse event.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The mouse event.
         """
         position: QPoint = event.position()
         if event.button() == Qt.MouseButton.LeftButton:
@@ -426,8 +452,10 @@ class WebGPUTextureScene(WebGPUWidget):
         """
         Handle mouse release events to end rotation or translation.
 
-        Args:
-            event (QMouseEvent): The mouse event.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The mouse event.
         """
         if event.button() == Qt.MouseButton.LeftButton:
             self.rotate = False
@@ -439,8 +467,10 @@ class WebGPUTextureScene(WebGPUWidget):
 
         Handle wheel events for zooming.
 
-        Args:
-            event (QWheelEvent): The wheel event.
+        Parameters
+        ----------
+            event : QWheelEvent
+                The wheel event.
         """
         num_pixels = event.angleDelta()
         if num_pixels.y() > 0:

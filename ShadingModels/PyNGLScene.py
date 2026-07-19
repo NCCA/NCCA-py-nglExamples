@@ -39,8 +39,10 @@ class PyNGLScene(QOpenGLWidget):
         Emits the `double_clicked` signal to allow the main window to toggle
         fullscreen for this widget.
 
-        Args:
-            event: The mouse event.
+        Parameters
+        ----------
+            event : QEvent
+                The mouse event.
         """
         # Emit a signal so the main window can toggle fullscreen for this widget
         self.double_clicked.emit()
@@ -50,10 +52,14 @@ class PyNGLScene(QOpenGLWidget):
         """
         Update the perspective projection matrix.
 
-        Args:
-            fov: The field of view in degrees.
-            near: The near clipping plane distance.
-            far: The far clipping plane distance.
+        Parameters
+        ----------
+            fov : float
+                The field of view in degrees.
+            near : float
+                The near clipping plane distance.
+            far : float
+                The far clipping plane distance.
         """
         if self.camera:
             self.camera.fov = fov
@@ -67,8 +73,10 @@ class PyNGLScene(QOpenGLWidget):
         """
         Set the wireframe mode for the model.
 
-        Args:
-            value: True to enable wireframe, False for solid.
+        Parameters
+        ----------
+            value : bool
+                True to enable wireframe, False for solid.
         """
         self._wireframe = value
         self.update()  # Tell the scene to repaint
@@ -78,10 +86,14 @@ class PyNGLScene(QOpenGLWidget):
         """
         Set the rotation of the model.
 
-        Args:
-            x: Rotation around the x-axis.
-            y: Rotation around the y-axis.
-            z: Rotation around the z-axis.
+        Parameters
+        ----------
+            x : float
+                Rotation around the x-axis.
+            y : float
+                Rotation around the y-axis.
+            z : float
+                Rotation around the z-axis.
         """
         self._model_rotation = Vec3(x, y, z)
         self.update()  # Tell the scene to repaint
@@ -91,8 +103,10 @@ class PyNGLScene(QOpenGLWidget):
         """
         Set the name of the model to draw.
 
-        Args:
-            name: The name of the primitive to draw (e.g., "Teapot", "Sphere").
+        Parameters
+        ----------
+            name : str
+                The name of the primitive to draw (e.g., "Teapot", "Sphere").
         """
         self._model_name = name
         self.update()  # Tell the scene to repaint
@@ -102,8 +116,10 @@ class PyNGLScene(QOpenGLWidget):
         """
         Set the position and scale of the model.
 
-        Args:
-            transform: The model's transformation matrix.
+        Parameters
+        ----------
+            transform : Mat4
+                The model's transformation matrix.
         """
         self._model_transform = transform
         self.update()  # Tell the scene to repaint
@@ -113,8 +129,10 @@ class PyNGLScene(QOpenGLWidget):
         """
         Set the camera's view matrix.
 
-        Args:
-            view: The new view matrix.
+        Parameters
+        ----------
+            view : Mat4
+                The new view matrix.
         """
         if self.camera:
             self.camera.view = view
@@ -125,9 +143,12 @@ class PyNGLScene(QOpenGLWidget):
         """
         Set the value of a uniform.
 
-        Args:
-            name: The name of the uniform to set.
-            value: The new value for the uniform.
+        Parameters
+        ----------
+            name : str
+                The name of the uniform to set.
+            value : object
+                The new value for the uniform.
         """
         if self.shader is not None:
             self.shader.set_uniform_value(name, value)
@@ -157,8 +178,10 @@ class PyNGLScene(QOpenGLWidget):
         """
         Load a new shader from a JSON file and emit signals for its uniforms.
 
-        Args:
-            path: The file path to the shader's JSON definition.
+        Parameters
+        ----------
+            path : str
+                The file path to the shader's JSON definition.
         """
         self.shader = ShaderLoader(path)
         for name, definition in self.shader.get_uniform_definitions().items():

@@ -31,9 +31,12 @@ class MainWindow(QMainWindow):
     widget, and connects UI signals (e.g., button clicks, slider changes)
     to the corresponding slots in the WebGPU scene to manipulate the 3D object.
 
-    Attributes:
-        colour_update (Signal): A signal that emits RGB float values when a new color is selected.
-        scene (WebGPUScene): The WebGPU widget where the 3D scene is rendered.
+    Attributes
+    ----------
+        colour_update : Signal
+            A signal that emits RGB float values when a new color is selected.
+        scene : WebGPUScene
+            The WebGPU widget where the 3D scene is rendered.
     """
 
     colour_update = Signal(float, float, float)

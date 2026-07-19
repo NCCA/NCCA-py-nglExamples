@@ -317,8 +317,10 @@ class MainWindow(QOpenGLWindow):
         """
         Toggles a light on or off and updates the corresponding shader uniform.
 
-        Args:
-            light_index: The index of the light to toggle (0-3).
+        Parameters
+        ----------
+            light_index : int
+                The index of the light to toggle (0-3).
         """
         self.light_on[light_index] ^= True
         ShaderLib.use(PBR_SHADER)

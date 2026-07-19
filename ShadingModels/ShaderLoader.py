@@ -15,8 +15,10 @@ class ShaderLoader:
         """
         Initialize the ShaderLoader.
 
-        Args:
-            json_file: The path to the JSON file defining the shader.
+        Parameters
+        ----------
+            json_file : str
+                The path to the JSON file defining the shader.
         """
         self.shader_data: Dict[str, Any] = {}
         self.root_path: Path = Path(json_file).parent
@@ -90,8 +92,10 @@ class ShaderLoader:
         """
         Load shader data from a JSON file and create the shader program.
 
-        Args:
-            json_file: The path to the JSON file.
+        Parameters
+        ----------
+            json_file : str
+                The path to the JSON file.
         """
         print(f"Loading shader data from {json_file}")
         with open(json_file, "r") as file:
@@ -118,10 +122,14 @@ class ShaderLoader:
         This includes standard matrices (MVP, MV, normal_matrix) and any custom
         uniforms defined in the JSON file.
 
-        Args:
-            MVP: The Model-View-Projection matrix.
-            MV: The Model-View matrix.
-            normal_matrix: The normal matrix.
+        Parameters
+        ----------
+            MVP : Mat4
+                The Model-View-Projection matrix.
+            MV : Mat4
+                The Model-View matrix.
+            normal_matrix : Mat3
+                The normal matrix.
         """
         shader_name = self.shader_data["ShaderName"]
         ShaderLib.use(shader_name)

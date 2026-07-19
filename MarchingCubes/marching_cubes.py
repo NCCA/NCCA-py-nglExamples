@@ -38,18 +38,25 @@ def sample_metaballs(
 ) -> np.ndarray:
     """Sample a metaball field on a `grid_n`^3 grid spanning [-extent, extent]^3.
 
-    Args:
-        centres: (M, 3) array of metaball centre positions.
-        radii: (M,) array of metaball radii.
-        grid_n: number of samples along each axis.
-        extent: half-width of the sampled cube -- the grid covers
+    Parameters
+    ----------
+        centres : np.ndarray
+            (M, 3) array of metaball centre positions.
+        radii : np.ndarray
+            (M,) array of metaball radii.
+        grid_n : int
+            number of samples along each axis.
+        extent : float
+            half-width of the sampled cube -- the grid covers
             [-extent, extent] on x, y and z.
 
-    Returns:
-        (grid_n, grid_n, grid_n) float32 field, indexed [x, y, z]. Each
-        metaball contributes ``radius**2 / (distance**2 + eps)``, so with
-        `radii` all equal a lone ball's isosurface at iso=1.0 is the sphere
-        of that radius (matched by `polygonise`'s vertex-distance test).
+    Returns
+    -------
+        np.ndarray
+            (grid_n, grid_n, grid_n) float32 field, indexed [x, y, z]. Each
+            metaball contributes ``radius**2 / (distance**2 + eps)``, so with
+            `radii` all equal a lone ball's isosurface at iso=1.0 is the sphere
+            of that radius (matched by `polygonise`'s vertex-distance test).
     """
     centres = np.asarray(centres, dtype=np.float32).reshape(-1, 3)
     radii = np.asarray(radii, dtype=np.float32).reshape(-1)
@@ -69,20 +76,26 @@ def polygonise(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Polygonise a scalar field into a triangle soup via Marching Cubes.
 
-    Args:
-        field: (n, n, n) float32 scalar field, as produced by
+    Parameters
+    ----------
+        field : np.ndarray
+            (n, n, n) float32 scalar field, as produced by
             `sample_metaballs` (same [-extent, extent]^3 grid convention).
-        iso: isovalue -- the surface is where `field == iso`.
-        extent: half-width of the field's sample domain, matching the
+        iso : float
+            isovalue -- the surface is where `field == iso`.
+        extent : float
+            half-width of the field's sample domain, matching the
             `extent` originally passed to `sample_metaballs`.
 
-    Returns:
-        (verts, normals): both (3*T, 3) float32 arrays for T triangles,
-        vertices grouped in consecutive triples per triangle. Normals come
-        from the field gradient (`np.gradient`), trilinearly interpolated
-        at each vertex the same way the vertex position itself is -- this
-        gives smooth (Phong-style) shading rather than flat per-face
-        normals.
+    Returns
+    -------
+        tuple[np.ndarray, np.ndarray]
+            (verts, normals): both (3*T, 3) float32 arrays for T triangles,
+            vertices grouped in consecutive triples per triangle. Normals come
+            from the field gradient (`np.gradient`), trilinearly interpolated
+            at each vertex the same way the vertex position itself is -- this
+            gives smooth (Phong-style) shading rather than flat per-face
+            normals.
     """
     n = field.shape[0]
     coords = np.linspace(-extent, extent, n, dtype=np.float32)

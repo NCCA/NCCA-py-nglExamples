@@ -33,9 +33,12 @@ class TexturePack:
     ) -> None:
         """Create a texture-pack manager.
 
-        Args:
-            device: The WebGPU device that owns the textures.
-            bind_group_layout: The @group(2) layout every pack is built against;
+        Parameters
+        ----------
+            device : wgpu.GPUDevice
+                The WebGPU device that owns the textures.
+            bind_group_layout : wgpu.GPUBindGroupLayout
+                The @group(2) layout every pack is built against;
                 it must match the material bindings in ``PBRTexture.wgsl``.
         """
         self.device = device

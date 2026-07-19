@@ -225,8 +225,10 @@ class WebGPUScene(QWidget):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            event: The resize event object.
+        Parameters
+        ----------
+            event
+                The resize event object.
         """
         # Update the stored width and height, considering high-DPI displays
         # Update projection matrix
@@ -251,8 +253,10 @@ class WebGPUScene(QWidget):
         """
         Handles keyboard press events.
 
-        Args:
-            event: The QKeyEvent object containing information about the key press.
+        Parameters
+        ----------
+            event
+                The QKeyEvent object containing information about the key press.
         """
         key = event.key()
 
@@ -271,8 +275,10 @@ class WebGPUScene(QWidget):
         """
         Handles mouse movement events for camera control.
 
-        Args:
-            event: The QMouseEvent object containing the new mouse position.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
         if self.rotate and event.buttons() == Qt.LeftButton:
@@ -299,8 +305,10 @@ class WebGPUScene(QWidget):
         """
         Handles mouse button press events to initiate rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object.
         """
         position = event.position()
         # Left button initiates rotation
@@ -318,8 +326,10 @@ class WebGPUScene(QWidget):
         """
         Handles mouse button release events to stop rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object.
         """
         # Stop rotating when the left button is released
         if event.button() == Qt.LeftButton:
@@ -332,8 +342,10 @@ class WebGPUScene(QWidget):
         """
         Handles mouse wheel events for zooming.
 
-        Args:
-            event: The QWheelEvent object.
+        Parameters
+        ----------
+            event
+                The QWheelEvent object.
         """
         num_pixels = event.angleDelta()
         # Zoom in or out by adjusting the Z position of the model
@@ -347,8 +359,10 @@ class WebGPUScene(QWidget):
         """
         Starts the update timer with the given interval.
 
-        Args:
-            interval_ms (int): The interval in milliseconds.
+        Parameters
+        ----------
+            interval_ms : int
+                The interval in milliseconds.
         """
         self._update_timer.start(interval_ms)
 
@@ -360,8 +374,10 @@ class WebGPUScene(QWidget):
         """
         Called whenever the window is resized.
 
-        Args:
-            event: The resize event object.
+        Parameters
+        ----------
+            event
+                The resize event object.
         """
         # Update the stored width and height, considering high-DPI displays
         width = int(event.size().width() * self.ratio)
@@ -383,8 +399,10 @@ class WebGPUScene(QWidget):
         """
         Handle the paint event to render the WebGPU content.
 
-        Args:
-            event (QPaintEvent): The paint event.
+        Parameters
+        ----------
+            event : QPaintEvent
+                The paint event.
         """
         self.paintWebGPU()
         painter = QPainter(self)
@@ -458,13 +476,20 @@ class WebGPUScene(QWidget):
 
         The size of the text will be scaled based on the window's height.
 
-        Args:
-            x (int): The x-coordinate of the text.
-            y (int): The y-coordinate of the text. A negative value will position the text relative to the bottom of the window.
-            text (str): The text to render.
-            size (int, optional): The base font size of the text. This will be scaled. Defaults to 10.
-            font (str, optional): The font family of the text. Defaults to "Arial".
-            colour (QColor, optional): The colour of the text. Defaults to Qt.black.
+        Parameters
+        ----------
+            x : int
+                The x-coordinate of the text.
+            y : int
+                The y-coordinate of the text. A negative value will position the text relative to the bottom of the window.
+            text : str
+                The text to render.
+            size : int, optional
+                The base font size of the text. This will be scaled. Defaults to 10.
+            font : str, optional
+                The font family of the text. Defaults to "Arial".
+            colour : QColor, optional
+                The colour of the text. Defaults to Qt.black.
         """
         self.text_buffer.append((x, y, text, size, font, colour))
 
@@ -545,8 +570,10 @@ class WebGPUScene(QWidget):
         """
         Present the image data on the canvas.
 
-        Args:
-            image_data (np.ndarray): The image data to render.
+        Parameters
+        ----------
+            image_data : np.ndarray
+                The image data to render.
         """
         height, width, _ = image_data.shape
         image = QImage(

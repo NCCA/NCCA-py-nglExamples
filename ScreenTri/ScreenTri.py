@@ -189,8 +189,10 @@ class MainWindow(QOpenGLWindow):
         Here, it updates the positions of the points and makes them bounce
         off the edges of the simulation area.
 
-        Args:
-            event: The QTimerEvent object, not used in this method but required by the API.
+        Parameters
+        ----------
+            event : QTimerEvent
+                The QTimerEvent object, not used in this method but required by the API.
 
 
         """
@@ -208,9 +210,12 @@ class MainWindow(QOpenGLWindow):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            w: The new width of the window.
-            h: The new height of the window.
+        Parameters
+        ----------
+            w : int
+                The new width of the window.
+            h : int
+                The new height of the window.
         """
         # Update the stored width and height, considering high-DPI displays
         self.window_width = int(w * self.ratio)
@@ -243,8 +248,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse movement events for camera control.
 
-        Args:
-            event: The QMouseEvent object containing the new mouse position.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
         if event.buttons() == Qt.LeftButton:
@@ -257,8 +264,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse button press events to initiate rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The QMouseEvent object.
         """
         event.position()
         # Left button initiates rotation
@@ -267,8 +276,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse wheel events for zooming.
 
-        Args:
-            event: The QWheelEvent object.
+        Parameters
+        ----------
+            event : QWheelEvent
+                The QWheelEvent object.
         """
         num_pixels = event.angleDelta()
         # Zoom in or out by adjusting the Z position of the model

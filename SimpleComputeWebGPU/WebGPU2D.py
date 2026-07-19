@@ -63,8 +63,10 @@ class WebGPUScene(WebGPUWidget):
 
         This function initializes particle data in a structured format suitable for compute shaders.
 
-        Args:
-            num_points: The number of points to generate.
+        Parameters
+        ----------
+            num_points : int
+                The number of points to generate.
         """
         # Create structured array matching the Particle struct in the compute shader
         self.particle_data = np.zeros(
@@ -282,9 +284,12 @@ class WebGPUScene(WebGPUWidget):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            width: The new width of the window.
-            height: The new height of the window.
+        Parameters
+        ----------
+            width
+                The new width of the window.
+            height
+                The new height of the window.
         """
         self.window_width = int(width * self.ratio)
         self.window_height = int(height * self.ratio)
@@ -392,8 +397,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles keyboard press events.
 
-        Args:
-            event: The QKeyEvent object containing information about the key press.
+        Parameters
+        ----------
+            event : QKeyEvent
+                The QKeyEvent object containing information about the key press.
         """
         key = event.key()
         if key == Qt.Key_Escape:
@@ -422,8 +429,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles mouse movement events for camera control.
 
-        Args:
-            event: The QMouseEvent object containing the new mouse position.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
         if event.buttons() == Qt.LeftButton:
@@ -452,8 +461,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles mouse button press events to initiate rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The QMouseEvent object.
         """
         # store the mouse position for drag operations
         try:
@@ -555,8 +566,10 @@ class WebGPUScene(WebGPUWidget):
         This event is called at a regular interval (set by startTimer).
         Now that we're using compute shaders, this just triggers a redraw.
 
-        Args:
-            event: The QTimerEvent object, not used in this method but required by the API.
+        Parameters
+        ----------
+            event : QTimerEvent
+                The QTimerEvent object, not used in this method but required by the API.
         """
         if self.animate:
             self.update()
