@@ -30,9 +30,6 @@ from PySide6.QtWidgets import QApplication
 
 class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
     def __init__(self, parent: object = None) -> None:
-        """
-        Initializes the main window and sets up default scene parameters.
-        """
         super().__init__()
         self.setup_event_handling(
             rotation_sensitivity=0.5,
@@ -40,10 +37,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             zoom_sensitivity=0.1,
             initial_position=Vec3(0, 0, 0),
         )  # --- Camera and Transformation Attributes ---
-        self.view: Mat4 = Mat4()  # View matrix (camera's position and orientation)
-        self.project: Mat4 = (
-            Mat4()
-        )  # Projection matrix (defines the camera's viewing frustum)
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
 
         # --- Window and UI Attributes ---
         self.window_width: int = 1024  # Window width¦
@@ -179,7 +174,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.makeCurrent()
         # Set the viewport to cover the entire window
         gl.glViewport(0, 0, self.window_width, self.window_height)
-        # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         rot_x = Mat4().rotate_x(self.spin_x_face)
         rot_y = Mat4().rotate_y(self.spin_y_face)
@@ -290,7 +284,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # --- Application Entry Point ---
-    # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)
@@ -312,7 +305,6 @@ if __name__ == "__main__":
     else:
         app = QApplication(sys.argv)
 
-    # Create the main window
     window = MainWindow()
     # Set the initial window size
     window.resize(1024, 720)

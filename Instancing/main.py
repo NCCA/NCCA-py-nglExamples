@@ -71,9 +71,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.field_rotation: float = 0.0
         self.frame_times: deque = deque(maxlen=FRAME_HISTORY)
 
-    # ------------------------------------------------------------------
     # GL setup
-    # ------------------------------------------------------------------
     def initializeGL(self) -> None:
         self.makeCurrent()
         gl.glClearColor(0.12, 0.12, 0.14, 1.0)
@@ -159,9 +157,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         )
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
 
-    # ------------------------------------------------------------------
     # helpers
-    # ------------------------------------------------------------------
     def scene_global_tx(self) -> Mat4:
         rot_x = Mat4().rotate_x(self.spin_x_face)
         rot_y = Mat4().rotate_y(self.spin_y_face + self.field_rotation)
@@ -171,9 +167,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         tx[3, 2] = self.model_position.z
         return tx
 
-    # ------------------------------------------------------------------
     # drawing
-    # ------------------------------------------------------------------
     def paintGL(self) -> None:
         start = time.perf_counter()
         self.makeCurrent()
@@ -233,9 +227,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.field_rotation += 0.3
         self.update()
 
-    # ------------------------------------------------------------------
     # input
-    # ------------------------------------------------------------------
     def _set_n(self, n: int) -> None:
         self.n = max(MIN_N, min(MAX_N, n))
         self._build_instance_data()

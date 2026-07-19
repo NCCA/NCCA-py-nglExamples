@@ -142,10 +142,9 @@ class WebGPUScene(WebGPUWidget):
         """
         key = event.key()
         if key == Qt.Key_Escape:
-            self.close()  # Exit the application
+            self.close()
         self.update()
 
-        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
 

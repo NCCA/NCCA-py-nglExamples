@@ -188,14 +188,13 @@ class WebGPUScene(WebGPUWidget):
         """
         key = event.key()
         if key == Qt.Key_Escape:
-            self.close()  # Exit the application
+            self.close()
         elif key == Qt.Key_Space:
             self.spin_x_face = 0
             self.spin_y_face = 0
             self.model_position.set(0, 0, 0)
         self.update()
 
-        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:

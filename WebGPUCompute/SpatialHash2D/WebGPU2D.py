@@ -718,7 +718,7 @@ class WebGPUScene(WebGPUWidget):
         key = event.key()
         handled = False
         if key == Qt.Key.Key_Escape:
-            self.close()  # Exit the application
+            self.close()
             handled = True
         elif key == Qt.Key.Key_A:
             self.animate = not self.animate
@@ -759,7 +759,6 @@ class WebGPUScene(WebGPUWidget):
             # Pass unhandled events to parent window
             if self.parent():
                 self.parent().keyPressEvent(event)
-            # Call the base class implementation for any unhandled events
             super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:

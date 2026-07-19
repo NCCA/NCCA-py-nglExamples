@@ -35,10 +35,8 @@ class Scene:
         self.mouseGlobalTX: Mat4 = (
             Mat4()
         )  # Global transformation matrix controlled by the mouse
-        self.view: Mat4 = Mat4()  # View matrix (camera's position and orientation)
-        self.project: Mat4 = (
-            Mat4()
-        )  # Projection matrix (defines the camera's viewing frustum)
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
         self.modelPos: Vec3 = Vec3()  # Position of the model in world space
 
         # --- Window and UI Attributes ---

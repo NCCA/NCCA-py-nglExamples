@@ -31,9 +31,6 @@ class MainWindow(QOpenGLWindow):
     """
 
     def __init__(self, parent: object = None) -> None:
-        """
-        Initializes the main window and sets up default scene parameters.
-        """
         super().__init__()
 
         # --- Window and UI Attributes ---
@@ -155,7 +152,6 @@ class MainWindow(QOpenGLWindow):
         self.makeCurrent()
         # Set the viewport to cover the entire window
         gl.glViewport(0, 0, self.window_width, self.window_height)
-        # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         # draw to our FBO first
         ShaderLib.use(SCREEN_QUAD)
@@ -246,8 +242,6 @@ class MainWindow(QOpenGLWindow):
         # Update the stored width and height, considering high-DPI displays
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
-        # Update the projection matrix to match the new aspect ratio.
-        # This creates a perspective projection with a 45-degree field of view.
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
 
     def keyPressEvent(self, event) -> None:
@@ -270,7 +264,6 @@ class MainWindow(QOpenGLWindow):
         if key in mapping:
             self.buffer_index = mapping[key]
         self.update()
-        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
 
@@ -323,7 +316,6 @@ if __name__ == "__main__":
 
     # --- Application Entry Point ---
 
-    # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)
@@ -345,7 +337,6 @@ if __name__ == "__main__":
     else:
         app = QApplication(sys.argv)
 
-    # Create the main window
     window = MainWindow()
     # Set the initial window size
     window.resize(1024, 720)

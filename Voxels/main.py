@@ -44,9 +44,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
     """
 
     def __init__(self, parent: object = None) -> None:
-        """
-        Initializes the main window and sets up default scene parameters.
-        """
         super().__init__()
         self.setup_event_handling(
             rotation_sensitivity=0.5,
@@ -54,10 +51,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             zoom_sensitivity=0.1,
             initial_position=Vec3(0, 0, 0),
         )  # --- Camera and Transformation Attributes ---
-        self.view: Mat4 = Mat4()  # View matrix (camera's position and orientation)
-        self.project: Mat4 = (
-            Mat4()
-        )  # Projection matrix (defines the camera's viewing frustum)
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
 
         # --- Window and UI Attributes ---
         self.window_width: int = 1024  # Window width¦
@@ -111,7 +106,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glEnable(gl.GL_DEPTH_TEST)
         # Enable multisampling for anti-aliasing, which smooths jagged edges
         gl.glEnable(gl.GL_MULTISAMPLE)
-        # Set up the camera's view matrix.
         # It looks from (0, 1, 4) towards (0, 0, 0) with the 'up' direction along the Y-axis.
         if not ShaderLib.load_shader(
             VOXEL_SHADER,
@@ -394,7 +388,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
     def resizeGL(self, w: int, h: int) -> None:
         """
         Called whenever the window is resized.
-        It's crucial to update the viewport and projection matrix here.
 
         Args:
             w: The new width of the window.
@@ -461,7 +454,6 @@ if __name__ == "__main__":
 
     # --- Application Entry Point ---
 
-    # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)
@@ -483,7 +475,6 @@ if __name__ == "__main__":
     else:
         app = QApplication(sys.argv)
 
-    # Create the main window
     window = MainWindow()
     # Set the initial window size
     window.resize(1024, 720)

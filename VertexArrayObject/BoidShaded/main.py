@@ -56,8 +56,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.window_height: int = 720
         self.setTitle("Boid")
         self.model_position: Vec3 = Vec3()  # Model position in world space
-        self.view: Mat4 = Mat4()  # View matrix
-        self.project: Mat4 = Mat4()  # Projection matrix
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
 
     def initializeGL(self) -> None:
         """

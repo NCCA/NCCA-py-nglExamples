@@ -12,8 +12,8 @@ import OpenGL.GL as gl
 from ncca.ngl import Mat3, Mat4, Prims, Vec3, logger
 from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib, VAOFactory, VAOType
 from ncca.ngl.opengl.abstract_vao import VertexData
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QSurfaceFormat
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer
+from PySide6.QtGui import QKeyEvent, QMouseEvent, QSurfaceFormat, QWheelEvent
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 from uvn_camera import FrustumCamera
@@ -35,18 +35,13 @@ class MainWindow(QOpenGLWindow):
     """
 
     def __init__(self, parent: object = None) -> None:
-        """
-        Initializes the main window and sets up default scene parameters.
-        """
         super().__init__()
         # --- Camera and Transformation Attributes ---
         self.mouse_global_tx: Mat4 = (
             Mat4()
         )  # Global transformation matrix controlled by the mouse
-        self.view: Mat4 = Mat4()  # View matrix (camera's position and orientation)
-        self.project: Mat4 = (
-            Mat4()
-        )  # Projection matrix (defines the camera's viewing frustum)
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
         self.model_position: Vec3 = Vec3()  # Position of the model in world space
 
         # --- Window and UI Attributes ---
@@ -214,7 +209,6 @@ class MainWindow(QOpenGLWindow):
     def resizeGL(self, w: int, h: int) -> None:
         """
         Called whenever the window is resized.
-        It's crucial to update the viewport and projection matrix here.
 
         Args:
             w: The new width of the window.
@@ -246,7 +240,7 @@ class MainWindow(QOpenGLWindow):
         elif self.move_mode == MOVE_SLIDE:
             camera.slide(dx, dy, dz)
 
-    def keyPressEvent(self, event) -> None:
+    def keyPressEvent(self, event: QKeyEvent) -> None:
         """
         Handles keyboard press events.
 
@@ -255,15 +249,11 @@ class MainWindow(QOpenGLWindow):
         """
         key = event.key()
         if key == Qt.Key_Escape:
-            self.close()  # Exit the application
+            self.close()
         elif key == Qt.Key_W:
-            gl.glPolygonMode(
-                gl.GL_FRONT_AND_BACK, gl.GL_LINE
-            )  # Switch to wireframe rendering
+            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
         elif key == Qt.Key_S:
-            gl.glPolygonMode(
-                gl.GL_FRONT_AND_BACK, gl.GL_FILL
-            )  # Switch to solid fill rendering
+            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
         elif key == Qt.Key_1:
             self.active_camera_index = 0
         elif key == Qt.Key_2:
@@ -309,10 +299,9 @@ class MainWindow(QOpenGLWindow):
             c.set_shape(max(1.0, c.fov - 1.0), c.aspect, c.near, c.far)
         # Trigger a redraw to apply changes
         self.update()
-        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
-    def mouseMoveEvent(self, event) -> None:
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
         """
         Handles mouse movement events for camera control.
 
@@ -340,7 +329,7 @@ class MainWindow(QOpenGLWindow):
             self.model_position.y -= self.INCREMENT * diff_y
             self.update()
 
-    def mousePressEvent(self, event) -> None:
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         """
         Handles mouse button press events to initiate rotation or translation.
 
@@ -359,7 +348,7 @@ class MainWindow(QOpenGLWindow):
             self.original_y_pos = position.y()
             self.translate = True
 
-    def mouseReleaseEvent(self, event) -> None:
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         """
         Handles mouse button release events to stop rotation or translation.
 
@@ -373,7 +362,7 @@ class MainWindow(QOpenGLWindow):
         elif event.button() == Qt.RightButton:
             self.translate = False
 
-    def wheelEvent(self, event) -> None:
+    def wheelEvent(self, event: QWheelEvent) -> None:
         """
         Handles mouse wheel events for zooming.
 
@@ -403,11 +392,11 @@ class DebugApplication(QApplication):
     re-raise the exception to halt the program, making the error immediately visible.
     """
 
-    def __init__(self, argv):
+    def __init__(self, argv: list[str]) -> None:
         super().__init__(argv)
         logger.info("Running in full debug mode")
 
-    def notify(self, receiver, event):
+    def notify(self, receiver: QObject, event: QEvent) -> bool:
         """
         Overrides the central event handler to catch and report exceptions.
         """
@@ -441,7 +430,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)
@@ -460,7 +448,6 @@ if __name__ == "__main__":
     else:
         app = QApplication(sys.argv)
 
-    # Create the main window
     window = MainWindow()
     # Set the initial window size
     window.resize(1024, 720)

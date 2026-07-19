@@ -43,8 +43,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.window_height: int = 720
         self.setTitle("Boid")
         self.modelPos: Vec3 = Vec3()  # Model position in world space
-        self.view: Mat4 = Mat4()  # View matrix
-        self.project: Mat4 = Mat4()  # Projection matrix
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
 
     def initializeGL(self) -> None:
         """
@@ -55,7 +55,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glClearColor(0.4, 0.4, 0.4, 1.0)  # Set background color
         gl.glEnable(gl.GL_DEPTH_TEST)  # Enable depth testing for 3D
         gl.glEnable(gl.GL_MULTISAMPLE)  # Enable anti-aliasing
-        self.view = look_at(Vec3(0, 1, 4), Vec3(0, 0, 0), Vec3(0, 1, 0))  # Camera setup
+        self.view = look_at(Vec3(0, 1, 4), Vec3(0, 0, 0), Vec3(0, 1, 0))
         ShaderLib.use(DefaultShader.COLOUR)  # Use color shader
         ShaderLib.set_uniform("Colour", 1.0, 1.0, 1.0, 1.0)  # Set default color
         self.buildVAO()  # Build geometry

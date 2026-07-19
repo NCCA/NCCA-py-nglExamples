@@ -197,7 +197,7 @@ class WebGPUScene(WebGPUWidget):
         key = event.key()
 
         if key == Qt.Key_Escape:
-            self.close()  # Exit the application
+            self.close()
         elif key == Qt.Key_Space:
             # Reset camera rotation and position
             self.spin_x_face = 0
@@ -205,7 +205,6 @@ class WebGPUScene(WebGPUWidget):
             self.model_position.set(0, 0, 0)
 
         self.update()
-        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:
