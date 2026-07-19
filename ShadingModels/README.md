@@ -1,4 +1,4 @@
-## Shading Models
+# Shading Models
 
 ![](ShadingModels.png)
 

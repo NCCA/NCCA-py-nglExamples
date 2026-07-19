@@ -1,5 +1,7 @@
 # Compute-Shader Picking (WebGPU)
 
+![](WebGPUPick.png)
+
 An alternative to the colour-ID picking used in
 [`SelectionManipulatorWebGPU`](../SelectionManipulatorWebGPU), with the same
 scene and Maya-style transform gizmos. Objects and gizmo handles still

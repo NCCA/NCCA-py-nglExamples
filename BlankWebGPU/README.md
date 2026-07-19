@@ -1,4 +1,4 @@
-## Blank WebGPU
+# Blank WebGPU
 
 ![](BlankWebGPU.png)
 

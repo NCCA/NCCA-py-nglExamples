@@ -29,7 +29,7 @@ Controls are the same as the OpenGL demo: arrow keys move the camera, left mouse
 
 The WebGPU version keeps close to the OpenGL structure rather than chasing performance, so there is room to improve:
 
-- The grayscale metallic/roughness/AO maps are uploaded as full RGBA, which wastes three quarters of the memory. Loading them as `r8unorm` and sampling `.r` would be leaner.
+- The greyscale metallic/roughness/AO maps are uploaded as full RGBA, which wastes three quarters of the memory. Loading them as `r8unorm` and sampling `.r` would be leaner.
 - Textures are uploaded with a single mip level, so distant teapots alias a little. The OpenGL demo generates mipmaps; WebGPU has no `glGenerateMipmap`, so this needs a small blit chain to fill the mip levels.
 - Every teapot gets its own bind group and a per-frame uniform write. Instanced drawing, or a storage buffer of per-instance transforms indexed by `instance_index`, would cut the draw and upload cost.
 

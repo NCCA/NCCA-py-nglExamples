@@ -16,6 +16,6 @@ respectively, to visually compare the resulting spacing/timing.
 
 ## References
 
-- [Robert Penner's Easing Functions](https://robertpenner.com/easing/) — the original easing equations that popularized eased animation timing.
+- [Robert Penner's Easing Functions](https://robertpenner.com/easing/) — the original easing equations that popularised eased animation timing.
 - [easings.net](https://easings.net/) — interactive visualisation of the standard easing curves compared in this demo.
 - [Interpolation methods (Paul Bourke)](https://paulbourke.net/miscellaneous/interpolation/) — linear, cosine (trigonometric) and cubic interpolation maths.

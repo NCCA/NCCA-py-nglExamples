@@ -1,4 +1,4 @@
-## QML WebGPU Overlay
+# QML WebGPU Overlay
 
 ![](QMLWebGPUOverlay.png)
 

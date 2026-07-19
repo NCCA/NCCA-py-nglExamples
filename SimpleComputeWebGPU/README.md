@@ -1,5 +1,7 @@
 # SimpleComputeWebGPU
 
+![](SimpleComputeWebGPU.png)
+
 A minimal WebGPU compute shader example. A 2D particle simulation is updated
 entirely on the GPU: `Compute.wgsl` integrates particle positions and
 velocities (with a user-controlled wind force and boundary bounce) each frame,

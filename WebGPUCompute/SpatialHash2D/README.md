@@ -1,5 +1,7 @@
 # WebGPU 2D Spatial Hashing Demo
 
+![](SpatialHash2D.png)
+
 Particle collision detection on the GPU using a uniform grid spatial hash.
 `CollisionCompute.wgsl` runs a multi-pass compute pipeline each frame — clear
 grid, count particles per cell, build prefix-sum offsets, fill the grid, then
@@ -12,10 +14,10 @@ simulation. A 3D version of this demo is in `../SpatialHash3D`.
 
 ```bash
 # basic version, -p sets the particle count, --random / --equispaced the layout
-./WebGPU2D.py -p 20000
+uv run WebGPUCompute/SpatialHash2D/WebGPU2D.py -p 20000
 
 # version with a Qt control panel for the simulation parameters
-./WebGPU2DGui.py
+uv run WebGPUCompute/SpatialHash2D/WebGPU2DGui.py
 ```
 
 ## Controls

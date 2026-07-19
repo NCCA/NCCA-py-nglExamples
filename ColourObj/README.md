@@ -3,7 +3,7 @@
 ![](ColourObj.png)
 
 Loads an OBJ variant where each vertex line carries a baked RGB colour
-(`x y z r g b`) and renders it with per-vertex colour, no lighting. Note this is not a standard OBJ file format, but a common extension used by some 3D modeling software.
+(`x y z r g b`) and renders it with per-vertex colour, no lighting. Note this is not a standard OBJ file format, but a common extension used by some 3D modelling software.
 
 ## Controls
 

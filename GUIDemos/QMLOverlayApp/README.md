@@ -1,4 +1,4 @@
-## QML Overlay App
+# QML Overlay App
 
 ![](QMLOverlayApp.png)
 

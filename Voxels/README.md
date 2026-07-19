@@ -1,5 +1,7 @@
 # Voxels
 
+![](Voxels.png)
+
 Renders a block of voxels (Minecraft-style terrain) on the GPU using OpenGL
 texture buffer objects. Per-voxel position, active flag and texture index are
 stored in texture buffers and instanced in the shader, so the whole terrain is

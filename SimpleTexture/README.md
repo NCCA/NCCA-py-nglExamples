@@ -1,4 +1,6 @@
-## Simple Texture Example
+# Simple Texture Example
+
+![](Texture.png)
 
 This folder has two demos, one for OpenGL and one for WebGPU.
 
