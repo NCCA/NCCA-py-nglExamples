@@ -2,9 +2,6 @@
 
 ![MarchingCubes](MarchingCubes.png)
 
-<!-- TODO(jmacey): screenshot missing -- headless agent can't capture GL output,
-     please grab one with the demo running and drop it in as MarchingCubes.png -->
-
 Four metaballs drift along lissajous paths. Every frame their scalar field
 is re-sampled and re-polygonised from scratch in numpy, and the resulting
 triangle soup is pushed straight to the GPU with

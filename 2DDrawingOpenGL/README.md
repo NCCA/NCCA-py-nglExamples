@@ -7,9 +7,14 @@ There are two demos in this folder both with the same initial structure.
 - [2DDrawing.py](./2DDrawing.py): This demo shows how to draw 2D points using OpenGL and orthographic projection.
 - [PanZoom.py](./PanZoom.py): Expands on the previous demo by adding pan and zoom functionality.
 
+```bash
+uv run 2DDrawingOpenGL/2DDrawing.py
+uv run 2DDrawingOpenGL/PanZoom.py
+```
+
 ## Discussion
 
-Initialization (`__init__` and `initializeGL`) uses a basic PySide6 `QOpenGLWindow` to serve as the canvas for rendering.
+Initialisation (`__init__` and `initializeGL`) uses a basic PySide6 `QOpenGLWindow` to serve as the canvas for rendering.
 
 `gen_points(1000)` is called to create 1000 particles. Each particle is given a random initial position, velocity (direction and speed), and colour.
 
@@ -34,12 +39,10 @@ Rendering is done in `paintGL`.
 
 ### User Controls
 
-- **Arrow Keys:** Modify the global `wind` vector.
-  - **Up/Down:** Increase/decrease the wind's Y component.
-  - **Left/Right:** Decrease/increase the wind's X component.
-- **Spacebar:** Resets the wind vector to `[0, 0]` and the zoom level to `1.0`.
-- **Mouse Wheel:** Zooms the view in and out.
-- **Escape Key:** Closes the application.
+- Arrow keys : adjust the global `wind` vector in x / y
+- `Space` : reset the wind to `[0, 0]` and the zoom to `1.0`
+- Mouse wheel : zoom
+- `Esc` : quit
 
 The Zoom version adds more control by storing the current mouse position and allowing the ortho window to be changed.
 

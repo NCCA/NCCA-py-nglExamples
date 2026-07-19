@@ -1,6 +1,14 @@
-# SimpleWebGPU Example
+# DefferedLighting
 
-This example demonstrates how to use PyNGL with WebGPU to create a simple 3D Scene. In particular it demonstrates the use of The PyNGL primitives class and how we need to generate a new pipeline per shader type.
+A WebGPU deferred shading demo. The first pass renders a teapot and floor into a G-buffer of position, normal and albedo textures (`GBuffer.wgsl`), then a lighting pass (`lighting.wgsl`) reads the G-buffer and shades the scene with two lights.
+
+Note this demo is currently broken (see [TODO.md](../TODO.md)) so don't expect too much from it yet.
+
+```bash
+uv run DefferedLighting/SimpleWebGPU.py
+```
+
+![](WebGPUNGL.png)
 
 ## References
 

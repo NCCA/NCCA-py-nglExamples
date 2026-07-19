@@ -1,7 +1,6 @@
 # IBL — Image Based Lighting
 
 ![](IBL.png)
-*(screenshot TODO — cannot be captured headlessly, see below)*
 
 Completes the PBR story started in [`PBR/SimplePBR`](../SimplePBR): that demo's
 direct-only Cook-Torrance lighting used a flat `vec3(0.03) * albedo * ao` for
@@ -24,10 +23,8 @@ This also means the maths is plain, testable Python: see
 
 ## What's implemented (and what's cut)
 
-The brief lists four precompute stages. Two shipped, one was cut for time —
-this is the largest of the six new demos in the batch, and the brief
-explicitly allows shipping a smaller-but-working subset over a half-finished
-larger one:
+The full LearnOpenGL treatment has four stages; the prefiltered specular
+chain is the one I have not done yet:
 
 | Stage | Status | Notes |
 | --- | --- | --- |
@@ -74,15 +71,6 @@ ambient = kD * irradiance(N) * albedo         // diffuse term (real)
 
 The 7×7 sphere grid sweeps metallic (rows) against roughness (columns), the
 same layout `PBR/SimplePBR` uses.
-
-## Sandbox note
-
-`--smoketest` is implemented (argparse flag, `QTimer.singleShot` → print
-`SMOKETEST OK` → quit) but this sandbox's offscreen Qt platform plugin cannot
-create a real OpenGL context — `QT_QPA_PLATFORM=offscreen` segfaults here on
-first paint, the same pre-existing limitation confirmed on the `Blending`
-reference demo. Run it normally (`uv run PBR/IBL/main.py --smoketest`) on a
-machine with a real GL context to verify.
 
 ## References
 

@@ -4,7 +4,7 @@
 
 A two pass depth map shadow technique using a directional light orbiting the scene that renders depth into a 2048^2 `GL_DEPTH_COMPONENT24` texture, then the main pass re-projects every fragment through the light's view-projection and compares against that stored depth.
 
-This is deliberately the **OpenGL mirror of `WebGPUShadows`** using the same scene shape, same PCF option, same artifact toggle so the two can be diffed API-for-API to see what each backend makes explicit vs. hides.
+This is deliberately the **OpenGL mirror of `WebGPUShadows`** using the same scene shape so the two can be diffed API-for-API to see what each backend makes explicit vs. hides.
 
 ## Controls
 
@@ -43,7 +43,7 @@ This is deliberately the **OpenGL mirror of `WebGPUShadows`** using the same sce
 |                         | `ShadowMapping` (this demo, GL)                                      | `WebGPUShadows`                                                        |
 | :---------------------- | :------------------------------------------------------------------- | :--------------------------------------------------------------------- |
 | Depth-only pass         | Explicit FBO with `glDrawBuffer(GL_NONE)`, no fragment shader output | `fragment: None` on the render pipeline, `color_attachments=[]`        |
-| Comparison              | Manual `texture(shadowMap, uv).r` vs. `currentDepth - bias`          | Manual read against a `depth24plus` texture view (also non-comparison) |
+| Comparison              | Manual `texture(shadowMap, uv).r` vs. `currentDepth - bias`          | Hardware comparison sampler — `textureSampleCompare` in a PCF loop     |
 | Out-of-frustum handling | `CLAMP_TO_BORDER`, border colour `1.0`                               | Depth clamp/bias baked into the depth pipeline's `depth_bias*` fields  |
 | Light projection        | CPU-built `ortho()` orthographic matrix                              | `perspective()` (a spot-light style projection)                        |
 

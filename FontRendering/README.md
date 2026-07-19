@@ -28,7 +28,7 @@ To render text we can use the `render_text` function.
 Text.render_text("Arial", 10, 440, "To Render we call")
 ```
 
-With and optional colour parameter (default is white)
+With an optional colour parameter (default is white)
 
 ## References
 

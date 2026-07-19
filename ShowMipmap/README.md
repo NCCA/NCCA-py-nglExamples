@@ -1,18 +1,14 @@
-# ShowMipMap
+# ShowMipmap
 
-This demo manually creates mip-maps as blocks of colours Red - Green - Blue - Yellow - White - Purple, when running you can see what level mip map is used by the colours displayed. Level 0 is Red (closest) Purple is lowest level. 
+This demo uploads each mip level of a texture by hand, filling every level with a flat colour (red at level 0, then green, blue, yellow, white and magenta as the levels get smaller). A grid of textured cubes recedes into the distance so you can see exactly which level the sampler picks — the colour changes at each mip transition.
 
-GL_TEXTURE_MIN_LOD
-Sets the minimum level-of-detail parameter. This floating-point value limits the selection of highest resolution mipmap (lowest mipmap level). The initial value is -1000.
+The uploaded levels are clamped with `GL_TEXTURE_BASE_LEVEL`, `GL_TEXTURE_MAX_LEVEL` and `GL_TEXTURE_MAX_LOD` so only the hand-made levels are ever sampled.
 
-GL_TEXTURE_MAX_LOD
-Sets the maximum level-of-detail parameter. This floating-point value limits the selection of the lowest resolution mipmap (highest mipmap level). The initial value is 1000.
+```bash
+uv run ShowMipmap/ShowMipmap.py
+```
 
-GL_TEXTURE_MAX_LEVEL
-Sets the index of the highest defined mipmap level. This is an integer value. The initial value is 1000.
-
-To set the levels.
-
+![](MipMap.png)
 
 ## References
 

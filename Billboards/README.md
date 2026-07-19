@@ -2,8 +2,6 @@
 
 ![](Billboards.png)
 
-_(screenshot still to add — TODO for Jon)_
-
 Camera-facing quads: the trick behind particles, sprites, impostors and HUD markers. Thirty textured sprites are scattered around a teapot (the depth reference — it never billboards, so you've always got something solid to judge distance against). Press `M` to cycle three ways of orienting the sprites and watch the same 30 quads go from obviously wrong to always correct.
 
 ## Controls

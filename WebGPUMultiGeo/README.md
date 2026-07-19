@@ -1,36 +1,20 @@
 # WebGPU Multi Geo
 
-This demo shows how to render multiple mesh objects within a single WebGPU draw call. It demonstrates an efficient way to render a scene by consolidating geometry and using storage buffers for per-instance data like transformations and colours.
+![](WebGPUMulti.png)
 
-Basic diffuse shading is used, with buffers setup to have Camera (view,project,eye) and light (position and colour) values passed per frame, and mesh data instanced per mesh (model transform, normal matrix and colour)
+This demo shows how to render multiple mesh objects within a single WebGPU draw call. Geometry is consolidated into one vertex buffer and the per-instance data (model transform, normal matrix and colour) lives in a storage buffer the vertex shader indexes with the built-in `instance_index`.
 
-## How It Works
+Basic diffuse shading is used, with buffers set up to have Camera (view, project, eye) and light (position and colour) values passed per frame.
 
-The program is structured into three main classes:
+## How it works
 
-1.  **`WebGPUScene`**: This is the main application window that inherits from `WebGPUWidget`. It is responsible for:
-    *   Setting up the WebGPU device and context.
-    *   Handling user input (mouse for FirstPersonCamera control, keyboard for toggling lights).
-    *   Defining the list of objects in the scene (`scene_objects`), specifying their transformations and colours.
-    *   Calling the `Pipeline's` render method each frame.
+`WebGPUMultiGeo.py` is the main window: it sets up the WebGPU device, handles the FirstPersonCamera mouse and keyboard input, and holds the `scene_objects` list of transforms and colours. `Pipeline.py` owns the render pipeline, the WGSL shader and the camera / light uniform buffers. `MeshData.py` does the consolidation — `add_geometry()` stores the raw vertex data for each unique mesh shape once, `add_mesh()` creates a named instance of one of those geometries, and `create_buffers()` packs everything into a single large vertex buffer plus a storage buffer of per-instance data.
 
-2.  **`Pipeline`**: This class manages the rendering process. Its key responsibilities include :-
-    *   Creating the WebGPU render pipeline, including loading and compiling the WGSL shader.
-    *   Managing GPU buffers for global data like the camera's view/projection matrices and lighting information.
-    *   Using the `MeshData` class to load all the geometry and instance information into the necessary GPU buffers.
-    *   Executing the render pass, which involves binding the appropriate buffers and issuing a single draw call to render all objects.
+Each frame the scene updates the camera and light, writes every object's transform and colour into the host-side storage array via `update_mesh_storage_buffer()`, then `render()` uploads the whole array to the GPU storage buffer and issues one `draw()` for the lot. The vertex shader looks up each instance's matrix and colour from the storage buffer, so one set of geometry renders in many positions with different appearances.
 
-3.  **`MeshData`**: This class is central to the efficient rendering approach. It is designed to handle shared geometries:
-    *   **`add_geometry(mesh_name, prim_data)`**: This method is used to load the raw vertex data for a unique mesh shape (e.g., a sphere, a cube, or a loaded model) and associate it with a name. This data is only stored once, regardless of how many times it's used in the scene.
-    *   **`add_mesh(name, mesh_name)`**: This method creates an *instance* of a previously loaded geometry. Each instance is given a unique name (e.g., "light1") and refers to a geometry name (e.g., "light_sphere").
-    *   **`create_buffers()`**: This method combines the data. It creates a single large vertex buffer containing all unique geometries and a storage buffer to hold the per-instance data (model matrix, normal matrix, and colour) for every object in the scene.
-
-### Rendering Process
-
-1.  **Setup**: The `Pipeline` uses `MeshData` to load all required geometries and create instances for every object in the scene. `MeshData` then creates two main buffers: one for all the vertex data and another for all the instance data.
-2.  **Update**: Each frame, `WebGPUScene` updates the camera and light information. It then loops through its `scene_objects` list and calls `pipeline.update_mesh_storage_buffer()` for each object. This updates the object's transformation and colour in the host-side (CPU) storage array within `MeshData`.
-3.  **Render**: `pipeline.render()` is called. This method first uploads the entire updated storage array to the GPU storage buffer. It then begins a render pass, binds the consolidated vertex and storage buffers, and issues a single `draw()` command.
-4.  **Shader Execution**: The vertex shader uses `instance_index` (a built-in variable) to look up the correct transformation and colour for each instance from the storage buffer, allowing a single set of geometry to be rendered in multiple positions with different appearances.
+```bash
+uv run WebGPUMultiGeo/WebGPUMultiGeo.py
+```
 
 ## References
 

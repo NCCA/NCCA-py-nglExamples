@@ -1,6 +1,8 @@
 # SimplePyNGL Examples
 
-These examples is a small complete demo showing how to load a PBR shader, use the build in shaders and primitives.
+![](PySDL3NGLDemo.png)
+
+These examples are small complete demos showing how to load a PBR shader and use the built in shaders and primitives.
 
 ## References
 

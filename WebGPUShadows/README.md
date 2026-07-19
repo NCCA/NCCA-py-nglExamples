@@ -1,8 +1,20 @@
 # PCF Shadows Using WebGPU
 
-This is a project that demonstrates how to implement PCF (Percentage Closer Filtering) shadows using WebGPU. This has two pipeline one for the Shadow pass which will record a depth texture and another for the main pass which will use the depth texture to render the scene with shadows.
+![](WebGPUShadows.png)
 
+A two pass shadow map demo using WebGPU. The first pipeline is a depth-only shadow pass (no fragment stage, no colour attachments) that renders the scene from the light's point of view into a 2048^2 `depth24plus` texture (`ShadowShader.wgsl`). The main pass (`DiffuseShader.wgsl`) re-projects each fragment through the light's view-projection and tests it against that texture using a comparison sampler — `textureSampleCompare` in a 3x3 loop, giving percentage closer filtered (PCF) soft shadow edges.
 
+This is the WebGPU mirror of [`../ShadowMapping`](../ShadowMapping), which renders the same scene in OpenGL — see the table in that README for an API-for-API diff of the two backends.
+
+```bash
+uv run WebGPUShadows/PCFShadows.py
+```
+
+## Controls
+
+- Left-drag : rotate the camera, arrow keys : move (first person)
+- `1` : toggle the light
+- `Esc` : quit
 
 ## References
 

@@ -13,7 +13,7 @@ Masses at 2 and this is the original demo, with the original's values (a
 vertical spring from (0,2,0) to (0,-2,0) pinned at the top, k=5, damping=2,
 resting length 1, dt=0.01); wind the count up and you get a rope. Start and End
 place the two ends and the masses in between are spaced evenly along them, so
-the chain is a generalisation gravity has also been added.
+the chain is a generalisation of the original. Gravity has also been added.
 
 To run it:
 
@@ -43,7 +43,7 @@ pinned mass, so the integrator leaves it alone rather than fighting the mouse.
 Let go and it drops from a standstill. Drag a pinned mass and you move the pinned
 mass to the new location.
 
-## How it works,
+## How it works
 
 Each spring has its own two endpoints and integrates the displacement between them. That works for one spring but not for a chain,
 where the mass in the middle belongs to two springs and each would integrate its own copy
@@ -60,7 +60,7 @@ same acceleration slot.
 - `main.py` -- the GUI, using `Vec3Widget` from `ncca.ngl.widgets` for the two
   ends.
 
-Because the physics has no Qt or OpenGL in it, the tests are headless and check the maths rather than the pixelsm. The integrator goes against the analytic
+Because the physics has no Qt or OpenGL in it, the tests are headless and check the maths rather than the pixels. The integrator goes against the analytic
 simple harmonic oscillator, and the chain is checked for sagging, damping
 bleeding energy away and pinned masses staying put.
 

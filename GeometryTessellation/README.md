@@ -58,37 +58,16 @@ the GPU vendors specifically decided not to standardise into WebGPU,
 because they map awkwardly onto modern tile-based/mobile GPU architectures
 compared to compute-based equivalents.
 
-## ShaderLib API check (read this before writing similar demos)
+## Loading the tessellation shaders
 
-Per the task brief, `ncca.ngl.opengl.ShaderLib` (source:
-`/Users/jmacey/teaching/Code/PyNGL`) was inspected for geometry/tessellation
-stage support before writing any shader code:
-
-- **Geometry shaders**: fully supported by the convenience entry point —
-  `ShaderLib.load_shader(name, vert, frag, geo=<path>)` compiles and
-  attaches a `GL_GEOMETRY_SHADER` alongside vertex/fragment. `Text`'s own
-  built-in shader already uses this (`text_geometry.glsl`). Used as-is by
-  `normals_main.py`.
-- **Tessellation shaders**: `ShaderLib.load_shader()` has **no** `tesc`/
-  `tese` parameters — the high-level convenience wrapper only ever wires
-  up vertex/fragment/geometry. However, the *lower-level* API it is built
-  on top of is not similarly limited: `ShaderType` (in
-  `ncca/ngl/opengl/shader.py`) already defines `TESSCONTROL`/`TESSEVAL`
-  mapping to `GL_TESS_CONTROL_SHADER`/`GL_TESS_EVALUATION_SHADER`, and
-  `ShaderLib` exposes the per-stage building blocks that `load_shader`
-  itself is implemented with: `create_shader_program`, `attach_shader`,
-  `load_shader_source`, `compile_shader`, `attach_shader_to_program`,
-  `link_program_object`.
-
-**Outcome / path taken**: rather than writing a separate raw-PyOpenGL
-`program.py` helper (the brief's fallback for when ShaderLib has *no*
-usable path), `tess_main.py` drives the lower-level `ShaderLib` API
-directly — see `load_tess_program()` at the top of that file. This keeps
-the tessellation program registered in `ShaderLib` exactly like any other
-shader (`ShaderLib.use(...)`, `ShaderLib.set_uniform(...)` etc. all work
-unmodified), makes zero changes to the PyNGL library itself, and avoids
-duplicating shader compilation/linking/error-handling in raw PyOpenGL. No
-library edit was needed or made.
+`ShaderLib.load_shader()` will attach a geometry shader for you (the `geo=`
+parameter, used by `normals_main.py`) but has no `tesc`/`tese` parameters.
+`ShaderType` does define `TESSCONTROL`/`TESSEVAL` though, so
+`tess_main.py` builds its program from the lower-level per-stage API
+(`create_shader_program`, `attach_shader`, `compile_shader` and friends) —
+see `load_tess_program()` at the top of that file. The program ends up
+registered in `ShaderLib` like any other, so `ShaderLib.use(...)` and
+`ShaderLib.set_uniform(...)` work unmodified.
 
 ## `normals_main.py` — geometry-shader normal visualiser
 

@@ -2,8 +2,6 @@
 
 ![](SceneGraph.png)
 
-_TODO(Jon): screenshot missing — headless agent can't capture one, please grab a frame and save it as `SceneGraph.png`._
-
 A robot arm as a transform hierarchy, to bridge the gap between "one MVP matrix" demos and everything that comes after them. `scene_graph.py` is a numpy/ncca-maths-only `Node` class with no GL in it at all — `main.py` just walks the tree it builds and draws whatever comes out.
 
 ## The idea
