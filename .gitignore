@@ -89,3 +89,6 @@ err
 
 # IBL numpy precompute caches (runtime artefacts, regenerated on first run)
 PBR/IBL/*.npy
+
+# baked maps and other numpy bakes are generated artefacts
+*.npz
