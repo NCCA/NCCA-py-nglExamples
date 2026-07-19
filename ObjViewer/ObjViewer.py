@@ -38,8 +38,8 @@ class MainWindow(QOpenGLWindow):
         self.window_width: int = 1024
         self.window_height: int = 720
         self.setTitle("OBJ Viewer")
-        self.view: Mat4 = Mat4()  # View matrix
-        self.project: Mat4 = Mat4()  # Projection matrix
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
         self.model_position: Vec3 = Vec3()  # Position of the model in world space
 
         self.mesh_name = mesh_name

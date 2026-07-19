@@ -51,14 +51,6 @@ class FrameBufferObject:
         READ = gl.GL_READ_FRAMEBUFFER
 
     def __init__(self, width: int, height: int, num_attachments: int = 8):
-        """
-        Initializes the FrameBufferObject.
-
-        Args:
-            width: The width of the framebuffer.
-            height: The height of the framebuffer.
-            num_attachments: The number of color attachments to support.
-        """
         self._id = gl.glGenFramebuffers(1)
         self._width = int(width)
         self._height = int(height)

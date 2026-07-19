@@ -142,7 +142,6 @@ def main():
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
-    # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)

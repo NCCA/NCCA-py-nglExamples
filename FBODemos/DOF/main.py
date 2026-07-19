@@ -65,9 +65,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
     """
 
     def __init__(self, parent: object = None) -> None:
-        """
-        Initializes the main window and sets up default scene parameters.
-        """
         super().__init__()
         self.setup_event_handling(
             rotation_sensitivity=0.5,
@@ -75,10 +72,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             zoom_sensitivity=0.1,
             initial_position=Vec3(0, 0, 0),
         )  # --- Camera and Transformation Attributes ---
-        self.view: Mat4 = Mat4()  # View matrix (camera's position and orientation)
-        self.project: Mat4 = (
-            Mat4()
-        )  # Projection matrix (defines the camera's viewing frustum)
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
 
         # --- Window and UI Attributes ---
         self.window_width: int = 1024  # Window width¦
@@ -104,7 +99,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glEnable(gl.GL_DEPTH_TEST)
         # Enable multisampling for anti-aliasing, which smooths jagged edges
         gl.glEnable(gl.GL_MULTISAMPLE)
-        # Set up the camera's view matrix.
         # It looks from (0, 1, 4) towards (0, 0, 0) with the 'up' direction along the Y-axis.
         self.eye = Vec3(0, 2, 10)
         self.view = look_at(self.eye, Vec3(0, 0, 0), Vec3(0, 1, 0))
@@ -277,7 +271,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.makeCurrent()
         # Set the viewport to cover the entire window
         gl.glViewport(0, 0, self.window_width, self.window_height)
-        # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT or gl.GL_DEPTH_BUFFER_BIT)
         # Pass one draw to FBO
         ShaderLib.use(PHONG_SHADER)
@@ -399,8 +392,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         # Update the stored width and height, considering high-DPI displays
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
-        # Update the projection matrix to match the new aspect ratio.
-        # This creates a perspective projection with a 45-degree field of view.
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
 
         Text.set_screen_size(self.window_width, self.window_height)
@@ -483,7 +474,6 @@ if __name__ == "__main__":
 
     # --- Application Entry Point ---
 
-    # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)
@@ -505,7 +495,6 @@ if __name__ == "__main__":
     else:
         app = QApplication(sys.argv)
 
-    # Create the main window
     window = MainWindow()
     # Set the initial window size
     window.resize(1024, 720)

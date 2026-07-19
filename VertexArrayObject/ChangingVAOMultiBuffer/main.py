@@ -53,8 +53,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.window_width: int = 1024
         self.window_height: int = 720
         self.setTitle("Changing VAO")
-        self.view: Mat4 = Mat4()  # View matrix
-        self.project: Mat4 = Mat4()  # Projection matrix
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
         self.data: list[float] = []  # Dynamic vertex data
 
     def initializeGL(self) -> None:

@@ -93,7 +93,6 @@ class WebGPUTextureScene(WebGPUWidget):
             self._create_uniform_buffer()
             self._create_render_pipeline()
 
-            # Set up the camera's view matrix, looking at the origin from (0, 1, 4).
             self.view = look_at(eye=Vec3(0, 1, 4), look=Vec3(0, 0, 0), up=Vec3(0, 1, 0))
 
         except Exception as e:

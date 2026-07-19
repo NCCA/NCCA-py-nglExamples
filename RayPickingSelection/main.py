@@ -90,9 +90,7 @@ class MainWindow(QOpenGLWindow):
             DodecahedronObject(Vec3(0.0, 0.6, 0.0), Vec4(0.2, 0.7, 0.4, 1.0)),
         ]
 
-    # ------------------------------------------------------------------
     # selection helpers
-    # ------------------------------------------------------------------
     def selected_objects(self) -> list[SelectionObject]:
         return [o for o in self.objects if o.selected]
 
@@ -106,9 +104,7 @@ class MainWindow(QOpenGLWindow):
             centre += obj.position
         self.manipulator.position = centre * (1.0 / len(selected))
 
-    # ------------------------------------------------------------------
     # GL setup / drawing
-    # ------------------------------------------------------------------
     def initializeGL(self) -> None:
         self.makeCurrent()
         gl.glClearColor(0.4, 0.4, 0.4, 1.0)
@@ -177,9 +173,7 @@ class MainWindow(QOpenGLWindow):
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
         Text.set_screen_size(w, h)
 
-    # ------------------------------------------------------------------
     # picking
-    # ------------------------------------------------------------------
     def pick(self, x: float, y: float):
         """Return ('axis', Axis) or ('object', obj) or None.
 
@@ -223,9 +217,7 @@ class MainWindow(QOpenGLWindow):
             return ("object", nearest)
         return None
 
-    # ------------------------------------------------------------------
     # events
-    # ------------------------------------------------------------------
     def keyPressEvent(self, event) -> None:
         key = event.key()
         if key == Qt.Key_Escape:

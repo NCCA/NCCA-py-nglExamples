@@ -308,7 +308,7 @@ class WebGPUScene(WebGPUWidget):
         """
         key = event.key()
         if key == Qt.Key_Escape:
-            self.close()  # Exit the application
+            self.close()
         elif key == Qt.Key_A:
             self.animate = not self.animate
         elif key == Qt.Key_Space:
@@ -327,7 +327,6 @@ class WebGPUScene(WebGPUWidget):
             self.wind[0] += 0.1
         # Trigger a redraw to apply changes
         self.update()
-        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:

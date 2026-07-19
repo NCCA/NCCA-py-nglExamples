@@ -54,12 +54,6 @@ class DemoRunner(QMainWindow):
     """
 
     def __init__(self) -> None:
-        """
-        Initializes the DemoRunner main window.
-
-        This sets up the window, finds all executable demos, loads the UI
-        from the .ui file, and populates the demo list.
-        """
         super().__init__()
         self.setWindowTitle(f"PyNGL Version : {ncca.ngl.__version__} Demos")
 
