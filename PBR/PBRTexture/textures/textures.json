@@ -1,7 +1,8 @@
 {
-  "TexturePack": {
+  "texture_packs": [
+  {
     "material": "wood",
-    "Textures": [
+    "textures": [
       {
         "location": 0,
         "name": "albedoMap",
@@ -29,9 +30,9 @@
       }
     ]
   },
-  "TexturePack": {
+  {
     "material": "greasy",
-    "Textures": [
+    "textures": [
       {
         "location": 0,
         "name": "albedoMap",
@@ -59,9 +60,9 @@
       }
     ]
   },
-  "TexturePack": {
+  {
     "material": "copper",
-    "Textures": [
+    "textures": [
       {
         "location": 0,
         "name": "albedoMap",
@@ -89,9 +90,9 @@
       }
     ]
   },
-  "TexturePack": {
+  {
     "material": "rusty",
-    "Textures": [
+    "textures": [
       {
         "location": 0,
         "name": "albedoMap",
@@ -119,9 +120,9 @@
       }
     ]
   },
-  "TexturePack": {
+  {
     "material": "panel",
-    "Textures": [
+    "textures": [
       {
         "location": 0,
         "name": "albedoMap",
@@ -149,4 +150,5 @@
       }
     ]
   }
+  ]
 }

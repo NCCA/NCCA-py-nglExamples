@@ -1,8 +1,8 @@
-import json
 import os
 
 import OpenGL.GL as gl
 from ncca.ngl.opengl import Texture
+from texture_pack_parser import parse_texture_packs
 
 
 class _Texture:
@@ -50,71 +50,32 @@ class TexturePack:
     def load_json(filename):
         """
         Load texture packs from a JSON file.
-        The JSON file has an invalid structure with duplicate keys,
-        so it needs to be pre-processed before parsing.
         """
-        try:
-            with open(filename, "r") as f:
-                content = f.read()
-
-            # The JSON file uses duplicate "TexturePack" keys, which is invalid JSON.
-            # A standard parser only reads the last entry.
-            # To fix this, we pre-process the text file into a valid JSON array string.
-
-            if '"TexturePack":' not in content:
-                print("JSON file does not appear to contain 'TexturePack' data.")
-                # Fallback to standard parsing for other json files.
-                data = json.loads(content)
-                if "TexturePack" not in data:
-                    print("This does not seem to be a valid Texture Pack json file")
-                    return False
-                # if it is a valid file with one texture pack we can process it.
-                data = [data["TexturePack"]]
-
-            else:
-                # 1. Remove the redundant "TexturePack": key for each entry.
-                processed_content = content.replace('"TexturePack":', "")
-                # 2. Remove the outer braces of the root object.
-                processed_content = processed_content.strip()
-                if processed_content.startswith("{") and processed_content.endswith(
-                    "}"
-                ):
-                    processed_content = processed_content[1:-1]
-                # 3. Wrap the string with brackets to create a valid JSON array.
-                processed_content = f"[{processed_content}]"
-                data = json.loads(processed_content)
-
-        except (IOError, json.JSONDecodeError) as e:
-            print(f"Error opening or parsing json file: {e}")
+        data = parse_texture_packs(filename)
+        if not data:
             return False
 
         print("***************Loading Texture Pack from JSON*****************")
 
         base_path = ""  # os.path.dirname(filename)
 
-        # `data` is now a list of texture pack dictionaries.
         for texture_pack_data in data:
             pack = []
-            material = texture_pack_data.get("material")
-            if not material:
-                print("Skipping entry as it has no material")
-                continue
+            material = texture_pack_data.material
 
             print(f"found material {material}")
 
-            textures = texture_pack_data.get("Textures", [])
-            for current_texture in textures:
-                location = current_texture.get("location")
-                name = current_texture.get("name")
-                path = current_texture.get("path")
-                if location is None or name is None or path is None:
-                    continue
-
-                texture_path = os.path.join(base_path, path)
-                print(f"Found {name} {location} {texture_path}")
+            for current_texture in texture_pack_data.textures:
+                texture_path = os.path.join(base_path, current_texture.path)
+                print(
+                    f"Found {current_texture.name} "
+                    f"{current_texture.location} {texture_path}"
+                )
 
                 try:
-                    t = _Texture(location, name, texture_path)
+                    t = _Texture(
+                        current_texture.location, current_texture.name, texture_path
+                    )
                     if t.id != 0:
                         pack.append(t)
                 except Exception as e:
