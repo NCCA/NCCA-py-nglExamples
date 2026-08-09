@@ -68,7 +68,7 @@ def test_webgpu_ui_batch_records_ranges_with_float32_vertices():
 def test_webgpu_shaders_are_present_with_entry_points():
     shader_dir = Path(__file__).resolve().parents[1] / "shaders"
 
-    for name in ("UIShader.wgsl", "CRTShader.wgsl"):
+    for name in ("UIShader.wgsl", "CRTShader.wgsl", "TextShader.wgsl"):
         source = (shader_dir / name).read_text()
         assert "@vertex" in source
         assert "@fragment" in source
@@ -85,10 +85,3 @@ def test_webgpu_matrix_uniform_values_match_existing_webgpu_demos():
     np.testing.assert_allclose(
         uniform_values, matrix.to_numpy().astype(np.float32).reshape(-1)
     )
-
-
-def test_text_overlay_size_avoids_high_dpi_double_scaling():
-    module = load_webgpu_module()
-
-    assert module.text_overlay_size(52.0, ratio=2.0, widget_height=800) == 19
-    assert module.text_overlay_size(26.0, ratio=1.0, widget_height=800) == 19

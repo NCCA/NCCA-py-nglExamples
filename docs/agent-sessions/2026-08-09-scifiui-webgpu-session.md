@@ -28,6 +28,13 @@ Follow-up fix:
 - Gave per-draw uniforms their own bind groups so MVP and colour values are not overwritten before the command buffer executes.
 - Captured `/tmp/scifiui_webgpu_check4.png` to check the text size and terrain render visually.
 
+Reference-image pass:
+
+- Used `SciFiUI/SciFiUI.png` as the visual target.
+- Moved text rendering into a transparent RGBA texture blended into the WebGPU scene before the CRT post-process.
+- Added `SciFiUI/shaders/TextShader.wgsl` for the text texture pass.
+- Captured `/tmp/scifiui_webgpu_text_crt.png` to check that the text now shares the CRT tint, scanlines and barrel distortion.
+
 Notes:
 
 - The first pytest run failed because the WebGPU module and WGSL shaders did not exist yet.

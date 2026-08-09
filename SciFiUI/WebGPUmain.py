@@ -20,7 +20,7 @@ import wgpu.utils
 from ncca.ngl import Mat4, PerspMode, Vec3, look_at, ortho, perspective
 from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QFont, QImage, QPainter
 from PySide6.QtWidgets import QApplication
 
 TERRAIN_ROWS = 42
@@ -56,12 +56,6 @@ LOG_INTERVAL = 55
 
 def matrix_uniform_values(matrix: Mat4) -> np.ndarray:
     return matrix.to_numpy().astype(np.float32).reshape(-1)
-
-
-def text_overlay_size(framebuffer_size: float, ratio: float, widget_height: int) -> int:
-    widget_scale = max(float(widget_height), 1.0) / 600.0
-    logical_size = framebuffer_size / max(float(ratio), 1.0)
-    return max(1, int(logical_size / widget_scale))
 
 
 class DrawRange:
@@ -256,8 +250,10 @@ class SciFiWebGPU(WebGPUWidget):
     def _create_pipelines(self) -> None:
         ui_code = (self.shader_dir / "UIShader.wgsl").read_text()
         crt_code = (self.shader_dir / "CRTShader.wgsl").read_text()
+        text_code = (self.shader_dir / "TextShader.wgsl").read_text()
         self.ui_shader = self.device.create_shader_module(code=ui_code)
         self.crt_shader = self.device.create_shader_module(code=crt_code)
+        self.text_shader = self.device.create_shader_module(code=text_code)
 
         self.ui_layout = self.device.create_bind_group_layout(
             entries=[
@@ -287,11 +283,28 @@ class SciFiWebGPU(WebGPUWidget):
                 },
             ]
         )
+        self.text_layout = self.device.create_bind_group_layout(
+            entries=[
+                {
+                    "binding": 0,
+                    "visibility": wgpu.ShaderStage.FRAGMENT,
+                    "texture": {"sample_type": wgpu.TextureSampleType.float},
+                },
+                {
+                    "binding": 1,
+                    "visibility": wgpu.ShaderStage.FRAGMENT,
+                    "sampler": {"type": wgpu.SamplerBindingType.filtering},
+                },
+            ]
+        )
         self.ui_pipeline_layout = self.device.create_pipeline_layout(
             bind_group_layouts=[self.ui_layout]
         )
         self.crt_pipeline_layout = self.device.create_pipeline_layout(
             bind_group_layouts=[self.crt_layout]
+        )
+        self.text_pipeline_layout = self.device.create_pipeline_layout(
+            bind_group_layouts=[self.text_layout]
         )
         vertex_layout = [
             {
@@ -333,6 +346,38 @@ class SciFiWebGPU(WebGPUWidget):
             },
             primitive={"topology": wgpu.PrimitiveTopology.triangle_list},
             multisample={"count": self.msaa_sample_count},
+        )
+        self.text_pipeline = self.device.create_render_pipeline(
+            label="scifi_text_pipeline",
+            layout=self.text_pipeline_layout,
+            vertex={
+                "module": self.text_shader,
+                "entry_point": "vertex_main",
+                "buffers": [],
+            },
+            fragment={
+                "module": self.text_shader,
+                "entry_point": "fragment_main",
+                "targets": [
+                    {
+                        "format": wgpu.TextureFormat.rgba8unorm,
+                        "blend": {
+                            "color": {
+                                "src_factor": wgpu.BlendFactor.src_alpha,
+                                "dst_factor": wgpu.BlendFactor.one_minus_src_alpha,
+                                "operation": wgpu.BlendOperation.add,
+                            },
+                            "alpha": {
+                                "src_factor": wgpu.BlendFactor.one,
+                                "dst_factor": wgpu.BlendFactor.one_minus_src_alpha,
+                                "operation": wgpu.BlendOperation.add,
+                            },
+                        },
+                    }
+                ],
+            },
+            primitive={"topology": wgpu.PrimitiveTopology.triangle_list},
+            multisample={"count": 1},
         )
 
     def _make_ui_pipeline(self, topology, vertex_layout):
@@ -572,22 +617,20 @@ class SciFiWebGPU(WebGPUWidget):
         for draw_range in self.ui.ranges:
             self._draw_range(render_pass, vertices, draw_range, mvp)
 
-    def _queue_text(self, lay: dict) -> None:
+    def _render_text_image(self, lay: dict) -> np.ndarray:
+        width, height = self.texture_size
+        image = QImage(width, height, QImage.Format.Format_RGBA8888)
+        image.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(image)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
         s = lay["s"]
-        bright_rgb = (255, 184, 56) if self.amber else (90, 255, 115)
-        faint_rgb = (155, 118, 60) if self.amber else (95, 165, 105)
-        bright = QColor(*bright_rgb)
-        faint = QColor(*faint_rgb)
+        bright = QColor(245, 245, 245, 255)
+        faint = QColor(140, 140, 140, 255)
 
         def text(font_size, x, y, message, colour=bright):
-            self.render_text(
-                int(x / self.ratio),
-                int(y / self.ratio),
-                message,
-                text_overlay_size(font_size, self.ratio, self.height()),
-                "Arial",
-                colour,
-            )
+            painter.setPen(colour)
+            painter.setFont(QFont("Arial", max(1, int(font_size))))
+            painter.drawText(int(x), int(y), message)
 
         hx, hy, hw, hh = lay["header"]
         text(
@@ -635,6 +678,8 @@ class SciFiWebGPU(WebGPUWidget):
         y = ry + rh - int(14 * s)
         progress = min(1.0, (self.tick - self.last_log_tick) / 20.0)
         max_chars = int((rw - 24 * s) / (8.5 * s))
+        painter.save()
+        painter.setClipRect(rx, ry + int(40 * s), rw, rh - int(40 * s))
         for i, (stamp, msg) in enumerate(reversed(self.log)):
             line = f"{stamp} {msg}"[:max_chars]
             if i == 0:
@@ -643,6 +688,7 @@ class SciFiWebGPU(WebGPUWidget):
             y -= line_h
             if y < ry + int(60 * s):
                 break
+        painter.restore()
 
         fx, fy, _fw, fh = lay["footer"]
         cursor = "_" if (self.tick // 30) % 2 == 0 else " "
@@ -652,6 +698,51 @@ class SciFiWebGPU(WebGPUWidget):
             fy + fh - int(8 * s),
             f"INTERFACE 2037 READY FOR INQUIRY {cursor}",
         )
+        painter.end()
+        return (
+            np.frombuffer(image.bits(), dtype=np.uint8)
+            .reshape((height, width, 4))
+            .copy()
+        )
+
+    def _draw_text(self, encoder, lay: dict) -> None:
+        image_data = self._render_text_image(lay)
+        texture = self.device.create_texture(
+            size=self.texture_size,
+            sample_count=1,
+            format=wgpu.TextureFormat.rgba8unorm,
+            usage=wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST,
+        )
+        self.device.queue.write_texture(
+            {"texture": texture, "mip_level": 0, "origin": (0, 0, 0)},
+            image_data.tobytes(),
+            {
+                "bytes_per_row": self.texture_size[0] * 4,
+                "rows_per_image": self.texture_size[1],
+            },
+            self.texture_size,
+        )
+        bind_group = self.device.create_bind_group(
+            layout=self.text_layout,
+            entries=[
+                {"binding": 0, "resource": texture.create_view()},
+                {"binding": 1, "resource": self.scene_sampler},
+            ],
+        )
+        text_pass = encoder.begin_render_pass(
+            color_attachments=[
+                {
+                    "view": self.scene_texture_view,
+                    "load_op": wgpu.LoadOp.load,
+                    "store_op": wgpu.StoreOp.store,
+                }
+            ]
+        )
+        text_pass.set_pipeline(self.text_pipeline)
+        text_pass.set_bind_group(0, bind_group, [], 0, 99)
+        text_pass.draw(3)
+        text_pass.end()
+        self.frame_bind_groups.append(bind_group)
 
     def paintWebGPU(self) -> None:
         self.frame_bind_groups = []
@@ -673,6 +764,7 @@ class SciFiWebGPU(WebGPUWidget):
         self._draw_terrain(scene_pass, lay)
         self._draw_chrome(scene_pass, lay)
         scene_pass.end()
+        self._draw_text(encoder, lay)
 
         self._write_crt_uniform()
         final_pass = encoder.begin_render_pass(
@@ -692,7 +784,6 @@ class SciFiWebGPU(WebGPUWidget):
         final_pass.end()
         self.device.queue.submit([encoder.finish()])
         self._update_colour_buffer()
-        self._queue_text(lay)
 
     def resizeWebGPU(self, width: int, height: int) -> None:
         self.update()
