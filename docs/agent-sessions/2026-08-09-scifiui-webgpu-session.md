@@ -21,6 +21,13 @@ uv run ruff check SciFiUI/WebGPUmain.py SciFiUI/tests/test_webgpu_scene_data.py
 uv run SciFiUI/WebGPUmain.py --smoketest 300
 ```
 
+Follow-up fix:
+
+- Corrected the WebGPU text overlay sizing so high-DPI displays do not double-scale the labels.
+- Expanded terrain strips to explicit line-list and triangle-list geometry.
+- Gave per-draw uniforms their own bind groups so MVP and colour values are not overwritten before the command buffer executes.
+- Captured `/tmp/scifiui_webgpu_check4.png` to check the text size and terrain render visually.
+
 Notes:
 
 - The first pytest run failed because the WebGPU module and WGSL shaders did not exist yet.

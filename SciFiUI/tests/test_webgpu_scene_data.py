@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 
 import numpy as np
+from ncca.ngl import ortho
 
 
 def load_webgpu_module():
@@ -35,6 +36,17 @@ def test_webgpu_terrain_updates_line_and_skirt_heights():
     np.testing.assert_allclose(terrain.skirt_verts[:, 1::2, 1], module.TERRAIN_FLOOR_Y)
     assert float(np.max(terrain.line_verts[:, :, 1])) > 0.1
 
+    assert terrain.line_segments().shape == (
+        module.TERRAIN_ROWS,
+        (module.TERRAIN_COLS - 1) * 2,
+        3,
+    )
+    assert terrain.skirt_triangles().shape == (
+        module.TERRAIN_ROWS,
+        (module.TERRAIN_COLS - 1) * 6,
+        3,
+    )
+
 
 def test_webgpu_ui_batch_records_ranges_with_float32_vertices():
     module = load_webgpu_module()
@@ -62,3 +74,21 @@ def test_webgpu_shaders_are_present_with_entry_points():
         assert "@fragment" in source
         assert "vertex_main" in source
         assert "fragment_main" in source
+
+
+def test_webgpu_matrix_uniform_values_match_existing_webgpu_demos():
+    module = load_webgpu_module()
+    matrix = ortho(0.0, 2560.0, 1600.0, 0.0, -1.0, 1.0)
+
+    uniform_values = module.matrix_uniform_values(matrix)
+
+    np.testing.assert_allclose(
+        uniform_values, matrix.to_numpy().astype(np.float32).reshape(-1)
+    )
+
+
+def test_text_overlay_size_avoids_high_dpi_double_scaling():
+    module = load_webgpu_module()
+
+    assert module.text_overlay_size(52.0, ratio=2.0, widget_height=800) == 19
+    assert module.text_overlay_size(26.0, ratio=1.0, widget_height=800) == 19

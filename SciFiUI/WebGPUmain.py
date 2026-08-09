@@ -54,6 +54,16 @@ LOG_MESSAGES = [
 LOG_INTERVAL = 55
 
 
+def matrix_uniform_values(matrix: Mat4) -> np.ndarray:
+    return matrix.to_numpy().astype(np.float32).reshape(-1)
+
+
+def text_overlay_size(framebuffer_size: float, ratio: float, widget_height: int) -> int:
+    widget_scale = max(float(widget_height), 1.0) / 600.0
+    logical_size = framebuffer_size / max(float(ratio), 1.0)
+    return max(1, int(logical_size / widget_scale))
+
+
 class DrawRange:
     def __init__(
         self, topology: str, first: int, count: int, colour: tuple[float, ...]
@@ -120,6 +130,28 @@ class TerrainData:
         self.line_verts[:, :, 1] = heights
         self.skirt_verts[:, 0::2, 1] = heights
 
+    def line_segments(self) -> np.ndarray:
+        segments = np.empty((TERRAIN_ROWS, (TERRAIN_COLS - 1) * 2, 3), dtype=np.float32)
+        segments[:, 0::2, :] = self.line_verts[:, :-1, :]
+        segments[:, 1::2, :] = self.line_verts[:, 1:, :]
+        return segments
+
+    def skirt_triangles(self) -> np.ndarray:
+        top_left = self.skirt_verts[:, 0:-2:2, :]
+        bottom_left = self.skirt_verts[:, 1:-1:2, :]
+        top_right = self.skirt_verts[:, 2::2, :]
+        bottom_right = self.skirt_verts[:, 3::2, :]
+        triangles = np.empty(
+            (TERRAIN_ROWS, (TERRAIN_COLS - 1) * 6, 3), dtype=np.float32
+        )
+        triangles[:, 0::6, :] = top_left
+        triangles[:, 1::6, :] = bottom_left
+        triangles[:, 2::6, :] = top_right
+        triangles[:, 3::6, :] = top_right
+        triangles[:, 4::6, :] = bottom_left
+        triangles[:, 5::6, :] = bottom_right
+        return triangles
+
 
 class UIBatchData:
     def __init__(self) -> None:
@@ -182,6 +214,7 @@ class SciFiWebGPU(WebGPUWidget):
         self.last_y = 0.0
         self.view = look_at(Vec3(0.0, 4.5, 9.0), Vec3(0.0, 1.0, -14.0), Vec3(0, 1, 0))
         self.scene_texture_size = (0, 0)
+        self.frame_bind_groups = []
         self._initialize_webgpu()
         self.log_line("INTERFACE 2037 READY FOR INQUIRY")
         self.log_line("TERRAIN SCAN COMMENCED")
@@ -350,11 +383,24 @@ class SciFiWebGPU(WebGPUWidget):
             ],
         )
 
-    def _write_ui_uniform(self, mvp: Mat4, colour: tuple[float, ...]) -> None:
+    def _make_ui_bind_group(self, mvp: Mat4, colour: tuple[float, ...]):
         data = np.zeros(20, dtype=np.float32)
-        data[:16] = mvp.to_numpy().astype(np.float32).reshape(-1)
+        data[:16] = matrix_uniform_values(mvp)
         data[16:20] = np.array(colour, dtype=np.float32)
-        self.device.queue.write_buffer(self.ui_uniform_buffer, 0, data.tobytes())
+        uniform_buffer = self.device.create_buffer_with_data(
+            data=data, usage=wgpu.BufferUsage.UNIFORM
+        )
+        bind_group = self.device.create_bind_group(
+            layout=self.ui_layout,
+            entries=[
+                {
+                    "binding": 0,
+                    "resource": {"buffer": uniform_buffer, "offset": 0, "size": 80},
+                }
+            ],
+        )
+        self.frame_bind_groups.append(bind_group)
+        return bind_group
 
     def _write_crt_uniform(self) -> None:
         phosphor = (1.0, 0.72, 0.22, 1.0) if self.amber else (0.35, 1.0, 0.45, 1.0)
@@ -419,9 +465,10 @@ class SciFiWebGPU(WebGPUWidget):
             "line-list": self.line_pipeline,
             "line-strip": self.line_strip_pipeline,
         }[draw_range.topology]
-        self._write_ui_uniform(mvp, draw_range.colour)
         render_pass.set_pipeline(pipeline)
-        render_pass.set_bind_group(0, self.ui_bind_group, [], 0, 99)
+        render_pass.set_bind_group(
+            0, self._make_ui_bind_group(mvp, draw_range.colour), [], 0, 99
+        )
         render_pass.draw(draw_range.count, 1, draw_range.first, 0)
 
     def _draw_terrain(self, render_pass, lay: dict) -> None:
@@ -441,22 +488,27 @@ class SciFiWebGPU(WebGPUWidget):
         )
         mvp = project @ self.view @ model
         self.terrain.update(self.flight_t)
-        line_buffer = self._upload_vertices(self.terrain.line_verts.reshape(-1, 3))
-        skirt_buffer = self._upload_vertices(self.terrain.skirt_verts.reshape(-1, 3))
-        render_pass.set_vertex_buffer(0, skirt_buffer)
-        skirt_row = TERRAIN_COLS * 2
+        line_segments = self.terrain.line_segments()
+        skirt_triangles = self.terrain.skirt_triangles()
+        line_buffer = self._upload_vertices(line_segments.reshape(-1, 3))
+        skirt_buffer = self._upload_vertices(skirt_triangles.reshape(-1, 3))
+        skirt_row = (TERRAIN_COLS - 1) * 6
+        line_row = (TERRAIN_COLS - 1) * 2
         for row in range(TERRAIN_ROWS - 1, -1, -1):
-            self._write_ui_uniform(mvp, (0.0, 0.0, 0.0, 1.0))
-            render_pass.set_pipeline(self.triangle_strip_pipeline)
-            render_pass.set_bind_group(0, self.ui_bind_group, [], 0, 99)
+            render_pass.set_vertex_buffer(0, skirt_buffer)
+            render_pass.set_pipeline(self.triangle_pipeline)
+            render_pass.set_bind_group(
+                0, self._make_ui_bind_group(mvp, (0.0, 0.0, 0.0, 1.0)), [], 0, 99
+            )
             render_pass.draw(skirt_row, 1, row * skirt_row, 0)
-        render_pass.set_vertex_buffer(0, line_buffer)
-        for row in range(TERRAIN_ROWS - 1, -1, -1):
+
+            render_pass.set_vertex_buffer(0, line_buffer)
             fade = 0.35 + 0.65 * (1.0 - row / TERRAIN_ROWS)
-            self._write_ui_uniform(mvp, (fade, fade, fade, 1.0))
-            render_pass.set_pipeline(self.line_strip_pipeline)
-            render_pass.set_bind_group(0, self.ui_bind_group, [], 0, 99)
-            render_pass.draw(TERRAIN_COLS, 1, row * TERRAIN_COLS, 0)
+            render_pass.set_pipeline(self.line_pipeline)
+            render_pass.set_bind_group(
+                0, self._make_ui_bind_group(mvp, (fade, fade, fade, 1.0)), [], 0, 99
+            )
+            render_pass.draw(line_row, 1, row * line_row, 0)
         render_pass.set_viewport(
             0, 0, self.texture_size[0], self.texture_size[1], 0.0, 1.0
         )
@@ -532,7 +584,7 @@ class SciFiWebGPU(WebGPUWidget):
                 int(x / self.ratio),
                 int(y / self.ratio),
                 message,
-                int(font_size),
+                text_overlay_size(font_size, self.ratio, self.height()),
                 "Arial",
                 colour,
             )
@@ -602,6 +654,7 @@ class SciFiWebGPU(WebGPUWidget):
         )
 
     def paintWebGPU(self) -> None:
+        self.frame_bind_groups = []
         if self.scene_texture_size != self.texture_size:
             self._create_scene_texture()
             self._create_bind_groups()
