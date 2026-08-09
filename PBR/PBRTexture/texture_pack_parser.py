@@ -10,6 +10,18 @@ from typing import Any
 
 @dataclass(frozen=True)
 class TextureInfo:
+    """Information needed to bind one texture from a material pack.
+
+    Attributes
+    ----------
+        location : int
+            texture unit used by the shader
+        name : str
+            shader sampler uniform name
+        path : str
+            path to the texture image
+    """
+
     location: int
     name: str
     path: str
@@ -17,11 +29,34 @@ class TextureInfo:
 
 @dataclass(frozen=True)
 class TexturePackInfo:
+    """A named material and the textures it uses.
+
+    Attributes
+    ----------
+        material : str
+            material name used to select the texture pack
+        textures : list[TextureInfo]
+            textures belonging to the material
+    """
+
     material: str
     textures: list[TextureInfo]
 
 
 def parse_texture_packs(filename: str | Path) -> list[TexturePackInfo]:
+    """Read the valid texture packs from a JSON file.
+
+    Parameters
+    ----------
+        filename : str | Path
+            texture-pack JSON file to read
+
+    Returns
+    -------
+        list[TexturePackInfo]
+            valid texture packs, or an empty list when the file cannot be read
+            or does not contain a texture-pack array
+    """
     try:
         with open(filename, "r") as f:
             data = json.load(f)
@@ -34,7 +69,7 @@ def parse_texture_packs(filename: str | Path) -> list[TexturePackInfo]:
         print("This does not seem to be a valid Texture Pack json file")
         return []
 
-    packs = []
+    packs: list[TexturePackInfo] = []
     for pack_data in texture_packs:
         pack = _parse_pack(pack_data)
         if pack is not None:
@@ -43,6 +78,18 @@ def parse_texture_packs(filename: str | Path) -> list[TexturePackInfo]:
 
 
 def _parse_pack(pack_data: Any) -> TexturePackInfo | None:
+    """Build one texture pack from a decoded JSON value.
+
+    Parameters
+    ----------
+        pack_data : Any
+            decoded JSON value to validate
+
+    Returns
+    -------
+        TexturePackInfo | None
+            parsed pack, or ``None`` when the value is not a valid pack object
+    """
     if not isinstance(pack_data, dict):
         print("Skipping texture pack entry as it is not an object")
         return None
@@ -57,7 +104,7 @@ def _parse_pack(pack_data: Any) -> TexturePackInfo | None:
         print(f"Skipping material '{material}' as it has no textures")
         return None
 
-    textures = []
+    textures: list[TextureInfo] = []
     for texture_data in textures_data:
         texture = _parse_texture(texture_data)
         if texture is not None:
@@ -66,6 +113,18 @@ def _parse_pack(pack_data: Any) -> TexturePackInfo | None:
 
 
 def _parse_texture(texture_data: Any) -> TextureInfo | None:
+    """Build one texture record from a decoded JSON value.
+
+    Parameters
+    ----------
+        texture_data : Any
+            decoded JSON value to validate
+
+    Returns
+    -------
+        TextureInfo | None
+            parsed texture, or ``None`` when any required value is invalid
+    """
     if not isinstance(texture_data, dict):
         return None
 
