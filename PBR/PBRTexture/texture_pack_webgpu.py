@@ -10,12 +10,12 @@ metallic, roughness, AO) into their own ``GPUTexture`` and bakes a single
 material at draw time is then just ``set_bind_group`` - no per-unit rebinding.
 """
 
-import json
 import os
 
 import numpy as np
 import wgpu
 from ncca.ngl import Image
+from texture_pack_parser import TextureInfo, parse_texture_packs
 
 # The five maps occupy bindings 0-4 in @group(2); the sampler is binding 5.
 # The JSON "location" field already numbers the maps albedo..ao as 0..4.
@@ -58,49 +58,28 @@ class TexturePack:
     def load_json(self, filename: str) -> bool:
         """Load every texture pack described in a textures.json file.
 
-        The file reuses the OpenGL demo's format, which repeats the
-        ``"TexturePack"`` key - invalid JSON that needs pre-processing into an
-        array before it will parse.
+        The OpenGL and WebGPU demos share the same typed parser for the
+        top-level ``texture_packs`` array.
         """
-        try:
-            with open(filename, "r") as f:
-                content = f.read()
-
-            if '"TexturePack":' not in content:
-                # Fall back to standard parsing for a single-pack file.
-                data = json.loads(content)
-                if "TexturePack" not in data:
-                    print("This does not seem to be a valid Texture Pack json file")
-                    return False
-                data = [data["TexturePack"]]
-            else:
-                # Strip the repeated key and outer braces, then wrap as an array.
-                processed = content.replace('"TexturePack":', "").strip()
-                if processed.startswith("{") and processed.endswith("}"):
-                    processed = processed[1:-1]
-                data = json.loads(f"[{processed}]")
-        except (IOError, json.JSONDecodeError) as e:
-            print(f"Error opening or parsing json file: {e}")
+        data = parse_texture_packs(filename)
+        if not data:
             return False
 
         print("*************** Loading WebGPU Texture Packs from JSON ***************")
         for texture_pack_data in data:
-            material = texture_pack_data.get("material")
-            if not material:
-                print("Skipping entry as it has no material")
-                continue
+            material = texture_pack_data.material
             print(f"found material {material}")
-            self._load_material(material, texture_pack_data.get("Textures", []))
+            self._load_material(material, texture_pack_data.textures)
         return True
 
-    def _load_material(self, material: str, textures: list) -> None:
+    def _load_material(self, material: str, textures: list[TextureInfo]) -> None:
         """Load one material's maps and bake its bind group."""
         views: list[wgpu.GPUTextureView | None] = [None] * _NUM_MAPS
         gpu_textures: list[wgpu.GPUTexture] = []
 
         for current in textures:
-            location = current.get("location")
-            path = current.get("path")
+            location = current.location
+            path = current.path
             if location is None or path is None or not 0 <= location < _NUM_MAPS:
                 continue
             texture = self._create_texture(path)
