@@ -10,6 +10,12 @@ The central window is a wireframe terrain fly-over drawn as stacked ridge lines 
 uv run SciFiUI/main.py
 ```
 
+There is also a WebGPU version in the same folder:
+
+```bash
+uv run SciFiUI/WebGPUmain.py
+```
+
 ## How it works
 
 **Two-pass CRT rendering.** The whole interface is drawn in monochrome into an FBO, then a full-screen triangle pass (`shaders/CRTFragment.glsl`) applies the CRT look: phosphor tint (green or amber), barrel distortion, scanlines, a slot mask, a slow rolling bar, per-pixel noise, mains-hum flicker and a vignette. Because the scene is monochrome and the tint is applied in post, switching between green and amber phosphor is a single uniform change.
