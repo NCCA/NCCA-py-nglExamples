@@ -35,6 +35,11 @@ Reference-image pass:
 - Added `SciFiUI/shaders/TextShader.wgsl` for the text texture pass.
 - Captured `/tmp/scifiui_webgpu_text_crt.png` to check that the text now shares the CRT tint, scanlines and barrel distortion.
 
+Terrain orientation fix:
+
+- Flipped only the terrain MVP in clip Y so the ridge peaks rise like `SciFiUI/SciFiUI.png`.
+- Captured `/tmp/scifiui_webgpu_terrain_flip.png` to check the result visually.
+
 Notes:
 
 - The first pytest run failed because the WebGPU module and WGSL shaders did not exist yet.

@@ -58,6 +58,10 @@ def matrix_uniform_values(matrix: Mat4) -> np.ndarray:
     return matrix.to_numpy().astype(np.float32).reshape(-1)
 
 
+def terrain_mvp(project: Mat4, view: Mat4, model: Mat4) -> Mat4:
+    return Mat4.scale(1.0, -1.0, 1.0) @ project @ view @ model
+
+
 class DrawRange:
     def __init__(
         self, topology: str, first: int, count: int, colour: tuple[float, ...]
@@ -531,7 +535,7 @@ class SciFiWebGPU(WebGPUWidget):
         model = (
             Mat4.translate(0.0, 0.0, pivot_z) @ rot @ Mat4.translate(0.0, 0.0, -pivot_z)
         )
-        mvp = project @ self.view @ model
+        mvp = terrain_mvp(project, self.view, model)
         self.terrain.update(self.flight_t)
         line_segments = self.terrain.line_segments()
         skirt_triangles = self.terrain.skirt_triangles()

@@ -2,7 +2,7 @@ import importlib.util
 from pathlib import Path
 
 import numpy as np
-from ncca.ngl import ortho
+from ncca.ngl import Mat4, ortho
 
 
 def load_webgpu_module():
@@ -85,3 +85,13 @@ def test_webgpu_matrix_uniform_values_match_existing_webgpu_demos():
     np.testing.assert_allclose(
         uniform_values, matrix.to_numpy().astype(np.float32).reshape(-1)
     )
+
+
+def test_terrain_mvp_flips_y_for_webgpu_viewport():
+    module = load_webgpu_module()
+    identity = Mat4()
+    mvp = module.terrain_mvp(identity, identity, identity).to_numpy()
+
+    np.testing.assert_allclose(mvp[0, 0], 1.0)
+    np.testing.assert_allclose(mvp[1, 1], -1.0)
+    np.testing.assert_allclose(mvp[2, 2], 1.0)
