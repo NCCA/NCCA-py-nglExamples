@@ -10,7 +10,9 @@ The Mat4 nodes cover translate, scale, rotation about each axis, `look_at`, pers
 
 `Multiply` is explicitly component-wise (PyNGL reserves `*` for scalar multiplication), whilst `Matrix Multiply` and `Quaternion Product` use the normal `@` operation.
 
-Click a palette button to add a node, then drag from an output socket to an input socket to connect it. Value nodes use zero vectors and identity matrices as their defaults. The palette scrolls, the mouse wheel zooms the canvas and nodes can be selected and dragged around.
+Click a palette button to add a node, or move the pointer over the canvas and press `Tab` to open the node menu at that position. Start typing to filter the menu and press `Return` to create the first matching node. You can also select an entry with the mouse.
+
+Drag from an output socket to an input socket to connect it. Value nodes use zero vectors and identity matrices as their defaults. The palette scrolls, the mouse wheel zooms the canvas and nodes can be selected and dragged around.
 
 ## Running it
 

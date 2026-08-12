@@ -6,7 +6,9 @@ from importlib import import_module
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QFont, QFontMetrics
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QGroupBox, QPushButton
 
 
@@ -219,4 +221,81 @@ def test_palette_groups_extended_operations_by_domain(
     group_titles = [group.title() for group in window.palette.findChildren(QGroupBox)]
 
     assert group_titles == ["Values", "Maths", "Mat4", "Quaternion", "Result"]
+    window.close()
+
+
+def test_pressing_tab_on_canvas_opens_node_creation_menu(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    window.show()
+    window.view.setFocus()
+
+    QTest.keyClick(window.view.viewport(), Qt.Key.Key_Tab)
+    application.processEvents()
+
+    assert window.view.node_menu.isVisible()
+    assert window.view.node_menu.search_edit.hasFocus()
+    window.view.node_menu.close()
+    window.close()
+
+
+def test_node_creation_menu_adds_selected_node_at_requested_position(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    window.show()
+    viewport_position = QPoint(340, 210)
+    expected_position = window.view.mapToScene(viewport_position)
+
+    menu = window.view.open_node_menu(viewport_position)
+    vec3_action = next(
+        action for action in menu.creation_actions if action.text() == "Vec3"
+    )
+    vec3_action.trigger()
+    application.processEvents()
+
+    added_node = next(iter(window.canvas.nodes.values()))
+    assert isinstance(added_node, node_editor.ValueNodeItem)
+    assert added_node.math_type is node_editor.MathType.VEC3
+    assert added_node.pos().x() == pytest.approx(expected_position.x())
+    assert added_node.pos().y() == pytest.approx(expected_position.y())
+    window.close()
+
+
+def test_node_creation_menu_filters_entries_as_text_is_typed(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    window.show()
+    menu = window.view.open_node_menu(QPoint(300, 200))
+
+    menu.search_edit.setText("axis angle")
+    application.processEvents()
+
+    visible_labels = [
+        action.text() for action in menu.creation_actions if action.isVisible()
+    ]
+    assert visible_labels == ["Quaternion from Axis Angle"]
+    menu.close()
+    window.close()
+
+
+def test_enter_creates_first_filtered_node(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    window.show()
+    menu = window.view.open_node_menu(QPoint(300, 200))
+    menu.search_edit.setText("perspective")
+
+    QTest.keyClick(menu.search_edit, Qt.Key.Key_Return)
+    application.processEvents()
+
+    added_node = next(iter(window.canvas.nodes.values()))
+    assert isinstance(added_node, node_editor.OperationNodeItem)
+    assert added_node.operation is node_editor.Operation.PERSPECTIVE
+    assert not menu.isVisible()
     window.close()

@@ -5,12 +5,15 @@ from __future__ import annotations
 import sys
 from collections.abc import Callable
 
-from PySide6.QtCore import QLineF, QPointF, QRectF, Qt
+from PySide6.QtCore import QEvent, QLineF, QPoint, QPointF, QRectF, Qt
 from PySide6.QtGui import (
+    QAction,
     QBrush,
     QColor,
+    QCursor,
     QFont,
     QFontMetrics,
+    QKeyEvent,
     QPainter,
     QPainterPath,
     QPen,
@@ -34,7 +37,9 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMainWindow,
+    QMenu,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -42,6 +47,7 @@ from PySide6.QtWidgets import (
     QStyleOptionGraphicsItem,
     QVBoxLayout,
     QWidget,
+    QWidgetAction,
 )
 
 from .math_graph import (
@@ -648,6 +654,31 @@ class MathNodeView(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
         self.setBackgroundBrush(QBrush(QColor("#111620")))
+        self.node_menu = NodeCreationMenu(scene, self)
+        self.viewport().installEventFilter(self)
+
+    def _open_node_menu_at_cursor(self) -> None:
+        """Open the creation menu at the pointer or the view centre."""
+        viewport_position = self.viewport().mapFromGlobal(QCursor.pos())
+        if not self.viewport().rect().contains(viewport_position):
+            viewport_position = self.viewport().rect().center()
+        self.open_node_menu(viewport_position)
+
+    def open_node_menu(self, viewport_position: QPoint) -> NodeCreationMenu:
+        """Open the node menu and remember where its node should be placed."""
+        scene_position = self.mapToScene(viewport_position)
+        global_position = self.viewport().mapToGlobal(viewport_position)
+        self.node_menu.open_at(scene_position, global_position)
+        return self.node_menu
+
+    def eventFilter(self, watched: object, event: QEvent) -> bool:
+        """Catch Tab when the graphics view viewport owns keyboard focus."""
+        if watched is self.viewport() and event.type() == QEvent.Type.KeyPress:
+            if isinstance(event, QKeyEvent) and event.key() == Qt.Key.Key_Tab:
+                self._open_node_menu_at_cursor()
+                event.accept()
+                return True
+        return super().eventFilter(watched, event)
 
     def drawBackground(self, painter: QPainter, rect: QRectF) -> None:
         """Draw minor and major grid lines behind the nodes."""
@@ -679,6 +710,109 @@ class MathNodeView(QGraphicsView):
         self.scale(factor, factor)
 
 
+class NodeCreationMenu(QMenu):
+    """Searchable menu which creates nodes at a chosen scene position."""
+
+    def __init__(
+        self,
+        canvas: MathNodeScene,
+        parent: QWidget | None = None,
+    ) -> None:
+        """Build a node menu from the same catalogue as the side palette."""
+        super().__init__(parent)
+        self.canvas = canvas
+        self.scene_position = QPointF()
+        self.creation_actions: list[QAction] = []
+        self.search_edit = QLineEdit()
+        self.search_edit.setPlaceholderText("Search nodes...")
+        self.search_edit.setClearButtonEnabled(True)
+        self.search_edit.textChanged.connect(self._filter_actions)
+        self.search_edit.returnPressed.connect(self._create_first_visible_node)
+        search_action = QWidgetAction(self)
+        search_action.setDefaultWidget(self.search_edit)
+        self.addAction(search_action)
+
+        self._add_section(
+            "Values",
+            [
+                (
+                    math_type.value,
+                    lambda value=math_type: self.canvas.add_value_node(
+                        value, self.scene_position
+                    ),
+                )
+                for math_type in MathType
+            ],
+        )
+        self._add_section(
+            "Maths",
+            self._operation_actions(MATH_OPERATIONS),
+        )
+        self._add_section(
+            "Mat4",
+            self._operation_actions(MAT4_OPERATIONS),
+        )
+        self._add_section(
+            "Quaternion",
+            self._operation_actions(QUATERNION_OPERATIONS),
+        )
+        self._add_section(
+            "Result",
+            [("Output", lambda: self.canvas.add_output_node(self.scene_position))],
+        )
+
+    def _operation_actions(
+        self,
+        operations: tuple[Operation, ...],
+    ) -> list[tuple[str, Callable[[], object]]]:
+        """Return menu callbacks for an ordered set of operations."""
+        return [
+            (
+                operation.value,
+                lambda value=operation: self.canvas.add_operation_node(
+                    value, self.scene_position
+                ),
+            )
+            for operation in operations
+        ]
+
+    def _add_section(
+        self,
+        title: str,
+        actions: list[tuple[str, Callable[[], object]]],
+    ) -> None:
+        """Add a labelled section to the creation menu."""
+        self.addSection(title)
+        for label, callback in actions:
+            action = self.addAction(label)
+            action.triggered.connect(
+                lambda _checked=False, create_node=callback: create_node()
+            )
+            self.creation_actions.append(action)
+
+    def _filter_actions(self, search_text: str) -> None:
+        """Show node actions whose labels contain the entered words."""
+        words = search_text.casefold().split()
+        for action in self.creation_actions:
+            label = action.text().casefold()
+            action.setVisible(all(word in label for word in words))
+
+    def _create_first_visible_node(self) -> None:
+        """Create the first filtered node when Return is pressed."""
+        for action in self.creation_actions:
+            if action.isVisible():
+                action.trigger()
+                self.close()
+                return
+
+    def open_at(self, scene_position: QPointF, global_position: QPoint) -> None:
+        """Show the menu and create its selected node at the scene position."""
+        self.scene_position = QPointF(scene_position)
+        self.search_edit.clear()
+        self.popup(global_position)
+        self.search_edit.setFocus(Qt.FocusReason.PopupFocusReason)
+
+
 class NodePalette(QWidget):
     """Buttons used to add value, operation and output nodes."""
 
@@ -703,7 +837,7 @@ class NodePalette(QWidget):
         heading.setFont(heading_font)
         layout.addWidget(heading)
         help_label = QLabel(
-            "Click to add nodes. Drag from an output socket to an input socket to connect them."
+            "Click to add nodes, or press Tab over the canvas and search. Drag from an output socket to an input socket to connect them."
         )
         help_label.setWordWrap(True)
         help_label.setStyleSheet("color: #aeb9c9;")
@@ -795,7 +929,7 @@ class MathNodeWindow(QMainWindow):
         central_layout.addWidget(self.view, 1)
         self.setCentralWidget(central_widget)
         self.statusBar().showMessage(
-            "Edit values and wire nodes together; outputs update immediately"
+            "Press Tab to add a node; edit values and wire nodes together"
         )
         if load_example:
             self.canvas.load_example()
