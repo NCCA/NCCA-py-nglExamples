@@ -10,6 +10,7 @@ from PySide6.QtGui import (
     QBrush,
     QColor,
     QFont,
+    QFontMetrics,
     QPainter,
     QPainterPath,
     QPen,
@@ -35,6 +36,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMainWindow,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QStyle,
     QStyleOptionGraphicsItem,
@@ -44,6 +46,7 @@ from PySide6.QtWidgets import (
 
 from .math_graph import (
     OPERATION_ARITY,
+    OPERATION_INPUT_NAMES,
     TYPE_SHAPES,
     GraphError,
     MathGraph,
@@ -56,18 +59,62 @@ NODE_HEADER_HEIGHT = 32.0
 PORT_RADIUS = 6.0
 
 TYPE_COLOURS: dict[MathType, QColor] = {
+    MathType.FLOAT: QColor("#d7dce5"),
     MathType.VEC2: QColor("#42c9c2"),
     MathType.VEC3: QColor("#63d471"),
     MathType.VEC4: QColor("#4ea5ff"),
     MathType.MAT2: QColor("#f4bf55"),
     MathType.MAT3: QColor("#f2935c"),
     MathType.MAT4: QColor("#ea6f91"),
+    MathType.QUATERNION: QColor("#b58cff"),
 }
 GENERIC_PORT_COLOUR = QColor("#ad8cff")
 
+MATH_OPERATIONS = (
+    Operation.ADD,
+    Operation.SUBTRACT,
+    Operation.MULTIPLY,
+    Operation.MATRIX_MULTIPLY,
+    Operation.DOT,
+    Operation.CROSS,
+    Operation.NORMALISE,
+    Operation.TRANSPOSE,
+)
+MAT4_OPERATIONS = (
+    Operation.LOOK_AT,
+    Operation.PERSPECTIVE,
+    Operation.ORTHO,
+    Operation.FRUSTUM,
+    Operation.MAT4_TRANSLATE,
+    Operation.MAT4_SCALE,
+    Operation.MAT4_ROTATE_X,
+    Operation.MAT4_ROTATE_Y,
+    Operation.MAT4_ROTATE_Z,
+)
+QUATERNION_OPERATIONS = (
+    Operation.QUATERNION_FROM_AXIS_ANGLE,
+    Operation.QUATERNION_PRODUCT,
+    Operation.QUATERNION_ROTATE_VECTOR,
+    Operation.QUATERNION_TO_MAT4,
+    Operation.MAT4_TO_QUATERNION,
+    Operation.QUATERNION_SLERP,
+    Operation.QUATERNION_CONJUGATE,
+    Operation.QUATERNION_INVERSE,
+)
+
+
+def node_title_font() -> QFont:
+    """Return the font shared by node titles and width calculations."""
+    title_font = QFont()
+    title_font.setPointSize(10)
+    title_font.setBold(True)
+    return title_font
+
 
 def default_components(math_type: MathType) -> tuple[float, ...]:
-    """Return zero vectors and identity matrices for a new value node."""
+    """Return sensible default components for a new value node."""
+    if math_type is MathType.QUATERNION:
+        return (1.0, 0.0, 0.0, 0.0)
     rows, columns = TYPE_SHAPES[math_type]
     if rows == 1:
         return (0.0,) * columns
@@ -240,10 +287,7 @@ class BaseNodeItem(QGraphicsObject):
         painter.drawRect(QRectF(1.0, NODE_HEADER_HEIGHT - 7.0, self.width - 2.0, 8.0))
 
         painter.setPen(QPen(QColor("#f0f3f8")))
-        title_font = QFont()
-        title_font.setPointSize(10)
-        title_font.setBold(True)
-        painter.setFont(title_font)
+        painter.setFont(node_title_font())
         painter.drawText(
             QRectF(12.0, 0.0, self.width - 24.0, NODE_HEADER_HEIGHT),
             Qt.AlignmentFlag.AlignVCenter,
@@ -256,7 +300,9 @@ class BaseNodeItem(QGraphicsObject):
         painter.setPen(QPen(QColor("#c2cad7")))
         for input_index, input_name in enumerate(self.input_names):
             y_position = NODE_HEADER_HEIGHT + 20.0 + input_index * 30.0
-            painter.drawText(QRectF(12.0, y_position, 50.0, 18.0), input_name)
+            painter.drawText(
+                QRectF(12.0, y_position, self.width - 24.0, 18.0), input_name
+            )
 
     def itemChange(
         self,
@@ -275,7 +321,7 @@ class BaseNodeItem(QGraphicsObject):
 
 
 class ValueNodeItem(BaseNodeItem):
-    """A vector or matrix node with editable component values."""
+    """A maths value node with editable component values."""
 
     def __init__(
         self,
@@ -288,9 +334,12 @@ class ValueNodeItem(BaseNodeItem):
         rows, columns = TYPE_SHAPES[math_type]
         width = max(190.0, columns * 76.0 + 24.0)
         height = NODE_HEADER_HEIGHT + rows * 38.0 + 20.0
-        super().__init__(
-            node_id, math_type.value, width, height, (), TYPE_COLOURS[math_type]
+        title = (
+            "Quaternion (s, x, y, z)"
+            if math_type is MathType.QUATERNION
+            else math_type.value
         )
+        super().__init__(node_id, title, width, height, (), TYPE_COLOURS[math_type])
         self.math_type = math_type
         self.on_change = on_change
         self.spin_boxes: list[QDoubleSpinBox] = []
@@ -329,15 +378,17 @@ class ValueNodeItem(BaseNodeItem):
 
 
 class OperationNodeItem(BaseNodeItem):
-    """A unary or binary PyNGL operation node."""
+    """A PyNGL operation node with one or more named inputs."""
 
     def __init__(self, node_id: str, operation: Operation) -> None:
-        """Create sockets for the operation arity."""
+        """Create the named sockets needed by an operation."""
         arity = OPERATION_ARITY[operation]
-        input_names = tuple(chr(ord("A") + index) for index in range(arity))
+        input_names = OPERATION_INPUT_NAMES[operation]
         height = NODE_HEADER_HEIGHT + 38.0 + max(0, arity - 1) * 30.0
+        title_width = QFontMetrics(node_title_font()).horizontalAdvance(operation.value)
+        width = max(180.0, float(title_width + 24))
         super().__init__(
-            node_id, operation.value, 180.0, height, input_names, GENERIC_PORT_COLOUR
+            node_id, operation.value, width, height, input_names, GENERIC_PORT_COLOUR
         )
         self.operation = operation
         if self.output_port is not None:
@@ -361,6 +412,15 @@ class OutputNodeItem(BaseNodeItem):
         colour = QColor("#ff8a8a") if is_error else QColor("#d9f99d")
         self.result_text.setDefaultTextColor(colour)
         self.result_text.setPlainText(text)
+        text_metrics = QFontMetrics(self.result_text.font())
+        longest_line = max(
+            text_metrics.horizontalAdvance(line) for line in text.splitlines()
+        )
+        required_width = max(260.0, float(longest_line + 48))
+        if required_width != self.width:
+            self.prepareGeometryChange()
+            self.width = required_width
+            self.result_text.setTextWidth(self.width - 35.0)
         required_height = max(132.0, 82.0 + self.result_text.boundingRect().height())
         if required_height != self.height:
             self.prepareGeometryChange()
@@ -398,7 +458,7 @@ class MathNodeScene(QGraphicsScene):
         position: QPointF | None = None,
         components: tuple[float, ...] | None = None,
     ) -> ValueNodeItem:
-        """Add an editable vector or matrix node to the canvas."""
+        """Add an editable maths value node to the canvas."""
         node_components = (
             components if components is not None else default_components(math_type)
         )
@@ -626,7 +686,7 @@ class NodePalette(QWidget):
         """Build the node palette for a canvas."""
         super().__init__(parent)
         self.canvas = canvas
-        self.setFixedWidth(205)
+        self.setFixedWidth(220)
         self.setStyleSheet(
             "QWidget { background: #171d28; color: #e8edf5; }"
             "QGroupBox { border: 1px solid #344056; border-radius: 5px; margin-top: 9px; padding-top: 8px; font-weight: bold; }"
@@ -653,15 +713,14 @@ class NodePalette(QWidget):
             (math_type.value, lambda value=math_type: self.canvas.add_value_node(value))
             for math_type in MathType
         ]
-        operation_actions = [
-            (
-                operation.value,
-                lambda value=operation: self.canvas.add_operation_node(value),
-            )
-            for operation in Operation
-        ]
         self._add_group(layout, "Values", value_actions)
-        self._add_group(layout, "Operations", operation_actions)
+        self._add_group(layout, "Maths", self._operation_actions(MATH_OPERATIONS))
+        self._add_group(layout, "Mat4", self._operation_actions(MAT4_OPERATIONS))
+        self._add_group(
+            layout,
+            "Quaternion",
+            self._operation_actions(QUATERNION_OPERATIONS),
+        )
         self._add_group(layout, "Result", [("Output", self.canvas.add_output_node)])
         layout.addStretch(1)
 
@@ -673,6 +732,19 @@ class NodePalette(QWidget):
         clear_button = QPushButton("Clear graph")
         clear_button.clicked.connect(lambda _checked=False: self.canvas.clear_graph())
         layout.addWidget(clear_button)
+
+    def _operation_actions(
+        self,
+        operations: tuple[Operation, ...],
+    ) -> list[tuple[str, Callable[[], object]]]:
+        """Return palette actions for an ordered set of operations."""
+        return [
+            (
+                operation.value,
+                lambda value=operation: self.canvas.add_operation_node(value),
+            )
+            for operation in operations
+        ]
 
     def _add_group(
         self,
@@ -706,12 +778,20 @@ class MathNodeWindow(QMainWindow):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         self.palette = NodePalette(self.canvas, self)
+        self.palette.setMinimumHeight(self.palette.sizeHint().height())
+        self.palette_scroll = QScrollArea(self)
+        self.palette_scroll.setWidget(self.palette)
+        self.palette_scroll.setWidgetResizable(True)
+        self.palette_scroll.setFixedWidth(240)
+        self.palette_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
 
         central_widget = QWidget()
         central_layout = QHBoxLayout(central_widget)
         central_layout.setContentsMargins(0, 0, 0, 0)
         central_layout.setSpacing(0)
-        central_layout.addWidget(self.palette)
+        central_layout.addWidget(self.palette_scroll)
         central_layout.addWidget(self.view, 1)
         self.setCentralWidget(central_widget)
         self.statusBar().showMessage(

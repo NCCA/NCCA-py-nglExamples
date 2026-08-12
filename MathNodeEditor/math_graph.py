@@ -7,18 +7,32 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TypeAlias
 
-from ncca.ngl import Mat2, Mat3, Mat4, Vec2, Vec3, Vec4
+from ncca.ngl import (
+    Mat2,
+    Mat3,
+    Mat4,
+    Quaternion,
+    Vec2,
+    Vec3,
+    Vec4,
+    frustum,
+    look_at,
+    ortho,
+    perspective,
+)
 
 
 class MathType(Enum):
     """Maths value types accepted by value nodes."""
 
+    FLOAT = "Float"
     VEC2 = "Vec2"
     VEC3 = "Vec3"
     VEC4 = "Vec4"
     MAT2 = "Mat2"
     MAT3 = "Mat3"
     MAT4 = "Mat4"
+    QUATERNION = "Quaternion"
 
 
 class Operation(Enum):
@@ -32,38 +46,81 @@ class Operation(Enum):
     CROSS = "Cross Product"
     NORMALISE = "Normalise"
     TRANSPOSE = "Transpose"
+    LOOK_AT = "Look At"
+    PERSPECTIVE = "Perspective"
+    ORTHO = "Orthographic"
+    FRUSTUM = "Frustum"
+    MAT4_TRANSLATE = "Mat4 Translate"
+    MAT4_SCALE = "Mat4 Scale"
+    MAT4_ROTATE_X = "Mat4 Rotate X"
+    MAT4_ROTATE_Y = "Mat4 Rotate Y"
+    MAT4_ROTATE_Z = "Mat4 Rotate Z"
+    QUATERNION_FROM_AXIS_ANGLE = "Quaternion from Axis Angle"
+    QUATERNION_PRODUCT = "Quaternion Product"
+    QUATERNION_ROTATE_VECTOR = "Quaternion Rotate Vector"
+    QUATERNION_TO_MAT4 = "Quaternion to Mat4"
+    MAT4_TO_QUATERNION = "Mat4 to Quaternion"
+    QUATERNION_SLERP = "Quaternion Slerp"
+    QUATERNION_CONJUGATE = "Quaternion Conjugate"
+    QUATERNION_INVERSE = "Quaternion Inverse"
 
+
+OPERATION_INPUT_NAMES: dict[Operation, tuple[str, ...]] = {
+    Operation.ADD: ("A", "B"),
+    Operation.SUBTRACT: ("A", "B"),
+    Operation.MULTIPLY: ("A", "B"),
+    Operation.MATRIX_MULTIPLY: ("A", "B"),
+    Operation.DOT: ("A", "B"),
+    Operation.CROSS: ("A", "B"),
+    Operation.NORMALISE: ("Value",),
+    Operation.TRANSPOSE: ("Matrix",),
+    Operation.LOOK_AT: ("Eye", "Target", "Up"),
+    Operation.PERSPECTIVE: ("FOV", "Aspect", "Near", "Far"),
+    Operation.ORTHO: ("Left", "Right", "Bottom", "Top", "Near", "Far"),
+    Operation.FRUSTUM: ("Left", "Right", "Bottom", "Top", "Near", "Far"),
+    Operation.MAT4_TRANSLATE: ("X", "Y", "Z"),
+    Operation.MAT4_SCALE: ("X", "Y", "Z"),
+    Operation.MAT4_ROTATE_X: ("Angle",),
+    Operation.MAT4_ROTATE_Y: ("Angle",),
+    Operation.MAT4_ROTATE_Z: ("Angle",),
+    Operation.QUATERNION_FROM_AXIS_ANGLE: ("Axis", "Angle"),
+    Operation.QUATERNION_PRODUCT: ("A", "B"),
+    Operation.QUATERNION_ROTATE_VECTOR: ("Quaternion", "Vector"),
+    Operation.QUATERNION_TO_MAT4: ("Quaternion",),
+    Operation.MAT4_TO_QUATERNION: ("Matrix",),
+    Operation.QUATERNION_SLERP: ("Start", "End", "T"),
+    Operation.QUATERNION_CONJUGATE: ("Quaternion",),
+    Operation.QUATERNION_INVERSE: ("Quaternion",),
+}
 
 OPERATION_ARITY: dict[Operation, int] = {
-    Operation.ADD: 2,
-    Operation.SUBTRACT: 2,
-    Operation.MULTIPLY: 2,
-    Operation.MATRIX_MULTIPLY: 2,
-    Operation.DOT: 2,
-    Operation.CROSS: 2,
-    Operation.NORMALISE: 1,
-    Operation.TRANSPOSE: 1,
+    operation: len(input_names)
+    for operation, input_names in OPERATION_INPUT_NAMES.items()
 }
 
 
-MathValue: TypeAlias = Vec2 | Vec3 | Vec4 | Mat2 | Mat3 | Mat4 | float
+MathValue: TypeAlias = Vec2 | Vec3 | Vec4 | Mat2 | Mat3 | Mat4 | Quaternion | float
 
 VALUE_CLASSES: dict[MathType, Callable[..., MathValue]] = {
+    MathType.FLOAT: float,
     MathType.VEC2: Vec2,
     MathType.VEC3: Vec3,
     MathType.VEC4: Vec4,
     MathType.MAT2: Mat2,
     MathType.MAT3: Mat3,
     MathType.MAT4: Mat4,
+    MathType.QUATERNION: Quaternion,
 }
 
 TYPE_SHAPES: dict[MathType, tuple[int, int]] = {
+    MathType.FLOAT: (1, 1),
     MathType.VEC2: (1, 2),
     MathType.VEC3: (1, 3),
     MathType.VEC4: (1, 4),
     MathType.MAT2: (2, 2),
     MathType.MAT3: (3, 3),
     MathType.MAT4: (4, 4),
+    MathType.QUATERNION: (1, 4),
 }
 
 
@@ -104,24 +161,101 @@ def format_value(value: MathValue) -> str:
 
 def apply_operation(
     operation: Operation,
-    left: MathValue,
-    right: MathValue | None = None,
+    *inputs: MathValue,
 ) -> MathValue:
     """Apply an operation and translate PyNGL errors for the graph UI."""
     try:
+        left = inputs[0]
         if operation is Operation.NORMALISE:
             return left.normalized()
         if operation is Operation.TRANSPOSE:
             return left.transposed()
+        if operation is Operation.QUATERNION_TO_MAT4:
+            if not isinstance(left, Quaternion):
+                raise TypeError("Quaternion to Mat4 needs a Quaternion input")
+            return left.to_mat4()
+        if operation is Operation.MAT4_TO_QUATERNION:
+            if not isinstance(left, Mat4):
+                raise TypeError("Mat4 to Quaternion needs a Mat4 input")
+            return Quaternion.from_mat4(left)
+        if operation is Operation.QUATERNION_CONJUGATE:
+            if not isinstance(left, Quaternion):
+                raise TypeError("Quaternion Conjugate needs a Quaternion input")
+            return left.conjugate()
+        if operation is Operation.QUATERNION_INVERSE:
+            if not isinstance(left, Quaternion):
+                raise TypeError("Quaternion Inverse needs a Quaternion input")
+            return left.inverse()
+        if operation is Operation.QUATERNION_SLERP:
+            start, end, blend = inputs
+            if (
+                not isinstance(start, Quaternion)
+                or not isinstance(end, Quaternion)
+                or not isinstance(blend, float)
+            ):
+                raise TypeError(
+                    "Quaternion Slerp needs Quaternion, Quaternion and Float inputs"
+                )
+            return start.slerp(end, blend)
+        if operation is Operation.LOOK_AT:
+            eye, target, up = inputs
+            if not all(isinstance(value, Vec3) for value in (eye, target, up)):
+                raise TypeError("Look At needs three Vec3 inputs")
+            return look_at(eye, target, up)
+        if operation is Operation.PERSPECTIVE:
+            fov, aspect, near, far = inputs
+            if not all(isinstance(value, float) for value in inputs):
+                raise TypeError("Perspective needs four Float inputs")
+            return perspective(fov, aspect, near, far)
+        if operation is Operation.ORTHO:
+            if not all(isinstance(value, float) for value in inputs):
+                raise TypeError("Orthographic needs six Float inputs")
+            return ortho(*inputs)
+        if operation is Operation.FRUSTUM:
+            if not all(isinstance(value, float) for value in inputs):
+                raise TypeError("Frustum needs six Float inputs")
+            return frustum(*inputs)
+        if operation is Operation.MAT4_TRANSLATE:
+            if not all(isinstance(value, float) for value in inputs):
+                raise TypeError("Mat4 Translate needs three Float inputs")
+            return Mat4.translate(*inputs)
+        if operation is Operation.MAT4_SCALE:
+            if not all(isinstance(value, float) for value in inputs):
+                raise TypeError("Mat4 Scale needs three Float inputs")
+            return Mat4.scale(*inputs)
+        if operation is Operation.MAT4_ROTATE_X:
+            return Mat4.rotate_x(left)
+        if operation is Operation.MAT4_ROTATE_Y:
+            return Mat4.rotate_y(left)
+        if operation is Operation.MAT4_ROTATE_Z:
+            return Mat4.rotate_z(left)
+        if operation is Operation.QUATERNION_FROM_AXIS_ANGLE:
+            axis, angle = inputs
+            if not isinstance(axis, Vec3) or not isinstance(angle, float):
+                raise TypeError(
+                    "Quaternion from Axis Angle needs Vec3 and Float inputs"
+                )
+            return Quaternion.from_axis_angle(axis, angle)
 
-        if right is None:
+        if len(inputs) < 2:
             raise GraphError(f"{operation.value} needs input B")
+        right = inputs[1]
         if operation is Operation.ADD:
             return left + right
         if operation is Operation.SUBTRACT:
             return left - right
         if operation is Operation.MATRIX_MULTIPLY:
             return left @ right
+        if operation is Operation.QUATERNION_PRODUCT:
+            if not isinstance(left, Quaternion) or not isinstance(right, Quaternion):
+                raise TypeError("Quaternion Product needs two Quaternion inputs")
+            return left @ right
+        if operation is Operation.QUATERNION_ROTATE_VECTOR:
+            if not isinstance(left, Quaternion) or not isinstance(right, Vec3):
+                raise TypeError(
+                    "Quaternion Rotate Vector needs Quaternion and Vec3 inputs"
+                )
+            return left * right
         if operation is Operation.DOT:
             return float(left.dot(right))
         if operation is Operation.CROSS:
@@ -129,11 +263,13 @@ def apply_operation(
 
         if type(left) is not type(right):
             raise ValueError("component multiply needs matching input types")
+        if isinstance(left, float):
+            return left * right
         components = tuple(a * b for a, b in zip(left.to_list(), right.to_list()))
         return type(left)(*components)
     except GraphError:
         raise
-    except (AttributeError, TypeError, ValueError) as error:
+    except (AttributeError, TypeError, ValueError, ZeroDivisionError) as error:
         raise GraphError(f"{operation.value} failed: {error}") from error
 
 
@@ -227,13 +363,13 @@ class MathGraph:
 
             for input_index in range(OPERATION_ARITY[node.operation]):
                 if input_index not in node.inputs:
-                    input_name = chr(ord("A") + input_index)
+                    input_name = OPERATION_INPUT_NAMES[node.operation][input_index]
                     raise GraphError(f"{node.operation.value} needs input {input_name}")
 
-            left = self._evaluate(node.inputs[0], active_nodes)
-            right = None
-            if OPERATION_ARITY[node.operation] == 2:
-                right = self._evaluate(node.inputs[1], active_nodes)
-            return apply_operation(node.operation, left, right)
+            values = tuple(
+                self._evaluate(node.inputs[input_index], active_nodes)
+                for input_index in range(OPERATION_ARITY[node.operation])
+            )
+            return apply_operation(node.operation, *values)
         finally:
             active_nodes.remove(node_id)
