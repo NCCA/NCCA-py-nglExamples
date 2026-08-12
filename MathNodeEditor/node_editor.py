@@ -671,6 +671,15 @@ class MathNodeView(QGraphicsView):
         self.node_menu.open_at(scene_position, global_position)
         return self.node_menu
 
+    def event(self, event: QEvent) -> bool:
+        """Catch Tab before Qt uses it to move focus away from the canvas."""
+        if event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
+            if event.key() == Qt.Key.Key_Tab:
+                self._open_node_menu_at_cursor()
+                event.accept()
+                return True
+        return super().event(event)
+
     def eventFilter(self, watched: object, event: QEvent) -> bool:
         """Catch Tab when the graphics view viewport owns keyboard focus."""
         if watched is self.viewport() and event.type() == QEvent.Type.KeyPress:

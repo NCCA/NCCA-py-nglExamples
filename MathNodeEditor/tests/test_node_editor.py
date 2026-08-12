@@ -224,15 +224,18 @@ def test_palette_groups_extended_operations_by_domain(
     window.close()
 
 
+@pytest.mark.parametrize("key_target", ["view", "viewport"])
 def test_pressing_tab_on_canvas_opens_node_creation_menu(
     application: QApplication,
+    key_target: str,
 ) -> None:
     node_editor = _node_editor_module()
     window = node_editor.MathNodeWindow(load_example=False)
     window.show()
     window.view.setFocus()
 
-    QTest.keyClick(window.view.viewport(), Qt.Key.Key_Tab)
+    target = window.view if key_target == "view" else window.view.viewport()
+    QTest.keyClick(target, Qt.Key.Key_Tab)
     application.processEvents()
 
     assert window.view.node_menu.isVisible()
