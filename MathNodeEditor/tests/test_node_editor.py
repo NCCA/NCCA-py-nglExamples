@@ -607,6 +607,31 @@ def test_load_graph_button_reports_a_malformed_file_instead_of_crashing(
     window.close()
 
 
+def test_mesh_pipeline_example_loads_without_errors(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    example_path = Path(__file__).parent.parent / "examples" / "mesh_pipeline_demo.json"
+
+    window.canvas.load_from_file(example_path)
+    application.processEvents()
+
+    mesh_viewer = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.MeshViewerNodeItem)
+    )
+    obj_loader = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.ObjLoaderNodeItem)
+    )
+    assert mesh_viewer.status_text_item.toPlainText() == ""
+    assert obj_loader.status_text_item.toPlainText() == "cube.obj: 8 verts, 12 faces"
+    assert mesh_viewer.render_state.mesh_inputs is not None
+    assert len(mesh_viewer.render_state.mesh_inputs.vertices.values) == 8
+    window.close()
+
+
 def test_wheel_zoom_step_is_gentle(application: QApplication) -> None:
     node_editor = _node_editor_module()
     window = node_editor.MathNodeWindow(load_example=False)
