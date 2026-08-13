@@ -312,21 +312,16 @@
       "status": "cube.obj: 8 verts, 12 faces"
     },
     {
-      "id": "node-5",
-      "x": -700.0,
-      "y": 160.0,
-      "kind": "value",
-      "math_type": "FLOAT",
-      "components": [
-        35.0
-      ]
-    },
-    {
       "id": "node-6",
       "x": -460.0,
       "y": 160.0,
-      "kind": "operation",
-      "operation": "MAT4_ROTATE_Y"
+      "kind": "generator",
+      "operation": "MAT4_ROTATE_Y",
+      "parameters": [
+        [
+          35.0
+        ]
+      ]
     },
     {
       "id": "node-7",
@@ -386,11 +381,6 @@
     }
   ],
   "connections": [
-    {
-      "source": "node-5",
-      "target": "node-6",
-      "input": 0
-    },
     {
       "source": "node-6",
       "target": "node-7",

@@ -1,137 +1,73 @@
 {
   "nodes": [
     {
-      "id": "node-1",
-      "x": -900.0,
-      "y": -420.0,
-      "kind": "value",
-      "math_type": "VEC3",
-      "components": [
-        0.0,
-        0.0,
-        0.0
-      ]
-    },
-    {
-      "id": "node-2",
-      "x": -900.0,
-      "y": -300.0,
-      "kind": "value",
-      "math_type": "VEC3",
-      "components": [
-        0.0,
-        30.0,
-        0.0
-      ]
-    },
-    {
-      "id": "node-3",
-      "x": -900.0,
-      "y": -180.0,
-      "kind": "value",
-      "math_type": "VEC3",
-      "components": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    {
       "id": "node-4",
       "x": -580.0,
       "y": -300.0,
-      "kind": "operation",
-      "operation": "TRANSFORM"
-    },
-    {
-      "id": "node-5",
-      "x": -900.0,
-      "y": -20.0,
-      "kind": "value",
-      "math_type": "VEC3",
-      "components": [
-        0.0,
-        2.0,
-        8.0
-      ]
-    },
-    {
-      "id": "node-6",
-      "x": -900.0,
-      "y": 100.0,
-      "kind": "value",
-      "math_type": "VEC3",
-      "components": [
-        0.0,
-        0.0,
-        0.0
-      ]
-    },
-    {
-      "id": "node-7",
-      "x": -900.0,
-      "y": 220.0,
-      "kind": "value",
-      "math_type": "VEC3",
-      "components": [
-        0.0,
-        1.0,
-        0.0
+      "kind": "generator",
+      "operation": "TRANSFORM",
+      "parameters": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          30.0,
+          0.0
+        ],
+        [
+          1.0,
+          1.0,
+          1.0
+        ]
       ]
     },
     {
       "id": "node-8",
       "x": -580.0,
       "y": 100.0,
-      "kind": "operation",
-      "operation": "LOOK_AT"
-    },
-    {
-      "id": "node-9",
-      "x": -900.0,
-      "y": 380.0,
-      "kind": "value",
-      "math_type": "FLOAT",
-      "components": [
-        45.0
-      ]
-    },
-    {
-      "id": "node-10",
-      "x": -900.0,
-      "y": 470.0,
-      "kind": "value",
-      "math_type": "FLOAT",
-      "components": [
-        1.778
-      ]
-    },
-    {
-      "id": "node-11",
-      "x": -900.0,
-      "y": 560.0,
-      "kind": "value",
-      "math_type": "FLOAT",
-      "components": [
-        0.1
-      ]
-    },
-    {
-      "id": "node-12",
-      "x": -900.0,
-      "y": 650.0,
-      "kind": "value",
-      "math_type": "FLOAT",
-      "components": [
-        100.0
+      "kind": "generator",
+      "operation": "LOOK_AT",
+      "parameters": [
+        [
+          0.0,
+          2.0,
+          8.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ]
       ]
     },
     {
       "id": "node-13",
       "x": -580.0,
       "y": 470.0,
-      "kind": "operation",
-      "operation": "PERSPECTIVE"
+      "kind": "generator",
+      "operation": "PERSPECTIVE",
+      "parameters": [
+        [
+          45.0
+        ],
+        [
+          1.778
+        ],
+        [
+          0.1
+        ],
+        [
+          100.0
+        ]
+      ]
     },
     {
       "id": "node-14",
@@ -155,56 +91,6 @@
     }
   ],
   "connections": [
-    {
-      "source": "node-1",
-      "target": "node-4",
-      "input": 0
-    },
-    {
-      "source": "node-2",
-      "target": "node-4",
-      "input": 1
-    },
-    {
-      "source": "node-3",
-      "target": "node-4",
-      "input": 2
-    },
-    {
-      "source": "node-5",
-      "target": "node-8",
-      "input": 0
-    },
-    {
-      "source": "node-6",
-      "target": "node-8",
-      "input": 1
-    },
-    {
-      "source": "node-7",
-      "target": "node-8",
-      "input": 2
-    },
-    {
-      "source": "node-9",
-      "target": "node-13",
-      "input": 0
-    },
-    {
-      "source": "node-10",
-      "target": "node-13",
-      "input": 1
-    },
-    {
-      "source": "node-11",
-      "target": "node-13",
-      "input": 2
-    },
-    {
-      "source": "node-12",
-      "target": "node-13",
-      "input": 3
-    },
     {
       "source": "node-8",
       "target": "node-14",

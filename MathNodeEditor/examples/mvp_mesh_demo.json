@@ -312,47 +312,28 @@
       "status": "cube.obj: 8 verts, 12 faces"
     },
     {
-      "id": "node-5",
-      "x": -900.0,
-      "y": 220.0,
-      "kind": "value",
-      "math_type": "VEC3",
-      "components": [
-        0.5,
-        0.0,
-        0.0
-      ]
-    },
-    {
-      "id": "node-6",
-      "x": -900.0,
-      "y": 340.0,
-      "kind": "value",
-      "math_type": "VEC3",
-      "components": [
-        20.0,
-        45.0,
-        0.0
-      ]
-    },
-    {
-      "id": "node-7",
-      "x": -900.0,
-      "y": 460.0,
-      "kind": "value",
-      "math_type": "VEC3",
-      "components": [
-        1.5,
-        1.5,
-        1.5
-      ]
-    },
-    {
       "id": "node-8",
       "x": -580.0,
       "y": 340.0,
-      "kind": "operation",
-      "operation": "TRANSFORM"
+      "kind": "generator",
+      "operation": "TRANSFORM",
+      "parameters": [
+        [
+          0.5,
+          0.0,
+          0.0
+        ],
+        [
+          20.0,
+          45.0,
+          0.0
+        ],
+        [
+          1.5,
+          1.5,
+          1.5
+        ]
+      ]
     },
     {
       "id": "node-9",
@@ -412,21 +393,6 @@
     }
   ],
   "connections": [
-    {
-      "source": "node-5",
-      "target": "node-8",
-      "input": 0
-    },
-    {
-      "source": "node-6",
-      "target": "node-8",
-      "input": 1
-    },
-    {
-      "source": "node-7",
-      "target": "node-8",
-      "input": 2
-    },
     {
       "source": "node-8",
       "target": "node-9",

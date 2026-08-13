@@ -743,10 +743,10 @@ def test_mvp_example_loads_and_evaluates_a_single_matrix(
     transform_node = next(
         node
         for node in window.canvas.nodes.values()
-        if isinstance(node, node_editor.OperationNodeItem)
+        if isinstance(node, node_editor.GeneratorNodeItem)
         and node.operation is node_editor.Operation.TRANSFORM
     )
-    assert transform_node.input_names == ("Position", "Rotation", "Scale")
+    assert transform_node.parameter_names == ("Position", "Rotation", "Scale")
     window.close()
 
 
