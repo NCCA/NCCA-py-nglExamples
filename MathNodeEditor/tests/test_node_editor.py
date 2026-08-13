@@ -66,8 +66,8 @@ def test_example_graph_displays_the_vec3_multiply_result(
         ("Vec2", "ValueNodeItem"),
         ("Quaternion", "ValueNodeItem"),
         ("Matrix Multiply", "OperationNodeItem"),
-        ("Look At", "OperationNodeItem"),
-        ("Perspective", "OperationNodeItem"),
+        ("Look At", "GeneratorNodeItem"),
+        ("Perspective", "GeneratorNodeItem"),
         ("Output", "OutputNodeItem"),
     ],
 )
@@ -179,8 +179,6 @@ def test_quaternion_node_labels_its_component_order(application: QApplication) -
 @pytest.mark.parametrize(
     ("operation_name", "expected_names"),
     [
-        ("LOOK_AT", ("Eye", "Target", "Up")),
-        ("PERSPECTIVE", ("FOV", "Aspect", "Near", "Far")),
         ("QUATERNION_SLERP", ("Start", "End", "T")),
     ],
 )
@@ -197,6 +195,29 @@ def test_operation_nodes_display_semantic_input_names(
     )
 
     assert operation_node.input_names == expected_names
+    window.close()
+
+
+@pytest.mark.parametrize(
+    ("operation_name", "expected_names"),
+    [
+        ("LOOK_AT", ("Eye", "Target", "Up")),
+        ("PERSPECTIVE", ("FOV", "Aspect", "Near", "Far")),
+    ],
+)
+def test_generator_nodes_display_semantic_parameter_names(
+    application: QApplication,
+    operation_name: str,
+    expected_names: tuple[str, ...],
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+
+    generator_node = window.canvas.add_generator_node(
+        node_editor.Operation[operation_name]
+    )
+
+    assert generator_node.parameter_names == expected_names
     window.close()
 
 
@@ -218,7 +239,7 @@ def test_long_quaternion_operation_title_fits_inside_node(
 ) -> None:
     node_editor = _node_editor_module()
     window = node_editor.MathNodeWindow(load_example=False)
-    operation_node = window.canvas.add_operation_node(
+    operation_node = window.canvas.add_generator_node(
         node_editor.Operation.QUATERNION_FROM_AXIS_ANGLE
     )
     title_font = QFont()
@@ -399,7 +420,7 @@ def test_enter_creates_first_filtered_node(application: QApplication) -> None:
     application.processEvents()
 
     added_node = next(iter(window.canvas.nodes.values()))
-    assert isinstance(added_node, node_editor.OperationNodeItem)
+    assert isinstance(added_node, node_editor.GeneratorNodeItem)
     assert added_node.operation is node_editor.Operation.PERSPECTIVE
     assert not menu.isVisible()
     window.close()

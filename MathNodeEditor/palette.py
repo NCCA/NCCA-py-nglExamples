@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
     QWidgetAction,
 )
 
-from .math_graph import GraphError, MathType, Operation
+from .math_graph import GENERATOR_OPERATIONS, GraphError, MathType, Operation
 
 if TYPE_CHECKING:
     from .canvas import MathNodeScene, MathNodeView
@@ -85,16 +85,34 @@ def _value_catalogue_entries() -> list[CatalogueEntry]:
 def _operation_catalogue_entries(
     operations: tuple[Operation, ...],
 ) -> list[CatalogueEntry]:
-    """Return one catalogue entry per operation in the given group."""
-    return [
-        (
-            operation.value,
-            lambda canvas, position, value=operation: canvas.add_operation_node(
-                value, position
-            ),
-        )
-        for operation in operations
-    ]
+    """Return one catalogue entry per operation in the given group.
+
+    Operations in GENERATOR_OPERATIONS (Look At, Perspective, Transform,
+    ...) route through add_generator_node, since they take typed-in
+    Float/Vec3 parameters rather than wired inputs; everything else keeps
+    add_operation_node's wired sockets.
+    """
+    entries: list[CatalogueEntry] = []
+    for operation in operations:
+        if operation in GENERATOR_OPERATIONS:
+            entries.append(
+                (
+                    operation.value,
+                    lambda canvas, position, value=operation: canvas.add_generator_node(
+                        value, position
+                    ),
+                )
+            )
+        else:
+            entries.append(
+                (
+                    operation.value,
+                    lambda canvas, position, value=operation: canvas.add_operation_node(
+                        value, position
+                    ),
+                )
+            )
+    return entries
 
 
 NODE_CATALOGUE: tuple[CatalogueSection, ...] = (
