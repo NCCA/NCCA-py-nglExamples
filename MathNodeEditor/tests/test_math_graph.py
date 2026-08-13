@@ -471,6 +471,48 @@ def test_evaluation_rejects_cycles() -> None:
         graph.evaluate(add)
 
 
+def test_remove_node_deletes_it_from_the_graph() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    value_node = graph.add_value(graph_module.MathType.FLOAT, (1.0,))
+
+    graph.remove_node(value_node)
+
+    with pytest.raises(KeyError):
+        graph.evaluate(value_node)
+
+
+def test_remove_node_clears_downstream_references() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    left = graph.add_value(graph_module.MathType.VEC3, (1.0, 2.0, 3.0))
+    right = graph.add_value(graph_module.MathType.VEC3, (4.0, 5.0, 6.0))
+    add = graph.add_operation(graph_module.Operation.ADD)
+    graph.connect(left, add, 0)
+    graph.connect(right, add, 1)
+
+    graph.remove_node(left)
+
+    with pytest.raises(graph_module.GraphError, match="input A"):
+        graph.evaluate(add)
+
+
+def test_disconnect_removes_a_single_input_without_deleting_the_node() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    left = graph.add_value(graph_module.MathType.VEC3, (1.0, 2.0, 3.0))
+    right = graph.add_value(graph_module.MathType.VEC3, (4.0, 5.0, 6.0))
+    add = graph.add_operation(graph_module.Operation.ADD)
+    graph.connect(left, add, 0)
+    graph.connect(right, add, 1)
+
+    graph.disconnect(add, 0)
+
+    with pytest.raises(graph_module.GraphError, match="input A"):
+        graph.evaluate(add)
+    assert graph.evaluate(left).to_list() == pytest.approx([1.0, 2.0, 3.0])
+
+
 @pytest.mark.parametrize(
     ("value", "expected"),
     [

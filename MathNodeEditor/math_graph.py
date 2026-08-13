@@ -159,114 +159,210 @@ def format_value(value: MathValue) -> str:
     return f"{value_name}\n" + "\n".join(rows)
 
 
+def _normalise(value: MathValue) -> MathValue:
+    """Return a unit-length copy of a vector or quaternion."""
+    return value.normalized()
+
+
+def _transpose(value: MathValue) -> MathValue:
+    """Return the transpose of a matrix."""
+    return value.transposed()
+
+
+def _quaternion_to_mat4(value: MathValue) -> MathValue:
+    """Convert a Quaternion input to its Mat4 rotation."""
+    if not isinstance(value, Quaternion):
+        raise TypeError("Quaternion to Mat4 needs a Quaternion input")
+    return value.to_mat4()
+
+
+def _mat4_to_quaternion(value: MathValue) -> MathValue:
+    """Convert a Mat4 input to the equivalent Quaternion."""
+    if not isinstance(value, Mat4):
+        raise TypeError("Mat4 to Quaternion needs a Mat4 input")
+    return Quaternion.from_mat4(value)
+
+
+def _quaternion_conjugate(value: MathValue) -> MathValue:
+    """Return the conjugate of a Quaternion input."""
+    if not isinstance(value, Quaternion):
+        raise TypeError("Quaternion Conjugate needs a Quaternion input")
+    return value.conjugate()
+
+
+def _quaternion_inverse(value: MathValue) -> MathValue:
+    """Return the inverse of a Quaternion input."""
+    if not isinstance(value, Quaternion):
+        raise TypeError("Quaternion Inverse needs a Quaternion input")
+    return value.inverse()
+
+
+def _quaternion_slerp(start: MathValue, end: MathValue, blend: MathValue) -> MathValue:
+    """Spherically interpolate between two Quaternion inputs."""
+    if (
+        not isinstance(start, Quaternion)
+        or not isinstance(end, Quaternion)
+        or not isinstance(blend, float)
+    ):
+        raise TypeError(
+            "Quaternion Slerp needs Quaternion, Quaternion and Float inputs"
+        )
+    return start.slerp(end, blend)
+
+
+def _look_at(eye: MathValue, target: MathValue, up: MathValue) -> MathValue:
+    """Build a view Mat4 from three Vec3 inputs."""
+    if not all(isinstance(value, Vec3) for value in (eye, target, up)):
+        raise TypeError("Look At needs three Vec3 inputs")
+    return look_at(eye, target, up)
+
+
+def _perspective(*inputs: MathValue) -> MathValue:
+    """Build a perspective projection Mat4 from four Float inputs."""
+    if not all(isinstance(value, float) for value in inputs):
+        raise TypeError("Perspective needs four Float inputs")
+    return perspective(*inputs)
+
+
+def _ortho(*inputs: MathValue) -> MathValue:
+    """Build an orthographic projection Mat4 from six Float inputs."""
+    if not all(isinstance(value, float) for value in inputs):
+        raise TypeError("Orthographic needs six Float inputs")
+    return ortho(*inputs)
+
+
+def _frustum(*inputs: MathValue) -> MathValue:
+    """Build a frustum projection Mat4 from six Float inputs."""
+    if not all(isinstance(value, float) for value in inputs):
+        raise TypeError("Frustum needs six Float inputs")
+    return frustum(*inputs)
+
+
+def _mat4_translate(*inputs: MathValue) -> MathValue:
+    """Build a translation Mat4 from three Float inputs."""
+    if not all(isinstance(value, float) for value in inputs):
+        raise TypeError("Mat4 Translate needs three Float inputs")
+    return Mat4.translate(*inputs)
+
+
+def _mat4_scale(*inputs: MathValue) -> MathValue:
+    """Build a scale Mat4 from three Float inputs."""
+    if not all(isinstance(value, float) for value in inputs):
+        raise TypeError("Mat4 Scale needs three Float inputs")
+    return Mat4.scale(*inputs)
+
+
+def _mat4_rotate_x(angle: MathValue) -> MathValue:
+    """Build a Mat4 rotation about X from a Float angle."""
+    return Mat4.rotate_x(angle)
+
+
+def _mat4_rotate_y(angle: MathValue) -> MathValue:
+    """Build a Mat4 rotation about Y from a Float angle."""
+    return Mat4.rotate_y(angle)
+
+
+def _mat4_rotate_z(angle: MathValue) -> MathValue:
+    """Build a Mat4 rotation about Z from a Float angle."""
+    return Mat4.rotate_z(angle)
+
+
+def _quaternion_from_axis_angle(axis: MathValue, angle: MathValue) -> MathValue:
+    """Build a Quaternion from a Vec3 axis and a Float angle."""
+    if not isinstance(axis, Vec3) or not isinstance(angle, float):
+        raise TypeError("Quaternion from Axis Angle needs Vec3 and Float inputs")
+    return Quaternion.from_axis_angle(axis, angle)
+
+
+def _add(left: MathValue, right: MathValue) -> MathValue:
+    """Add two matching PyNGL values."""
+    return left + right
+
+
+def _subtract(left: MathValue, right: MathValue) -> MathValue:
+    """Subtract one PyNGL value from another."""
+    return left - right
+
+
+def _matrix_multiply(left: MathValue, right: MathValue) -> MathValue:
+    """Apply the PyNGL ``@`` product to two inputs."""
+    return left @ right
+
+
+def _quaternion_product(left: MathValue, right: MathValue) -> MathValue:
+    """Return the Hamilton product of two Quaternion inputs."""
+    if not isinstance(left, Quaternion) or not isinstance(right, Quaternion):
+        raise TypeError("Quaternion Product needs two Quaternion inputs")
+    return left @ right
+
+
+def _quaternion_rotate_vector(left: MathValue, right: MathValue) -> MathValue:
+    """Rotate a Vec3 input by a Quaternion input."""
+    if not isinstance(left, Quaternion) or not isinstance(right, Vec3):
+        raise TypeError("Quaternion Rotate Vector needs Quaternion and Vec3 inputs")
+    return left * right
+
+
+def _dot(left: MathValue, right: MathValue) -> MathValue:
+    """Return the scalar dot product of two vector inputs."""
+    return float(left.dot(right))
+
+
+def _cross(left: MathValue, right: MathValue) -> MathValue:
+    """Return the cross product of two vector inputs."""
+    return left.cross(right)
+
+
+def _multiply(left: MathValue, right: MathValue) -> MathValue:
+    """Multiply two matching inputs component-wise.
+
+    PyNGL reserves ``*`` for scalar multiplication, so this rebuilds the
+    result from zipped components rather than using the operator.
+    """
+    if type(left) is not type(right):
+        raise ValueError("component multiply needs matching input types")
+    if isinstance(left, float):
+        return left * right
+    components = tuple(a * b for a, b in zip(left.to_list(), right.to_list()))
+    return type(left)(*components)
+
+
+_OPERATION_HANDLERS: dict[Operation, Callable[..., MathValue]] = {
+    Operation.ADD: _add,
+    Operation.SUBTRACT: _subtract,
+    Operation.MULTIPLY: _multiply,
+    Operation.MATRIX_MULTIPLY: _matrix_multiply,
+    Operation.DOT: _dot,
+    Operation.CROSS: _cross,
+    Operation.NORMALISE: _normalise,
+    Operation.TRANSPOSE: _transpose,
+    Operation.LOOK_AT: _look_at,
+    Operation.PERSPECTIVE: _perspective,
+    Operation.ORTHO: _ortho,
+    Operation.FRUSTUM: _frustum,
+    Operation.MAT4_TRANSLATE: _mat4_translate,
+    Operation.MAT4_SCALE: _mat4_scale,
+    Operation.MAT4_ROTATE_X: _mat4_rotate_x,
+    Operation.MAT4_ROTATE_Y: _mat4_rotate_y,
+    Operation.MAT4_ROTATE_Z: _mat4_rotate_z,
+    Operation.QUATERNION_FROM_AXIS_ANGLE: _quaternion_from_axis_angle,
+    Operation.QUATERNION_PRODUCT: _quaternion_product,
+    Operation.QUATERNION_ROTATE_VECTOR: _quaternion_rotate_vector,
+    Operation.QUATERNION_TO_MAT4: _quaternion_to_mat4,
+    Operation.MAT4_TO_QUATERNION: _mat4_to_quaternion,
+    Operation.QUATERNION_SLERP: _quaternion_slerp,
+    Operation.QUATERNION_CONJUGATE: _quaternion_conjugate,
+    Operation.QUATERNION_INVERSE: _quaternion_inverse,
+}
+
+
 def apply_operation(
     operation: Operation,
     *inputs: MathValue,
 ) -> MathValue:
     """Apply an operation and translate PyNGL errors for the graph UI."""
     try:
-        left = inputs[0]
-        if operation is Operation.NORMALISE:
-            return left.normalized()
-        if operation is Operation.TRANSPOSE:
-            return left.transposed()
-        if operation is Operation.QUATERNION_TO_MAT4:
-            if not isinstance(left, Quaternion):
-                raise TypeError("Quaternion to Mat4 needs a Quaternion input")
-            return left.to_mat4()
-        if operation is Operation.MAT4_TO_QUATERNION:
-            if not isinstance(left, Mat4):
-                raise TypeError("Mat4 to Quaternion needs a Mat4 input")
-            return Quaternion.from_mat4(left)
-        if operation is Operation.QUATERNION_CONJUGATE:
-            if not isinstance(left, Quaternion):
-                raise TypeError("Quaternion Conjugate needs a Quaternion input")
-            return left.conjugate()
-        if operation is Operation.QUATERNION_INVERSE:
-            if not isinstance(left, Quaternion):
-                raise TypeError("Quaternion Inverse needs a Quaternion input")
-            return left.inverse()
-        if operation is Operation.QUATERNION_SLERP:
-            start, end, blend = inputs
-            if (
-                not isinstance(start, Quaternion)
-                or not isinstance(end, Quaternion)
-                or not isinstance(blend, float)
-            ):
-                raise TypeError(
-                    "Quaternion Slerp needs Quaternion, Quaternion and Float inputs"
-                )
-            return start.slerp(end, blend)
-        if operation is Operation.LOOK_AT:
-            eye, target, up = inputs
-            if not all(isinstance(value, Vec3) for value in (eye, target, up)):
-                raise TypeError("Look At needs three Vec3 inputs")
-            return look_at(eye, target, up)
-        if operation is Operation.PERSPECTIVE:
-            fov, aspect, near, far = inputs
-            if not all(isinstance(value, float) for value in inputs):
-                raise TypeError("Perspective needs four Float inputs")
-            return perspective(fov, aspect, near, far)
-        if operation is Operation.ORTHO:
-            if not all(isinstance(value, float) for value in inputs):
-                raise TypeError("Orthographic needs six Float inputs")
-            return ortho(*inputs)
-        if operation is Operation.FRUSTUM:
-            if not all(isinstance(value, float) for value in inputs):
-                raise TypeError("Frustum needs six Float inputs")
-            return frustum(*inputs)
-        if operation is Operation.MAT4_TRANSLATE:
-            if not all(isinstance(value, float) for value in inputs):
-                raise TypeError("Mat4 Translate needs three Float inputs")
-            return Mat4.translate(*inputs)
-        if operation is Operation.MAT4_SCALE:
-            if not all(isinstance(value, float) for value in inputs):
-                raise TypeError("Mat4 Scale needs three Float inputs")
-            return Mat4.scale(*inputs)
-        if operation is Operation.MAT4_ROTATE_X:
-            return Mat4.rotate_x(left)
-        if operation is Operation.MAT4_ROTATE_Y:
-            return Mat4.rotate_y(left)
-        if operation is Operation.MAT4_ROTATE_Z:
-            return Mat4.rotate_z(left)
-        if operation is Operation.QUATERNION_FROM_AXIS_ANGLE:
-            axis, angle = inputs
-            if not isinstance(axis, Vec3) or not isinstance(angle, float):
-                raise TypeError(
-                    "Quaternion from Axis Angle needs Vec3 and Float inputs"
-                )
-            return Quaternion.from_axis_angle(axis, angle)
-
-        if len(inputs) < 2:
-            raise GraphError(f"{operation.value} needs input B")
-        right = inputs[1]
-        if operation is Operation.ADD:
-            return left + right
-        if operation is Operation.SUBTRACT:
-            return left - right
-        if operation is Operation.MATRIX_MULTIPLY:
-            return left @ right
-        if operation is Operation.QUATERNION_PRODUCT:
-            if not isinstance(left, Quaternion) or not isinstance(right, Quaternion):
-                raise TypeError("Quaternion Product needs two Quaternion inputs")
-            return left @ right
-        if operation is Operation.QUATERNION_ROTATE_VECTOR:
-            if not isinstance(left, Quaternion) or not isinstance(right, Vec3):
-                raise TypeError(
-                    "Quaternion Rotate Vector needs Quaternion and Vec3 inputs"
-                )
-            return left * right
-        if operation is Operation.DOT:
-            return float(left.dot(right))
-        if operation is Operation.CROSS:
-            return left.cross(right)
-
-        if type(left) is not type(right):
-            raise ValueError("component multiply needs matching input types")
-        if isinstance(left, float):
-            return left * right
-        components = tuple(a * b for a, b in zip(left.to_list(), right.to_list()))
-        return type(left)(*components)
+        return _OPERATION_HANDLERS[operation](*inputs)
     except GraphError:
         raise
     except (AttributeError, TypeError, ValueError, ZeroDivisionError) as error:
@@ -341,6 +437,23 @@ class MathGraph:
         if isinstance(target, ValueNode):
             raise ValueError("Value nodes do not have inputs")
         target.inputs[input_index] = source_id
+
+    def disconnect(self, target_id: str, input_index: int) -> None:
+        """Remove one input wire without deleting either node."""
+        target = self._nodes[target_id]
+        if isinstance(target, ValueNode):
+            raise ValueError("Value nodes do not have inputs")
+        target.inputs.pop(input_index, None)
+
+    def remove_node(self, node_id: str) -> None:
+        """Delete a node and clear any downstream inputs that referenced it."""
+        del self._nodes[node_id]
+        for node in self._nodes.values():
+            if isinstance(node, ValueNode):
+                continue
+            for input_index, source_id in list(node.inputs.items()):
+                if source_id == node_id:
+                    del node.inputs[input_index]
 
     def evaluate(self, node_id: str) -> MathValue:
         """Evaluate a graph node and all the inputs below it."""

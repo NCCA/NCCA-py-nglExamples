@@ -2,14 +2,35 @@
 
 import os
 from importlib import import_module
+from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QFont, QFontMetrics
+from PySide6.QtCore import QPoint, QPointF, Qt
+from PySide6.QtGui import QFont, QFontMetrics, QWheelEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QGroupBox, QPushButton
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QGroupBox,
+    QMessageBox,
+    QPushButton,
+)
+
+
+def _wheel_event(delta_y: int) -> QWheelEvent:
+    """Build a synthetic wheel event scrolling up (positive) or down."""
+    return QWheelEvent(
+        QPointF(0.0, 0.0),
+        QPointF(0.0, 0.0),
+        QPoint(0, 0),
+        QPoint(0, delta_y),
+        Qt.MouseButton.NoButton,
+        Qt.KeyboardModifier.NoModifier,
+        Qt.ScrollPhase.NoScrollPhase,
+        False,
+    )
 
 
 def _node_editor_module():
@@ -224,6 +245,40 @@ def test_palette_groups_extended_operations_by_domain(
     window.close()
 
 
+def test_palette_and_menu_expose_the_same_catalogue_labels(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    window.show()
+
+    catalogue_labels = {
+        label
+        for _title, entries in node_editor.NODE_CATALOGUE
+        for label, _factory in entries
+    }
+    palette_labels = {
+        button.text()
+        for button in window.palette.findChildren(QPushButton)
+        if button.text() in catalogue_labels
+    }
+    menu_labels = {action.text() for action in window.view.node_menu.creation_actions}
+
+    assert palette_labels == catalogue_labels
+    assert menu_labels == catalogue_labels
+    window.close()
+
+
+def test_operation_groupings_cover_every_operation() -> None:
+    node_editor = _node_editor_module()
+    grouped_operations = (
+        set(node_editor.MATH_OPERATIONS)
+        | set(node_editor.MAT4_OPERATIONS)
+        | set(node_editor.QUATERNION_OPERATIONS)
+    )
+    assert grouped_operations == set(node_editor.Operation)
+
+
 @pytest.mark.parametrize("key_target", ["view", "viewport"])
 def test_pressing_tab_on_canvas_opens_node_creation_menu(
     application: QApplication,
@@ -301,4 +356,356 @@ def test_enter_creates_first_filtered_node(application: QApplication) -> None:
     assert isinstance(added_node, node_editor.OperationNodeItem)
     assert added_node.operation is node_editor.Operation.PERSPECTIVE
     assert not menu.isVisible()
+    window.close()
+
+
+@pytest.mark.parametrize("key", [Qt.Key.Key_Delete, Qt.Key.Key_Backspace])
+def test_delete_key_removes_selected_node_and_its_wires(
+    application: QApplication,
+    key: Qt.Key,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    window.show()
+    window.view.setFocus()
+    multiply_node = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.OperationNodeItem)
+    )
+    multiply_node.setSelected(True)
+
+    QTest.keyClick(window.view, key)
+    application.processEvents()
+
+    assert multiply_node.node_id not in window.canvas.nodes
+    assert len(window.canvas.connections) == 0
+    window.close()
+
+
+@pytest.mark.parametrize("key", [Qt.Key.Key_Delete, Qt.Key.Key_Backspace])
+def test_delete_key_edits_a_focused_spin_box_instead_of_deleting_its_node(
+    application: QApplication,
+    key: Qt.Key,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    window.show()
+    window.view.setFocus()
+    value_node = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.ValueNodeItem)
+    )
+    value_node.setSelected(True)
+    value_node.spin_boxes[0].setFocus(Qt.FocusReason.MouseFocusReason)
+    application.processEvents()
+
+    QTest.keyClick(window.view, key)
+    application.processEvents()
+
+    assert value_node.node_id in window.canvas.nodes
+    window.close()
+
+
+def test_delete_key_removes_selected_connection_without_deleting_its_nodes(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    window.show()
+    window.view.setFocus()
+    connection = window.canvas.connections[0]
+    connection.setSelected(True)
+
+    QTest.keyClick(window.view, Qt.Key.Key_Delete)
+    application.processEvents()
+
+    assert connection not in window.canvas.connections
+    assert len(window.canvas.nodes) == 4
+    window.close()
+
+
+def test_context_menu_target_resolves_a_port_to_its_owning_node(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    window.show()
+    multiply_node = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.OperationNodeItem)
+    )
+    viewport_position = window.view.mapFromScene(
+        multiply_node.input_ports[0].scene_centre()
+    )
+
+    target = window.view._deletable_item_at(viewport_position)
+
+    assert target is multiply_node
+    window.close()
+
+
+def test_context_menu_target_resolves_a_click_on_a_wire(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    window.show()
+    connection = window.canvas.connections[0]
+    midpoint = connection.path().pointAtPercent(0.5)
+    viewport_position = window.view.mapFromScene(midpoint)
+
+    target = window.view._deletable_item_at(viewport_position)
+
+    assert target is connection
+    window.close()
+
+
+def test_right_click_menu_deletes_the_targeted_node(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    window.show()
+    multiply_node = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.OperationNodeItem)
+    )
+    viewport_position = window.view.mapFromScene(
+        multiply_node.input_ports[0].scene_centre()
+    )
+
+    window.view._delete_item_at(viewport_position)
+    application.processEvents()
+
+    assert multiply_node.node_id not in window.canvas.nodes
+    window.close()
+
+
+def test_to_dict_and_from_dict_round_trip_the_example_graph(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    original_output = window.canvas.output_texts()
+
+    data = window.canvas.to_dict()
+    window.canvas.from_dict(data)
+    application.processEvents()
+
+    assert window.canvas.output_texts() == original_output
+    assert len(window.canvas.nodes) == 4
+    assert len(window.canvas.connections) == 3
+    window.close()
+
+
+def test_save_to_file_and_load_from_file_round_trip(
+    application: QApplication,
+    tmp_path: Path,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    file_path = tmp_path / "graph.json"
+
+    window.canvas.save_to_file(file_path)
+    window.canvas.load_from_file(file_path)
+    application.processEvents()
+
+    assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
+    window.close()
+
+
+def test_save_graph_button_writes_a_json_file(
+    application: QApplication,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    file_path = tmp_path / "graph.json"
+    monkeypatch.setattr(
+        QFileDialog,
+        "getSaveFileName",
+        lambda *args, **kwargs: (str(file_path), ""),
+    )
+    save_button = next(
+        child
+        for child in window.palette.findChildren(QPushButton)
+        if child.text() == "Save graph..."
+    )
+
+    save_button.click()
+    application.processEvents()
+
+    assert file_path.exists()
+    window.close()
+
+
+def test_load_graph_button_replaces_the_current_graph(
+    application: QApplication,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    file_path = tmp_path / "graph.json"
+    window.canvas.save_to_file(file_path)
+    window.canvas.clear_graph()
+    monkeypatch.setattr(
+        QFileDialog,
+        "getOpenFileName",
+        lambda *args, **kwargs: (str(file_path), ""),
+    )
+    load_button = next(
+        child
+        for child in window.palette.findChildren(QPushButton)
+        if child.text() == "Load graph..."
+    )
+
+    load_button.click()
+    application.processEvents()
+
+    assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
+    window.close()
+
+
+def test_load_graph_button_reports_a_malformed_file_instead_of_crashing(
+    application: QApplication,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    file_path = tmp_path / "broken.json"
+    file_path.write_text("not valid json")
+    monkeypatch.setattr(
+        QFileDialog,
+        "getOpenFileName",
+        lambda *args, **kwargs: (str(file_path), ""),
+    )
+    warnings: list[object] = []
+    monkeypatch.setattr(
+        QMessageBox,
+        "warning",
+        lambda *args, **kwargs: warnings.append(args),
+    )
+    load_button = next(
+        child
+        for child in window.palette.findChildren(QPushButton)
+        if child.text() == "Load graph..."
+    )
+
+    load_button.click()
+    application.processEvents()
+
+    assert len(warnings) == 1
+    assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
+    window.close()
+
+
+def test_wheel_zoom_step_is_gentle(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+
+    window.view.wheelEvent(_wheel_event(120))
+
+    assert window.view.transform().m11() == pytest.approx(
+        node_editor.MathNodeView.ZOOM_STEP
+    )
+    window.close()
+
+
+def test_wheel_zoom_is_clamped_to_the_maximum(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+
+    for _ in range(200):
+        window.view.wheelEvent(_wheel_event(120))
+
+    assert window.view.transform().m11() == pytest.approx(
+        node_editor.MathNodeView.MAX_ZOOM
+    )
+    window.close()
+
+
+def test_wheel_zoom_is_clamped_to_the_minimum(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+
+    for _ in range(200):
+        window.view.wheelEvent(_wheel_event(-120))
+
+    assert window.view.transform().m11() == pytest.approx(
+        node_editor.MathNodeView.MIN_ZOOM
+    )
+    window.close()
+
+
+def test_frame_all_fits_every_node_within_the_viewport(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    window.resize(900, 600)
+    window.show()
+    application.processEvents()
+    window.view.resetTransform()
+    window.view.centerOn(2000.0, 2000.0)
+
+    window.view.frame_all()
+    application.processEvents()
+
+    visible_rect = window.view.mapToScene(window.view.viewport().rect()).boundingRect()
+    for node in window.canvas.nodes.values():
+        assert visible_rect.contains(node.sceneBoundingRect())
+    window.close()
+
+
+def test_frame_all_does_nothing_on_an_empty_graph(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    window.show()
+    application.processEvents()
+    before = window.view.transform()
+
+    window.view.frame_all()
+
+    assert window.view.transform() == before
+    window.close()
+
+
+def test_h_key_triggers_frame_all(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    window.show()
+    window.view.setFocus()
+    calls: list[bool] = []
+    window.view.frame_all = lambda: calls.append(True)
+
+    QTest.keyClick(window.view, Qt.Key.Key_H)
+    application.processEvents()
+
+    assert calls == [True]
+    window.close()
+
+
+def test_frame_all_button_calls_view_frame_all(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    calls: list[bool] = []
+    window.view.frame_all = lambda: calls.append(True)
+    frame_button = next(
+        child
+        for child in window.palette.findChildren(QPushButton)
+        if child.text() == "Frame All"
+    )
+
+    frame_button.click()
+
+    assert calls == [True]
     window.close()
