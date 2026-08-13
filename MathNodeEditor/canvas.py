@@ -363,6 +363,12 @@ class MathNodeScene(QGraphicsScene):
             elif isinstance(node, OperationNodeItem):
                 entry["kind"] = "operation"
                 entry["operation"] = node.operation.name
+            elif isinstance(node, GeneratorNodeItem):
+                entry["kind"] = "generator"
+                entry["operation"] = node.operation.name
+                entry["parameters"] = [
+                    [box.value() for box in row] for row in node.spin_box_rows
+                ]
             elif isinstance(node, ObjLoaderNodeItem):
                 entry["kind"] = "obj_loader"
                 entry["array_ids"] = list(node.array_node_ids)
@@ -410,6 +416,13 @@ class MathNodeScene(QGraphicsScene):
                 id_map[entry["id"]] = node.node_id
             elif kind == "operation":
                 node = self.add_operation_node(Operation[entry["operation"]], position)
+                id_map[entry["id"]] = node.node_id
+            elif kind == "generator":
+                node = self.add_generator_node(
+                    Operation[entry["operation"]],
+                    position,
+                    tuple(tuple(p) for p in entry["parameters"]),
+                )
                 id_map[entry["id"]] = node.node_id
             elif kind == "output":
                 node = self.add_output_node(position)

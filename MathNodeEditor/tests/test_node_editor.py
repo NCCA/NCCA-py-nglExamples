@@ -548,6 +548,36 @@ def test_to_dict_and_from_dict_round_trip_the_example_graph(
     window.close()
 
 
+def test_generator_node_round_trips_through_to_dict_and_from_dict(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    look_at_node = window.canvas.add_generator_node(
+        node_editor.Operation.LOOK_AT,
+        parameters=((0.0, 3.0, 9.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+    )
+    output_node = window.canvas.add_output_node()
+    assert look_at_node.output_port is not None
+    window.canvas.connect_ports(look_at_node.output_port, output_node.input_ports[0])
+    application.processEvents()
+    before = window.canvas.output_texts()
+
+    data = window.canvas.to_dict()
+    window.canvas.from_dict(data)
+    application.processEvents()
+
+    after_node = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.GeneratorNodeItem)
+    )
+    values = [box.value() for row in after_node.spin_box_rows for box in row]
+    assert values == pytest.approx([0.0, 3.0, 9.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0])
+    assert window.canvas.output_texts() == before
+    window.close()
+
+
 def test_save_to_file_and_load_from_file_round_trip(
     application: QApplication,
     tmp_path: Path,
