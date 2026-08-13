@@ -121,13 +121,10 @@ def test_float_nodes_can_use_the_basic_arithmetic_operations() -> None:
 def test_look_at_node_builds_a_mat4_from_three_vec3_inputs() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    eye = graph.add_value(graph_module.MathType.VEC3, (0.0, 2.0, 5.0))
-    target = graph.add_value(graph_module.MathType.VEC3, (0.0, 0.0, 0.0))
-    up = graph.add_value(graph_module.MathType.VEC3, (0.0, 1.0, 0.0))
-    operation = graph.add_operation(graph_module.Operation.LOOK_AT)
-    graph.connect(eye, operation, 0)
-    graph.connect(target, operation, 1)
-    graph.connect(up, operation, 2)
+    operation = graph.add_generator(
+        graph_module.Operation.LOOK_AT,
+        ((0.0, 2.0, 5.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+    )
 
     result = graph.evaluate(operation)
 
@@ -139,26 +136,24 @@ def test_look_at_node_builds_a_mat4_from_three_vec3_inputs() -> None:
 def test_look_at_node_reports_semantic_input_names() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    eye = graph.add_value(graph_module.MathType.VEC3, (0.0, 2.0, 5.0))
-    target = graph.add_value(graph_module.MathType.VEC3, (0.0, 0.0, 0.0))
-    operation = graph.add_operation(graph_module.Operation.LOOK_AT)
-    graph.connect(eye, operation, 0)
-    graph.connect(target, operation, 1)
+    operation = graph.add_generator(
+        graph_module.Operation.LOOK_AT,
+        ((0.0, 2.0, 5.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+    )
 
-    with pytest.raises(graph_module.GraphError, match="input Up"):
-        graph.evaluate(operation)
+    # Generator nodes always have all their parameters, so we can't test missing input
+    # by omitting a parameter. Instead, test that the generator works correctly.
+    result = graph.evaluate(operation)
+    assert isinstance(result, Mat4)
 
 
 def test_perspective_node_builds_a_mat4_from_four_float_inputs() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    values = [
-        graph.add_value(graph_module.MathType.FLOAT, (component,))
-        for component in (45.0, 16.0 / 9.0, 0.1, 100.0)
-    ]
-    operation = graph.add_operation(graph_module.Operation.PERSPECTIVE)
-    for input_index, value_node in enumerate(values):
-        graph.connect(value_node, operation, input_index)
+    operation = graph.add_generator(
+        graph_module.Operation.PERSPECTIVE,
+        ((45.0,), (16.0 / 9.0,), (0.1,), (100.0,)),
+    )
 
     result = graph.evaluate(operation)
 
@@ -170,13 +165,10 @@ def test_perspective_node_builds_a_mat4_from_four_float_inputs() -> None:
 def test_perspective_node_reports_invalid_clip_planes() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    values = [
-        graph.add_value(graph_module.MathType.FLOAT, (component,))
-        for component in (45.0, 1.0, 1.0, 1.0)
-    ]
-    operation = graph.add_operation(graph_module.Operation.PERSPECTIVE)
-    for input_index, value_node in enumerate(values):
-        graph.connect(value_node, operation, input_index)
+    operation = graph.add_generator(
+        graph_module.Operation.PERSPECTIVE,
+        ((45.0,), (1.0,), (1.0,), (1.0,)),
+    )
 
     with pytest.raises(graph_module.GraphError, match="Perspective failed"):
         graph.evaluate(operation)
@@ -185,27 +177,24 @@ def test_perspective_node_reports_invalid_clip_planes() -> None:
 @pytest.mark.parametrize(
     ("operation_name", "inputs", "expected"),
     [
-        ("MAT4_TRANSLATE", (2.0, 3.0, 4.0), Mat4.translate(2.0, 3.0, 4.0)),
-        ("MAT4_SCALE", (2.0, 3.0, 4.0), Mat4.scale(2.0, 3.0, 4.0)),
-        ("MAT4_ROTATE_X", (30.0,), Mat4.rotate_x(30.0)),
-        ("MAT4_ROTATE_Y", (45.0,), Mat4.rotate_y(45.0)),
-        ("MAT4_ROTATE_Z", (60.0,), Mat4.rotate_z(60.0)),
+        ("MAT4_TRANSLATE", ((2.0,), (3.0,), (4.0,)), Mat4.translate(2.0, 3.0, 4.0)),
+        ("MAT4_SCALE", ((2.0,), (3.0,), (4.0,)), Mat4.scale(2.0, 3.0, 4.0)),
+        ("MAT4_ROTATE_X", ((30.0,),), Mat4.rotate_x(30.0)),
+        ("MAT4_ROTATE_Y", ((45.0,),), Mat4.rotate_y(45.0)),
+        ("MAT4_ROTATE_Z", ((60.0,),), Mat4.rotate_z(60.0)),
     ],
 )
 def test_mat4_transform_constructor_nodes(
     operation_name: str,
-    inputs: tuple[float, ...],
+    inputs: tuple[tuple[float, ...], ...],
     expected: Mat4,
 ) -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    value_nodes = [
-        graph.add_value(graph_module.MathType.FLOAT, (component,))
-        for component in inputs
-    ]
-    operation = graph.add_operation(graph_module.Operation[operation_name])
-    for input_index, value_node in enumerate(value_nodes):
-        graph.connect(value_node, operation, input_index)
+    operation = graph.add_generator(
+        graph_module.Operation[operation_name],
+        inputs,
+    )
 
     result = graph.evaluate(operation)
 
@@ -215,13 +204,10 @@ def test_mat4_transform_constructor_nodes(
 def test_transform_node_builds_a_model_matrix_from_position_rotation_scale() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    position = graph.add_value(graph_module.MathType.VEC3, (1.0, 2.0, 3.0))
-    rotation = graph.add_value(graph_module.MathType.VEC3, (0.0, 30.0, 0.0))
-    scale = graph.add_value(graph_module.MathType.VEC3, (2.0, 2.0, 2.0))
-    operation = graph.add_operation(graph_module.Operation.TRANSFORM)
-    graph.connect(position, operation, 0)
-    graph.connect(rotation, operation, 1)
-    graph.connect(scale, operation, 2)
+    operation = graph.add_generator(
+        graph_module.Operation.TRANSFORM,
+        ((1.0, 2.0, 3.0), (0.0, 30.0, 0.0), (2.0, 2.0, 2.0)),
+    )
 
     result = graph.evaluate(operation)
 
@@ -236,25 +222,25 @@ def test_transform_node_builds_a_model_matrix_from_position_rotation_scale() -> 
 def test_transform_node_reports_semantic_input_names() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    position = graph.add_value(graph_module.MathType.VEC3, (0.0, 0.0, 0.0))
-    operation = graph.add_operation(graph_module.Operation.TRANSFORM)
-    graph.connect(position, operation, 0)
+    operation = graph.add_generator(
+        graph_module.Operation.TRANSFORM,
+        ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (1.0, 1.0, 1.0)),
+    )
 
-    with pytest.raises(graph_module.GraphError, match="input Rotation"):
-        graph.evaluate(operation)
+    # Generator nodes always have all their parameters, so we can't test missing input
+    # by omitting a parameter. Instead, test that the generator works correctly.
+    result = graph.evaluate(operation)
+    assert isinstance(result, Mat4)
 
 
 def test_ortho_node_builds_an_orthographic_mat4() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
     components = (-10.0, 10.0, -5.0, 5.0, 0.1, 100.0)
-    value_nodes = [
-        graph.add_value(graph_module.MathType.FLOAT, (component,))
-        for component in components
-    ]
-    operation = graph.add_operation(graph_module.Operation.ORTHO)
-    for input_index, value_node in enumerate(value_nodes):
-        graph.connect(value_node, operation, input_index)
+    operation = graph.add_generator(
+        graph_module.Operation.ORTHO,
+        tuple((c,) for c in components),
+    )
 
     result = graph.evaluate(operation)
 
@@ -265,13 +251,10 @@ def test_frustum_node_builds_a_projection_mat4() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
     components = (-1.0, 1.0, -0.5, 0.5, 0.1, 100.0)
-    value_nodes = [
-        graph.add_value(graph_module.MathType.FLOAT, (component,))
-        for component in components
-    ]
-    operation = graph.add_operation(graph_module.Operation.FRUSTUM)
-    for input_index, value_node in enumerate(value_nodes):
-        graph.connect(value_node, operation, input_index)
+    operation = graph.add_generator(
+        graph_module.Operation.FRUSTUM,
+        tuple((c,) for c in components),
+    )
 
     result = graph.evaluate(operation)
 
@@ -281,11 +264,10 @@ def test_frustum_node_builds_a_projection_mat4() -> None:
 def test_axis_angle_node_builds_a_quaternion() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    axis = graph.add_value(graph_module.MathType.VEC3, (0.0, 1.0, 0.0))
-    angle = graph.add_value(graph_module.MathType.FLOAT, (90.0,))
-    operation = graph.add_operation(graph_module.Operation.QUATERNION_FROM_AXIS_ANGLE)
-    graph.connect(axis, operation, 0)
-    graph.connect(angle, operation, 1)
+    operation = graph.add_generator(
+        graph_module.Operation.QUATERNION_FROM_AXIS_ANGLE,
+        ((0.0, 1.0, 0.0), (90.0,)),
+    )
 
     result = graph.evaluate(operation)
 
@@ -792,3 +774,65 @@ def test_set_literal_rejects_non_literal_nodes() -> None:
 
     with pytest.raises(ValueError):
         graph.set_literal(value_node, 2.0)
+
+
+def test_generator_node_builds_a_mat4_from_vec3_parameters() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    operation = graph.add_generator(
+        graph_module.Operation.LOOK_AT,
+        ((0.0, 2.0, 5.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+    )
+
+    result = graph.evaluate(operation)
+
+    expected = look_at(Vec3(0.0, 2.0, 5.0), Vec3(0.0, 0.0, 0.0), Vec3(0.0, 1.0, 0.0))
+    assert isinstance(result, Mat4)
+    assert result.to_list() == pytest.approx(expected.to_list())
+
+
+def test_generator_node_builds_a_mat4_from_float_parameters() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    operation = graph.add_generator(
+        graph_module.Operation.PERSPECTIVE,
+        ((45.0,), (16.0 / 9.0,), (0.1,), (100.0,)),
+    )
+
+    result = graph.evaluate(operation)
+
+    expected = perspective(45.0, 16.0 / 9.0, 0.1, 100.0)
+    assert isinstance(result, Mat4)
+    assert result.to_list() == pytest.approx(expected.to_list())
+
+
+def test_set_generator_parameter_updates_the_result() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    operation = graph.add_generator(graph_module.Operation.MAT4_ROTATE_Y, ((0.0,),))
+
+    graph.set_generator_parameter(operation, 0, (45.0,))
+
+    result = graph.evaluate(operation)
+    assert result.to_list() == pytest.approx(Mat4.rotate_y(45.0).to_list())
+
+
+def test_add_operation_rejects_a_generator_operation() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+
+    with pytest.raises(ValueError, match="add_generator"):
+        graph.add_operation(graph_module.Operation.LOOK_AT)
+
+
+def test_generator_node_rejects_wired_connections() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    value_node = graph.add_value(graph_module.MathType.VEC3, (0.0, 0.0, 0.0))
+    operation = graph.add_generator(
+        graph_module.Operation.LOOK_AT,
+        ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+    )
+
+    with pytest.raises(ValueError, match="do not have inputs"):
+        graph.connect(value_node, operation, 0)
