@@ -654,6 +654,32 @@ def test_mvp_example_loads_and_evaluates_a_single_matrix(
     window.close()
 
 
+def test_mvp_mesh_example_applies_the_model_transform_to_a_displayed_mesh(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    example_path = Path(__file__).parent.parent / "examples" / "mvp_mesh_demo.json"
+
+    window.canvas.load_from_file(example_path)
+    application.processEvents()
+
+    mesh_viewer = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.MeshViewerNodeItem)
+    )
+    assert mesh_viewer.status_text_item.toPlainText() == ""
+    assert mesh_viewer.render_state.mesh_inputs is not None
+    vertices = mesh_viewer.render_state.mesh_inputs.vertices.values
+    assert len(vertices) == 8
+    # The cube is Model-transformed (position, rotation, scale all non-identity),
+    # so its rendered vertices should differ from the untouched loader output.
+    unit_cube_vertex = max(vertices, key=lambda v: v.x**2 + v.y**2 + v.z**2)
+    assert unit_cube_vertex.to_list() != pytest.approx([1.0, 1.0, 1.0])
+    window.close()
+
+
 def test_wheel_zoom_step_is_gentle(application: QApplication) -> None:
     node_editor = _node_editor_module()
     window = node_editor.MathNodeWindow(load_example=False)
