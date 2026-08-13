@@ -5,6 +5,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from ncca.ngl import (
+    Obj,
+    ObjParseFaceError,
+    ObjParseNormalError,
+    ObjParseUVError,
+    ObjParseVertexError,
+    Vec2,
+    Vec3,
+)
 from PySide6.QtCore import QEvent, QLineF, QPoint, QPointF, QRectF, Qt
 from PySide6.QtGui import (
     QBrush,
@@ -18,6 +27,7 @@ from PySide6.QtGui import (
     QWheelEvent,
 )
 from PySide6.QtWidgets import (
+    QFileDialog,
     QGraphicsItem,
     QGraphicsPathItem,
     QGraphicsProxyWidget,
@@ -31,6 +41,8 @@ from PySide6.QtWidgets import (
 from .graphics_items import (
     BaseNodeItem,
     ConnectionItem,
+    MeshViewerNodeItem,
+    ObjLoaderNodeItem,
     OperationNodeItem,
     OutputNodeItem,
     PortItem,
@@ -38,8 +50,27 @@ from .graphics_items import (
     _bezier_path,
     default_components,
 )
-from .math_graph import GraphError, MathGraph, MathType, Operation, format_value
+from .math_graph import (
+    FaceArray,
+    GraphError,
+    MathGraph,
+    MathType,
+    NormalArray,
+    Operation,
+    UVArray,
+    VertexArray,
+    arrays_from_obj,
+    format_value,
+)
+from .mesh_view import SHADING_DIFFUSE, SHADING_SOLID
 from .palette import NodeCreationMenu
+
+_OBJ_PARSE_ERRORS = (
+    ObjParseVertexError,
+    ObjParseNormalError,
+    ObjParseUVError,
+    ObjParseFaceError,
+)
 
 
 class MathNodeScene(QGraphicsScene):
@@ -108,10 +139,85 @@ class MathNodeScene(QGraphicsScene):
         self.nodes[node_id] = node
         return node
 
+    def add_obj_loader_node(self, position: QPointF | None = None) -> ObjLoaderNodeItem:
+        """Add an Obj Loader node with four empty array outputs."""
+        array_node_ids = (
+            self.graph.add_literal(VertexArray(())),
+            self.graph.add_literal(FaceArray(())),
+            self.graph.add_literal(UVArray(())),
+            self.graph.add_literal(NormalArray(())),
+        )
+        node = ObjLoaderNodeItem(
+            array_node_ids[0], array_node_ids, self._load_obj_into_node
+        )
+        self.addItem(node)
+        node.setPos(position if position is not None else self._next_position())
+        self.nodes[node.node_id] = node
+        return node
+
+    def _load_obj_into_node(self, item: ObjLoaderNodeItem) -> None:
+        """Prompt for an Obj file and load it into an existing loader node."""
+        parent_widget = self.views()[0] if self.views() else None
+        path, _name_filter = QFileDialog.getOpenFileName(
+            parent_widget, "Load Obj", "", "Obj Files (*.obj)"
+        )
+        if not path:
+            return
+        try:
+            obj = Obj()
+            if not obj.load(path):
+                raise GraphError(f"Could not parse {Path(path).name}")
+            vertices, faces, uvs, normals = arrays_from_obj(obj)
+        except (GraphError, OSError, ValueError, *_OBJ_PARSE_ERRORS) as error:
+            item.set_status(str(error) or type(error).__name__, is_error=True)
+            return
+
+        vertices_id, faces_id, uv_id, normals_id = item.array_node_ids
+        self.graph.set_literal(vertices_id, vertices)
+        self.graph.set_literal(faces_id, faces)
+        self.graph.set_literal(uv_id, uvs)
+        self.graph.set_literal(normals_id, normals)
+        item.set_status(
+            f"{Path(path).name}: {len(vertices.values)} verts, "
+            f"{len(faces.triangles)} faces"
+        )
+        self.update_outputs()
+
+    def add_mesh_viewer_node(
+        self,
+        position: QPointF | None = None,
+        shading_mode: str = SHADING_SOLID,
+        wireframe: bool = False,
+    ) -> MeshViewerNodeItem:
+        """Add a mesh viewer sink node to the canvas."""
+        node_id = self.graph.add_mesh_viewer()
+        node = MeshViewerNodeItem(
+            node_id, self.update_outputs, shading_mode=shading_mode, wireframe=wireframe
+        )
+        self.addItem(node)
+        node.setPos(position if position is not None else self._next_position())
+        self.nodes[node_id] = node
+        return node
+
     def _value_changed(self, node_id: str, components: tuple[float, ...]) -> None:
         """Update a graph value after a spin box changes."""
         self.graph.set_value(node_id, components)
         self.update_outputs()
+
+    def _item_for_node_id(self, graph_node_id: str) -> BaseNodeItem:
+        """Return the graphics item that owns a graph node id."""
+        for node in self.nodes.values():
+            if graph_node_id in node.owned_node_ids():
+                return node
+        raise KeyError(graph_node_id)
+
+    def _output_port_for_node_id(self, graph_node_id: str) -> PortItem:
+        """Return the output socket that sources a given graph node id."""
+        item = self._item_for_node_id(graph_node_id)
+        for port in item.output_ports:
+            if port.graph_node_id == graph_node_id:
+                return port
+        raise KeyError(graph_node_id)
 
     def connect_ports(self, source: PortItem, target: PortItem) -> ConnectionItem:
         """Connect an output socket to an input, replacing its previous wire."""
@@ -122,7 +228,9 @@ class MathNodeScene(QGraphicsScene):
 
         for old_connection in list(target.connections):
             self._remove_connection(old_connection)
-        self.graph.connect(source.node.node_id, target.node.node_id, target.input_index)
+        self.graph.connect(
+            source.graph_node_id, target.node.node_id, target.input_index
+        )
         connection = ConnectionItem(source, target)
         self.addItem(connection)
         self.connections.append(connection)
@@ -155,13 +263,14 @@ class MathNodeScene(QGraphicsScene):
 
     def _delete_node(self, node: BaseNodeItem) -> None:
         """Remove a node, detaching its wires and dropping it from the graph."""
-        ports = [*node.input_ports]
-        if node.output_port is not None:
-            ports.append(node.output_port)
+        if isinstance(node, MeshViewerNodeItem) and node._popup is not None:
+            node._popup.close()
+        ports = [*node.input_ports, *node.output_ports]
         for port in ports:
             for connection in list(port.connections):
                 self._remove_connection(connection)
-        self.graph.remove_node(node.node_id)
+        for owned_id in node.owned_node_ids():
+            self.graph.remove_node(owned_id)
         del self.nodes[node.node_id]
         self.removeItem(node)
 
@@ -217,12 +326,30 @@ class MathNodeScene(QGraphicsScene):
             elif isinstance(node, OperationNodeItem):
                 entry["kind"] = "operation"
                 entry["operation"] = node.operation.name
+            elif isinstance(node, ObjLoaderNodeItem):
+                entry["kind"] = "obj_loader"
+                entry["array_ids"] = list(node.array_node_ids)
+                vertices, faces, uvs, normals = (
+                    self.graph.evaluate(array_id) for array_id in node.array_node_ids
+                )
+                entry["vertices"] = [v.to_list() for v in vertices.values]
+                entry["faces"] = [
+                    [list(corner) for corner in triangle]
+                    for triangle in faces.triangles
+                ]
+                entry["uvs"] = [uv.to_list() for uv in uvs.values]
+                entry["normals"] = [n.to_list() for n in normals.values]
+                entry["status"] = node.status_text_item.toPlainText()
+            elif isinstance(node, MeshViewerNodeItem):
+                entry["kind"] = "mesh_viewer"
+                entry["shading_mode"] = node.render_state.shading_mode
+                entry["wireframe"] = node.render_state.wireframe
             else:
                 entry["kind"] = "output"
             nodes.append(entry)
         connections = [
             {
-                "source": connection.source.node.node_id,
+                "source": connection.source.graph_node_id,
                 "target": connection.target.node.node_id,
                 "input": connection.target.input_index,
             }
@@ -243,21 +370,48 @@ class MathNodeScene(QGraphicsScene):
                     position,
                     tuple(entry["components"]),
                 )
+                id_map[entry["id"]] = node.node_id
             elif kind == "operation":
                 node = self.add_operation_node(Operation[entry["operation"]], position)
+                id_map[entry["id"]] = node.node_id
             elif kind == "output":
                 node = self.add_output_node(position)
+                id_map[entry["id"]] = node.node_id
+            elif kind == "obj_loader":
+                node = self.add_obj_loader_node(position)
+                node.set_status(entry.get("status", ""))
+                vertices = VertexArray(tuple(Vec3(*v) for v in entry["vertices"]))
+                faces = FaceArray(
+                    tuple(
+                        tuple((corner[0], corner[1], corner[2]) for corner in triangle)
+                        for triangle in entry["faces"]
+                    )
+                )
+                uvs = UVArray(tuple(Vec2(*uv) for uv in entry["uvs"]))
+                normals = NormalArray(tuple(Vec3(*n) for n in entry["normals"]))
+                self.graph.set_literal(node.array_node_ids[0], vertices)
+                self.graph.set_literal(node.array_node_ids[1], faces)
+                self.graph.set_literal(node.array_node_ids[2], uvs)
+                self.graph.set_literal(node.array_node_ids[3], normals)
+                for old_id, new_id in zip(entry["array_ids"], node.array_node_ids):
+                    id_map[old_id] = new_id
+            elif kind == "mesh_viewer":
+                node = self.add_mesh_viewer_node(
+                    position,
+                    shading_mode=entry.get("shading_mode", SHADING_SOLID),
+                    wireframe=bool(entry.get("wireframe", False)),
+                )
+                id_map[entry["id"]] = node.node_id
             else:
                 raise GraphError(f"Unknown node kind {kind!r}")
-            id_map[entry["id"]] = node.node_id
         for connection in data["connections"]:
-            source_node = self.nodes[id_map[connection["source"]]]
+            source_port = self._output_port_for_node_id(id_map[connection["source"]])
             target_node = self.nodes[id_map[connection["target"]]]
-            assert source_node.output_port is not None
             self.connect_ports(
-                source_node.output_port,
+                source_port,
                 target_node.input_ports[connection["input"]],
             )
+        self.update_outputs()
 
     def save_to_file(self, path: str | Path) -> None:
         """Write the current graph to a JSON file."""
@@ -268,20 +422,38 @@ class MathNodeScene(QGraphicsScene):
         self.from_dict(json.loads(Path(path).read_text()))
 
     def update_outputs(self) -> None:
-        """Evaluate and refresh every output node in the scene."""
+        """Evaluate and refresh every output and mesh viewer node in the scene."""
         for node_id, node in self.nodes.items():
-            if not isinstance(node, OutputNodeItem):
-                continue
-            try:
-                node.set_result(format_value(self.graph.evaluate(node_id)))
-            except (
-                GraphError,
-                KeyError,
-                TypeError,
-                ValueError,
-                AttributeError,
-            ) as error:
-                node.set_result(str(error) or type(error).__name__, is_error=True)
+            if isinstance(node, OutputNodeItem):
+                try:
+                    node.set_result(format_value(self.graph.evaluate(node_id)))
+                except (
+                    GraphError,
+                    KeyError,
+                    TypeError,
+                    ValueError,
+                    AttributeError,
+                ) as error:
+                    node.set_result(str(error) or type(error).__name__, is_error=True)
+            elif isinstance(node, MeshViewerNodeItem):
+                try:
+                    mesh_inputs = self.graph.evaluate_mesh_viewer(node_id)
+                    if (
+                        node.render_state.shading_mode == SHADING_DIFFUSE
+                        and mesh_inputs.normals is None
+                    ):
+                        raise GraphError(
+                            "Mesh Viewer needs input Normals for Diffuse shading"
+                        )
+                    node.set_mesh_inputs(mesh_inputs)
+                except (
+                    GraphError,
+                    KeyError,
+                    TypeError,
+                    ValueError,
+                    AttributeError,
+                ) as error:
+                    node.show_error(str(error) or type(error).__name__)
 
     def output_texts(self) -> list[str]:
         """Return the current output strings in graph insertion order."""

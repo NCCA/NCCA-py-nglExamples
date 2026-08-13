@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import (
@@ -15,6 +16,8 @@ from PySide6.QtGui import (
     QPen,
 )
 from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
     QDoubleSpinBox,
     QGraphicsEllipseItem,
     QGraphicsItem,
@@ -24,18 +27,31 @@ from PySide6.QtWidgets import (
     QGraphicsSceneHoverEvent,
     QGraphicsTextItem,
     QGridLayout,
+    QHBoxLayout,
+    QPushButton,
     QStyle,
     QStyleOptionGraphicsItem,
     QWidget,
 )
 
 from .math_graph import (
+    MESH_VIEWER_INPUT_NAMES,
     OPERATION_ARITY,
     OPERATION_INPUT_NAMES,
     TYPE_SHAPES,
     MathType,
     Operation,
 )
+from .mesh_view import (
+    SHADING_MODES,
+    SHADING_SOLID,
+    MeshPopupWindow,
+    MeshPreviewWidget,
+    MeshRenderState,
+)
+
+if TYPE_CHECKING:
+    from .math_graph import MeshViewerInputs
 
 NODE_HEADER_HEIGHT = 32.0
 PORT_RADIUS = 6.0
@@ -51,6 +67,14 @@ TYPE_COLOURS: dict[MathType, QColor] = {
     MathType.QUATERNION: QColor("#b58cff"),
 }
 GENERIC_PORT_COLOUR = QColor("#ad8cff")
+
+MESH_ARRAY_LABELS: tuple[str, ...] = ("Vertices", "Faces", "UVs", "Normals")
+MESH_ARRAY_COLOURS: dict[str, QColor] = {
+    "Vertices": QColor("#7fe0c0"),
+    "Faces": QColor("#e0c37f"),
+    "UVs": QColor("#7fb8e0"),
+    "Normals": QColor("#c47fe0"),
+}
 
 
 def node_title_font() -> QFont:
@@ -93,8 +117,15 @@ class PortItem(QGraphicsEllipseItem):
         node: BaseNodeItem,
         input_index: int | None,
         colour: QColor,
+        source_node_id: str | None = None,
     ) -> None:
-        """Create an input or output socket on a node."""
+        """Create an input or output socket on a node.
+
+        ``source_node_id`` lets an output socket report a different graph
+        node id than the one its owning item was created with, which is how
+        a single visual node (e.g. Obj Loader) can expose several outputs
+        that are really separate graph nodes under the hood.
+        """
         super().__init__(
             -PORT_RADIUS,
             -PORT_RADIUS,
@@ -105,6 +136,7 @@ class PortItem(QGraphicsEllipseItem):
         self.node = node
         self.input_index = input_index
         self.colour = colour
+        self.source_node_id = source_node_id
         self.connections: list[ConnectionItem] = []
         self.setBrush(QBrush(colour))
         self.setPen(QPen(QColor("#10141d"), 2.0))
@@ -117,6 +149,15 @@ class PortItem(QGraphicsEllipseItem):
     def is_output(self) -> bool:
         """Return whether this socket sends values."""
         return self.input_index is None
+
+    @property
+    def graph_node_id(self) -> str:
+        """Return the graph node id this socket's values come from or go to."""
+        return (
+            self.source_node_id
+            if self.source_node_id is not None
+            else self.node.node_id
+        )
 
     def scene_centre(self) -> QPointF:
         """Return the socket centre in scene coordinates."""
@@ -192,7 +233,7 @@ class BaseNodeItem(QGraphicsObject):
         self.height = height
         self.input_names = input_names
         self.input_ports: list[PortItem] = []
-        self.output_port: PortItem | None = None
+        self.output_ports: list[PortItem] = []
         self.setFlags(
             QGraphicsItem.GraphicsItemFlag.ItemIsMovable
             | QGraphicsItem.GraphicsItemFlag.ItemIsSelectable
@@ -206,8 +247,24 @@ class BaseNodeItem(QGraphicsObject):
             port.setPos(0.0, NODE_HEADER_HEIGHT + 28.0 + input_index * 30.0)
             self.input_ports.append(port)
         if output_colour is not None:
-            self.output_port = PortItem(self, None, output_colour)
-            self.output_port.setPos(width, NODE_HEADER_HEIGHT + 28.0)
+            port = PortItem(self, None, output_colour)
+            port.setPos(width, NODE_HEADER_HEIGHT + 28.0)
+            self.output_ports.append(port)
+
+    @property
+    def output_port(self) -> PortItem | None:
+        """Return the node's single output socket, if it has exactly one."""
+        return self.output_ports[0] if self.output_ports else None
+
+    def owned_node_ids(self) -> tuple[str, ...]:
+        """Return every graph node id this visual item represents.
+
+        Most nodes are a 1:1 wrapper around a single graph node. A few
+        (e.g. Obj Loader) expose several outputs backed by separate graph
+        nodes and override this to report all of them, so deletion cleans
+        up the whole group.
+        """
+        return (self.node_id,)
 
     def boundingRect(self) -> QRectF:
         """Return the painted node bounds."""
@@ -267,9 +324,7 @@ class BaseNodeItem(QGraphicsObject):
     ) -> object:
         """Keep attached wires aligned when the node moves."""
         if change is QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
-            ports = [*self.input_ports]
-            if self.output_port is not None:
-                ports.append(self.output_port)
+            ports = [*self.input_ports, *self.output_ports]
             for port in ports:
                 for connection in port.connections:
                     connection.update_path()
@@ -386,3 +441,195 @@ class OutputNodeItem(BaseNodeItem):
     def value_text(self) -> str:
         """Return the plain result string for tests and accessibility."""
         return self.result_text.toPlainText()
+
+
+class ObjLoaderNodeItem(BaseNodeItem):
+    """Loads a triangulated Obj file and exposes Vertices/Faces/UVs/Normals.
+
+    Each output socket is backed by its own graph node id (see
+    ``PortItem.source_node_id``), since one visual box here really wraps
+    four separate literal values.
+    """
+
+    WIDTH = 220.0
+
+    def __init__(
+        self,
+        node_id: str,
+        array_node_ids: tuple[str, str, str, str],
+        on_load_clicked: Callable[["ObjLoaderNodeItem"], None],
+    ) -> None:
+        """Create the load button and the four labelled output sockets."""
+        height = NODE_HEADER_HEIGHT + len(MESH_ARRAY_LABELS) * 26.0 + 76.0
+        super().__init__(node_id, "Obj Loader", self.WIDTH, height, (), None)
+        self.array_node_ids = array_node_ids
+        self.on_load_clicked = on_load_clicked
+
+        for index, label in enumerate(MESH_ARRAY_LABELS):
+            port = PortItem(
+                self,
+                None,
+                MESH_ARRAY_COLOURS[label],
+                source_node_id=array_node_ids[index],
+            )
+            port.setPos(self.WIDTH, NODE_HEADER_HEIGHT + 16.0 + index * 26.0)
+            port.setToolTip(label)
+            self.output_ports.append(port)
+
+        button = QPushButton("Load Obj...")
+        button.clicked.connect(lambda _checked=False: self.on_load_clicked(self))
+        self.button_proxy = QGraphicsProxyWidget(self)
+        self.button_proxy.setWidget(button)
+        button_y = NODE_HEADER_HEIGHT + len(MESH_ARRAY_LABELS) * 26.0 + 8.0
+        self.button_proxy.setPos(12.0, button_y)
+        self.button_proxy.setZValue(2.0)
+
+        self.status_text_item = QGraphicsTextItem("No file loaded", self)
+        self.status_text_item.setDefaultTextColor(QColor("#aeb9c9"))
+        self.status_text_item.setFont(QFont("Monaco", 8))
+        self.status_text_item.setTextWidth(self.WIDTH - 24.0)
+        self.status_text_item.setPos(12.0, button_y + 30.0)
+
+    def owned_node_ids(self) -> tuple[str, ...]:
+        """Return the four array node ids this loader owns."""
+        return self.array_node_ids
+
+    def set_status(self, text: str, is_error: bool = False) -> None:
+        """Show the loaded filename and counts, or a load error."""
+        colour = QColor("#ff8a8a") if is_error else QColor("#aeb9c9")
+        self.status_text_item.setDefaultTextColor(colour)
+        self.status_text_item.setPlainText(text)
+
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionGraphicsItem,
+        widget: QWidget | None = None,
+    ) -> None:
+        """Paint the node body plus the four output socket labels."""
+        super().paint(painter, option, widget)
+        label_font = QFont()
+        label_font.setPointSize(9)
+        painter.setFont(label_font)
+        painter.setPen(QPen(QColor("#c2cad7")))
+        for index, label in enumerate(MESH_ARRAY_LABELS):
+            y_position = NODE_HEADER_HEIGHT + 8.0 + index * 26.0
+            painter.drawText(
+                QRectF(0.0, y_position, self.width - 16.0, 18.0),
+                Qt.AlignmentFlag.AlignRight,
+                label,
+            )
+
+
+class MeshViewerNodeItem(BaseNodeItem):
+    """Merges Vertices/Faces/UVs/Normals/Colour and renders the mesh live.
+
+    Renders in two places at once: a small embedded preview in the node
+    body, and an optional pop-out window with the full arcball camera. Both
+    read from the same :class:`~.mesh_view.MeshRenderState`.
+    """
+
+    WIDTH = 260.0
+    PREVIEW_HEIGHT = 170.0
+
+    def __init__(
+        self,
+        node_id: str,
+        on_config_changed: Callable[[], None],
+        shading_mode: str = SHADING_SOLID,
+        wireframe: bool = False,
+    ) -> None:
+        """Create the input sockets, shading controls and embedded preview."""
+        controls_top = NODE_HEADER_HEIGHT + 28.0 + len(MESH_VIEWER_INPUT_NAMES) * 30.0
+        preview_top = controls_top + 48.0
+        height = preview_top + self.PREVIEW_HEIGHT + 44.0
+        super().__init__(
+            node_id, "Mesh Viewer", self.WIDTH, height, MESH_VIEWER_INPUT_NAMES, None
+        )
+        self.on_config_changed = on_config_changed
+        self.render_state = MeshRenderState()
+        self.render_state.shading_mode = shading_mode
+        self.render_state.wireframe = wireframe
+        self._popup: MeshPopupWindow | None = None
+
+        self.shading_combo = QComboBox()
+        self.shading_combo.addItems(SHADING_MODES)
+        self.shading_combo.setCurrentText(shading_mode)
+        self.wireframe_check = QCheckBox("Wireframe")
+        self.wireframe_check.setChecked(wireframe)
+
+        controls = QWidget()
+        controls.setStyleSheet(
+            "QWidget { background: transparent; color: #e8edf5; }"
+            "QComboBox { background: #151a24; border: 1px solid #46536a;"
+            " border-radius: 3px; padding: 2px; }"
+        )
+        controls_layout = QHBoxLayout(controls)
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(6)
+        controls_layout.addWidget(self.shading_combo, 1)
+        controls_layout.addWidget(self.wireframe_check)
+        self.controls_proxy = QGraphicsProxyWidget(self)
+        self.controls_proxy.setWidget(controls)
+        self.controls_proxy.setPos(12.0, controls_top)
+        self.controls_proxy.setZValue(2.0)
+
+        self.status_text_item = QGraphicsTextItem("", self)
+        self.status_text_item.setDefaultTextColor(QColor("#ff8a8a"))
+        self.status_text_item.setFont(QFont("Monaco", 8))
+        self.status_text_item.setTextWidth(self.WIDTH - 24.0)
+        self.status_text_item.setPos(12.0, controls_top + 26.0)
+
+        self.preview = MeshPreviewWidget(self.render_state)
+        self.preview.setFixedSize(int(self.WIDTH - 24.0), int(self.PREVIEW_HEIGHT))
+        self.preview_proxy = QGraphicsProxyWidget(self)
+        self.preview_proxy.setWidget(self.preview)
+        self.preview_proxy.setPos(12.0, preview_top)
+        self.preview_proxy.setZValue(2.0)
+
+        pop_out_button = QPushButton("Pop Out")
+        pop_out_button.clicked.connect(lambda _checked=False: self._pop_out())
+        self.pop_out_proxy = QGraphicsProxyWidget(self)
+        self.pop_out_proxy.setWidget(pop_out_button)
+        self.pop_out_proxy.setPos(12.0, preview_top + self.PREVIEW_HEIGHT + 8.0)
+        self.pop_out_proxy.setZValue(2.0)
+
+        self.shading_combo.currentTextChanged.connect(self._shading_changed)
+        self.wireframe_check.toggled.connect(self._wireframe_toggled)
+
+    def _shading_changed(self, mode: str) -> None:
+        """Switch shading mode and ask the canvas to re-evaluate this node."""
+        self.render_state.set_shading_mode(mode)
+        self.on_config_changed()
+
+    def _wireframe_toggled(self, checked: bool) -> None:
+        """Toggle wireframe and ask the canvas to re-evaluate this node."""
+        self.render_state.set_wireframe(checked)
+        self.on_config_changed()
+
+    def _pop_out(self) -> None:
+        """Open (or focus) the standalone arcball-camera viewer window."""
+        if self._popup is None:
+            self._popup = MeshPopupWindow(self.render_state, "Mesh Viewer")
+            self._popup.show()
+        else:
+            self._popup.requestActivate()
+
+    def _refresh_views(self) -> None:
+        """Repaint the embedded preview and the popup window, if it's open."""
+        self.preview.update()
+        if self._popup is not None:
+            self._popup.update()
+
+    def set_mesh_inputs(self, mesh_inputs: "MeshViewerInputs") -> None:
+        """Clear any error status and render the given merged mesh."""
+        self.status_text_item.setPlainText("")
+        self.render_state.set_mesh(mesh_inputs)
+        self._refresh_views()
+
+    def show_error(self, message: str) -> None:
+        """Clear the rendered mesh and show a graph error message."""
+        self.status_text_item.setDefaultTextColor(QColor("#ff8a8a"))
+        self.status_text_item.setPlainText(message)
+        self.render_state.set_mesh(None)
+        self._refresh_views()

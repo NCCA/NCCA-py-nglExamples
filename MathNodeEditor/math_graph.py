@@ -11,7 +11,9 @@ from ncca.ngl import (
     Mat2,
     Mat3,
     Mat4,
+    Obj,
     Quaternion,
+    Transform,
     Vec2,
     Vec3,
     Vec4,
@@ -20,6 +22,7 @@ from ncca.ngl import (
     ortho,
     perspective,
 )
+from ncca.ngl.opengl import Face
 
 
 class MathType(Enum):
@@ -46,6 +49,8 @@ class Operation(Enum):
     CROSS = "Cross Product"
     NORMALISE = "Normalise"
     TRANSPOSE = "Transpose"
+    INVERSE = "Inverse"
+    MAT4_TO_MAT3 = "Mat4 to Mat3"
     LOOK_AT = "Look At"
     PERSPECTIVE = "Perspective"
     ORTHO = "Orthographic"
@@ -55,6 +60,7 @@ class Operation(Enum):
     MAT4_ROTATE_X = "Mat4 Rotate X"
     MAT4_ROTATE_Y = "Mat4 Rotate Y"
     MAT4_ROTATE_Z = "Mat4 Rotate Z"
+    TRANSFORM = "Transform"
     QUATERNION_FROM_AXIS_ANGLE = "Quaternion from Axis Angle"
     QUATERNION_PRODUCT = "Quaternion Product"
     QUATERNION_ROTATE_VECTOR = "Quaternion Rotate Vector"
@@ -63,6 +69,8 @@ class Operation(Enum):
     QUATERNION_SLERP = "Quaternion Slerp"
     QUATERNION_CONJUGATE = "Quaternion Conjugate"
     QUATERNION_INVERSE = "Quaternion Inverse"
+    TRANSFORM_VERTICES = "Transform Vertices"
+    TRANSFORM_NORMALS = "Transform Normals"
 
 
 OPERATION_INPUT_NAMES: dict[Operation, tuple[str, ...]] = {
@@ -74,6 +82,8 @@ OPERATION_INPUT_NAMES: dict[Operation, tuple[str, ...]] = {
     Operation.CROSS: ("A", "B"),
     Operation.NORMALISE: ("Value",),
     Operation.TRANSPOSE: ("Matrix",),
+    Operation.INVERSE: ("Matrix",),
+    Operation.MAT4_TO_MAT3: ("Matrix",),
     Operation.LOOK_AT: ("Eye", "Target", "Up"),
     Operation.PERSPECTIVE: ("FOV", "Aspect", "Near", "Far"),
     Operation.ORTHO: ("Left", "Right", "Bottom", "Top", "Near", "Far"),
@@ -83,6 +93,7 @@ OPERATION_INPUT_NAMES: dict[Operation, tuple[str, ...]] = {
     Operation.MAT4_ROTATE_X: ("Angle",),
     Operation.MAT4_ROTATE_Y: ("Angle",),
     Operation.MAT4_ROTATE_Z: ("Angle",),
+    Operation.TRANSFORM: ("Position", "Rotation", "Scale"),
     Operation.QUATERNION_FROM_AXIS_ANGLE: ("Axis", "Angle"),
     Operation.QUATERNION_PRODUCT: ("A", "B"),
     Operation.QUATERNION_ROTATE_VECTOR: ("Quaternion", "Vector"),
@@ -91,7 +102,17 @@ OPERATION_INPUT_NAMES: dict[Operation, tuple[str, ...]] = {
     Operation.QUATERNION_SLERP: ("Start", "End", "T"),
     Operation.QUATERNION_CONJUGATE: ("Quaternion",),
     Operation.QUATERNION_INVERSE: ("Quaternion",),
+    Operation.TRANSFORM_VERTICES: ("Matrix", "Vertices"),
+    Operation.TRANSFORM_NORMALS: ("Matrix", "Normals"),
 }
+
+MESH_VIEWER_INPUT_NAMES: tuple[str, ...] = (
+    "Vertices",
+    "Faces",
+    "UVs",
+    "Normals",
+    "Colour",
+)
 
 OPERATION_ARITY: dict[Operation, int] = {
     operation: len(input_names)
@@ -99,7 +120,52 @@ OPERATION_ARITY: dict[Operation, int] = {
 }
 
 
-MathValue: TypeAlias = Vec2 | Vec3 | Vec4 | Mat2 | Mat3 | Mat4 | Quaternion | float
+Corner: TypeAlias = tuple[int, "int | None", "int | None"]
+"""One triangle corner: (vertex_index, uv_index, normal_index)."""
+
+
+@dataclass(slots=True, frozen=True)
+class VertexArray:
+    """A mesh's vertex positions, in Obj file order."""
+
+    values: tuple[Vec3, ...]
+
+
+@dataclass(slots=True, frozen=True)
+class NormalArray:
+    """A mesh's vertex normals, in Obj file order."""
+
+    values: tuple[Vec3, ...]
+
+
+@dataclass(slots=True, frozen=True)
+class UVArray:
+    """A mesh's texture coordinates, in Obj file order."""
+
+    values: tuple[Vec2, ...]
+
+
+@dataclass(slots=True, frozen=True)
+class FaceArray:
+    """A triangulated mesh's per-corner vertex/uv/normal indices."""
+
+    triangles: tuple[tuple[Corner, Corner, Corner], ...]
+
+
+MathValue: TypeAlias = (
+    Vec2
+    | Vec3
+    | Vec4
+    | Mat2
+    | Mat3
+    | Mat4
+    | Quaternion
+    | float
+    | VertexArray
+    | NormalArray
+    | UVArray
+    | FaceArray
+)
 
 VALUE_CLASSES: dict[MathType, Callable[..., MathValue]] = {
     MathType.FLOAT: float,
@@ -167,6 +233,38 @@ def _normalise(value: MathValue) -> MathValue:
 def _transpose(value: MathValue) -> MathValue:
     """Return the transpose of a matrix."""
     return value.transposed()
+
+
+def _inverse(value: MathValue) -> MathValue:
+    """Return the inverse of a Mat3 or Mat4 input."""
+    if not isinstance(value, (Mat3, Mat4)):
+        raise TypeError("Inverse needs a Mat3 or Mat4 input")
+    return value.inverse()
+
+
+def _mat4_to_mat3(value: MathValue) -> MathValue:
+    """Extract the rotation/scale part of a Mat4 input, dropping translation."""
+    if not isinstance(value, Mat4):
+        raise TypeError("Mat4 to Mat3 needs a Mat4 input")
+    return Mat3.from_mat4(value)
+
+
+def _transform_vertices(matrix: MathValue, vertices: MathValue) -> MathValue:
+    """Apply a Mat4 point transform, including translation, to a VertexArray."""
+    if not isinstance(matrix, Mat4) or not isinstance(vertices, VertexArray):
+        raise TypeError("Transform Vertices needs Mat4 and Vertices inputs")
+    transformed = tuple(
+        Vec3(*(Vec4(vertex.x, vertex.y, vertex.z, 1.0) @ matrix).to_list()[:3])
+        for vertex in vertices.values
+    )
+    return VertexArray(transformed)
+
+
+def _transform_normals(matrix: MathValue, normals: MathValue) -> MathValue:
+    """Apply a Mat3 linear transform, ignoring translation, to a NormalArray."""
+    if not isinstance(matrix, Mat3) or not isinstance(normals, NormalArray):
+        raise TypeError("Transform Normals needs Mat3 and Normals inputs")
+    return NormalArray(tuple(normal @ matrix for normal in normals.values))
 
 
 def _quaternion_to_mat4(value: MathValue) -> MathValue:
@@ -267,6 +365,17 @@ def _mat4_rotate_z(angle: MathValue) -> MathValue:
     return Mat4.rotate_z(angle)
 
 
+def _transform(position: MathValue, rotation: MathValue, scale: MathValue) -> MathValue:
+    """Build a Model Mat4 from PyNGL's Transform (Position/Rotation/Scale)."""
+    if not all(isinstance(value, Vec3) for value in (position, rotation, scale)):
+        raise TypeError("Transform needs three Vec3 inputs")
+    transform = Transform()
+    transform.set_position(position)
+    transform.set_rotation(rotation)
+    transform.set_scale(scale)
+    return transform.matrix()
+
+
 def _quaternion_from_axis_angle(axis: MathValue, angle: MathValue) -> MathValue:
     """Build a Quaternion from a Vec3 axis and a Float angle."""
     if not isinstance(axis, Vec3) or not isinstance(angle, float):
@@ -336,6 +445,8 @@ _OPERATION_HANDLERS: dict[Operation, Callable[..., MathValue]] = {
     Operation.CROSS: _cross,
     Operation.NORMALISE: _normalise,
     Operation.TRANSPOSE: _transpose,
+    Operation.INVERSE: _inverse,
+    Operation.MAT4_TO_MAT3: _mat4_to_mat3,
     Operation.LOOK_AT: _look_at,
     Operation.PERSPECTIVE: _perspective,
     Operation.ORTHO: _ortho,
@@ -345,6 +456,7 @@ _OPERATION_HANDLERS: dict[Operation, Callable[..., MathValue]] = {
     Operation.MAT4_ROTATE_X: _mat4_rotate_x,
     Operation.MAT4_ROTATE_Y: _mat4_rotate_y,
     Operation.MAT4_ROTATE_Z: _mat4_rotate_z,
+    Operation.TRANSFORM: _transform,
     Operation.QUATERNION_FROM_AXIS_ANGLE: _quaternion_from_axis_angle,
     Operation.QUATERNION_PRODUCT: _quaternion_product,
     Operation.QUATERNION_ROTATE_VECTOR: _quaternion_rotate_vector,
@@ -353,6 +465,8 @@ _OPERATION_HANDLERS: dict[Operation, Callable[..., MathValue]] = {
     Operation.QUATERNION_SLERP: _quaternion_slerp,
     Operation.QUATERNION_CONJUGATE: _quaternion_conjugate,
     Operation.QUATERNION_INVERSE: _quaternion_inverse,
+    Operation.TRANSFORM_VERTICES: _transform_vertices,
+    Operation.TRANSFORM_NORMALS: _transform_normals,
 }
 
 
@@ -367,6 +481,57 @@ def apply_operation(
         raise
     except (AttributeError, TypeError, ValueError, ZeroDivisionError) as error:
         raise GraphError(f"{operation.value} failed: {error}") from error
+
+
+def arrays_from_obj(obj: Obj) -> tuple[VertexArray, FaceArray, UVArray, NormalArray]:
+    """Split a loaded Obj into the four array values an Obj Loader node outputs.
+
+    Only triangulated meshes are supported, matching the rest of this
+    codebase's Obj-handling demos (``ColourObj``, ``Obj2Numpy``).
+    """
+    if not obj.is_triangular():
+        raise GraphError("Obj Loader needs a triangulated mesh")
+
+    vertices = VertexArray(tuple(Vec3(v.x, v.y, v.z) for v in obj.vertex))
+    normals = NormalArray(tuple(Vec3(n.x, n.y, n.z) for n in obj.normals))
+    uvs = UVArray(tuple(Vec2(uv.x, uv.y) for uv in obj.uv))
+    triangles = tuple(
+        tuple(
+            (
+                face.vertex[corner],
+                face.uv[corner] if face.uv else None,
+                face.normal[corner] if face.normal else None,
+            )
+            for corner in range(3)
+        )
+        for face in obj.faces
+    )
+    return vertices, FaceArray(triangles), uvs, normals
+
+
+def obj_from_arrays(
+    vertices: VertexArray,
+    faces: FaceArray,
+    uvs: UVArray | None,
+    normals: NormalArray | None,
+) -> Obj:
+    """Merge Obj Loader-style arrays back into a plain, VAO-less Obj mesh."""
+    mesh = Obj()
+    mesh.vertex = [Vec3(v.x, v.y, v.z) for v in vertices.values]
+    mesh.normals = [Vec3(n.x, n.y, n.z) for n in normals.values] if normals else []
+    mesh.uv = [Vec3(uv.x, uv.y, 0.0) for uv in uvs.values] if uvs else []
+
+    built_faces = []
+    for triangle in faces.triangles:
+        face = Face()
+        face.vertex = [corner[0] for corner in triangle]
+        if mesh.uv and all(corner[1] is not None for corner in triangle):
+            face.uv = [corner[1] for corner in triangle]
+        if mesh.normals and all(corner[2] is not None for corner in triangle):
+            face.normal = [corner[2] for corner in triangle]
+        built_faces.append(face)
+    mesh.faces = built_faces
+    return mesh
 
 
 @dataclass(slots=True)
@@ -392,7 +557,38 @@ class OutputNode:
     inputs: dict[int, str] = field(default_factory=dict)
 
 
-GraphNode: TypeAlias = ValueNode | OperationNode | OutputNode
+@dataclass(slots=True)
+class LiteralNode:
+    """A pre-computed value with no inputs and no spin-box editing UI.
+
+    Used for the Obj Loader node's four outputs, since their values come
+    from a parsed file rather than user-typed components.
+    """
+
+    value: MathValue
+
+
+@dataclass(slots=True)
+class MeshViewerNode:
+    """A mesh-rendering sink with Vertices/Faces/UVs/Normals/Colour inputs."""
+
+    inputs: dict[int, str] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class MeshViewerInputs:
+    """The evaluated inputs of a Mesh Viewer node, ready to merge and render."""
+
+    vertices: VertexArray
+    faces: FaceArray
+    uvs: UVArray | None
+    normals: NormalArray | None
+    colour: Vec4 | None
+
+
+GraphNode: TypeAlias = (
+    ValueNode | OperationNode | OutputNode | LiteralNode | MeshViewerNode
+)
 
 
 class MathGraph:
@@ -431,17 +627,32 @@ class MathGraph:
         """Add an output node to the graph."""
         return self._add_node(OutputNode())
 
+    def add_literal(self, value: MathValue) -> str:
+        """Add a pre-computed, non-editable value node to the graph."""
+        return self._add_node(LiteralNode(value))
+
+    def set_literal(self, node_id: str, value: MathValue) -> None:
+        """Replace the value stored by a literal node."""
+        node = self._nodes[node_id]
+        if not isinstance(node, LiteralNode):
+            raise ValueError("Only literal nodes store replaceable values")
+        node.value = value
+
+    def add_mesh_viewer(self) -> str:
+        """Add a mesh viewer sink node to the graph."""
+        return self._add_node(MeshViewerNode())
+
     def connect(self, source_id: str, target_id: str, input_index: int) -> None:
         """Connect a source node to an input on another node."""
         target = self._nodes[target_id]
-        if isinstance(target, ValueNode):
+        if isinstance(target, (ValueNode, LiteralNode)):
             raise ValueError("Value nodes do not have inputs")
         target.inputs[input_index] = source_id
 
     def disconnect(self, target_id: str, input_index: int) -> None:
         """Remove one input wire without deleting either node."""
         target = self._nodes[target_id]
-        if isinstance(target, ValueNode):
+        if isinstance(target, (ValueNode, LiteralNode)):
             raise ValueError("Value nodes do not have inputs")
         target.inputs.pop(input_index, None)
 
@@ -449,7 +660,7 @@ class MathGraph:
         """Delete a node and clear any downstream inputs that referenced it."""
         del self._nodes[node_id]
         for node in self._nodes.values():
-            if isinstance(node, ValueNode):
+            if isinstance(node, (ValueNode, LiteralNode)):
                 continue
             for input_index, source_id in list(node.inputs.items()):
                 if source_id == node_id:
@@ -458,6 +669,35 @@ class MathGraph:
     def evaluate(self, node_id: str) -> MathValue:
         """Evaluate a graph node and all the inputs below it."""
         return self._evaluate(node_id, set())
+
+    def evaluate_mesh_viewer(self, node_id: str) -> MeshViewerInputs:
+        """Evaluate a Mesh Viewer node's inputs, ready to merge and render."""
+        node = self._nodes[node_id]
+        if not isinstance(node, MeshViewerNode):
+            raise ValueError("Only mesh viewer nodes can be evaluated this way")
+        if 0 not in node.inputs:
+            raise GraphError("Mesh Viewer needs input Vertices")
+        if 1 not in node.inputs:
+            raise GraphError("Mesh Viewer needs input Faces")
+
+        vertices = self._evaluate(node.inputs[0], set())
+        faces = self._evaluate(node.inputs[1], set())
+        uvs = self._evaluate(node.inputs[2], set()) if 2 in node.inputs else None
+        normals = self._evaluate(node.inputs[3], set()) if 3 in node.inputs else None
+        colour = self._evaluate(node.inputs[4], set()) if 4 in node.inputs else None
+
+        if not isinstance(vertices, VertexArray):
+            raise GraphError("Mesh Viewer Vertices needs a Vertices input")
+        if not isinstance(faces, FaceArray):
+            raise GraphError("Mesh Viewer Faces needs a Faces input")
+        if uvs is not None and not isinstance(uvs, UVArray):
+            raise GraphError("Mesh Viewer UVs needs a UVs input")
+        if normals is not None and not isinstance(normals, NormalArray):
+            raise GraphError("Mesh Viewer Normals needs a Normals input")
+        if colour is not None and not isinstance(colour, Vec4):
+            raise GraphError("Mesh Viewer Colour needs a Vec4 input")
+
+        return MeshViewerInputs(vertices, faces, uvs, normals, colour)
 
     def _evaluate(self, node_id: str, active_nodes: set[str]) -> MathValue:
         """Evaluate a node whilst tracking the current recursion path."""
@@ -469,10 +709,14 @@ class MathGraph:
         try:
             if isinstance(node, ValueNode):
                 return VALUE_CLASSES[node.math_type](*node.components)
+            if isinstance(node, LiteralNode):
+                return node.value
             if isinstance(node, OutputNode):
                 if 0 not in node.inputs:
                     raise GraphError("Output needs input Value")
                 return self._evaluate(node.inputs[0], active_nodes)
+            if isinstance(node, MeshViewerNode):
+                raise GraphError("Mesh Viewer has no single output value")
 
             for input_index in range(OPERATION_ARITY[node.operation]):
                 if input_index not in node.inputs:

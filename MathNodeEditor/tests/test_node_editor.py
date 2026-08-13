@@ -241,7 +241,7 @@ def test_palette_groups_extended_operations_by_domain(
 
     group_titles = [group.title() for group in window.palette.findChildren(QGroupBox)]
 
-    assert group_titles == ["Values", "Maths", "Mat4", "Quaternion", "Result"]
+    assert group_titles == ["Values", "Maths", "Mat4", "Quaternion", "Mesh", "Result"]
     window.close()
 
 
@@ -275,6 +275,7 @@ def test_operation_groupings_cover_every_operation() -> None:
         set(node_editor.MATH_OPERATIONS)
         | set(node_editor.MAT4_OPERATIONS)
         | set(node_editor.QUATERNION_OPERATIONS)
+        | set(node_editor.MESH_OPERATIONS)
     )
     assert grouped_operations == set(node_editor.Operation)
 
@@ -603,6 +604,79 @@ def test_load_graph_button_reports_a_malformed_file_instead_of_crashing(
 
     assert len(warnings) == 1
     assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
+    window.close()
+
+
+def test_mesh_pipeline_example_loads_without_errors(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    example_path = Path(__file__).parent.parent / "examples" / "mesh_pipeline_demo.json"
+
+    window.canvas.load_from_file(example_path)
+    application.processEvents()
+
+    mesh_viewer = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.MeshViewerNodeItem)
+    )
+    obj_loader = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.ObjLoaderNodeItem)
+    )
+    assert mesh_viewer.status_text_item.toPlainText() == ""
+    assert obj_loader.status_text_item.toPlainText() == "cube.obj: 8 verts, 12 faces"
+    assert mesh_viewer.render_state.mesh_inputs is not None
+    assert len(mesh_viewer.render_state.mesh_inputs.vertices.values) == 8
+    window.close()
+
+
+def test_mvp_example_loads_and_evaluates_a_single_matrix(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    example_path = Path(__file__).parent.parent / "examples" / "mvp_demo.json"
+
+    window.canvas.load_from_file(example_path)
+    application.processEvents()
+
+    assert len(window.canvas.output_texts()) == 1
+    assert window.canvas.output_texts()[0].startswith("Mat4")
+    transform_node = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.OperationNodeItem)
+        and node.operation is node_editor.Operation.TRANSFORM
+    )
+    assert transform_node.input_names == ("Position", "Rotation", "Scale")
+    window.close()
+
+
+def test_mvp_mesh_example_applies_the_model_transform_to_a_displayed_mesh(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    example_path = Path(__file__).parent.parent / "examples" / "mvp_mesh_demo.json"
+
+    window.canvas.load_from_file(example_path)
+    application.processEvents()
+
+    mesh_viewer = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.MeshViewerNodeItem)
+    )
+    assert mesh_viewer.status_text_item.toPlainText() == ""
+    assert mesh_viewer.render_state.mesh_inputs is not None
+    vertices = mesh_viewer.render_state.mesh_inputs.vertices.values
+    assert len(vertices) == 8
+    # The cube is Model-transformed (position, rotation, scale all non-identity),
+    # so its rendered vertices should differ from the untouched loader output.
+    unit_cube_vertex = max(vertices, key=lambda v: v.x**2 + v.y**2 + v.z**2)
+    assert unit_cube_vertex.to_list() != pytest.approx([1.0, 1.0, 1.0])
     window.close()
 
 

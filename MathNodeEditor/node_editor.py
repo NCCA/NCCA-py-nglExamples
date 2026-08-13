@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -22,6 +23,8 @@ from .graphics_items import (
     TYPE_COLOURS,
     BaseNodeItem,
     ConnectionItem,
+    MeshViewerNodeItem,
+    ObjLoaderNodeItem,
     OperationNodeItem,
     OutputNodeItem,
     PortItem,
@@ -42,6 +45,7 @@ from .math_graph import (
 from .palette import (
     MAT4_OPERATIONS,
     MATH_OPERATIONS,
+    MESH_OPERATIONS,
     NODE_CATALOGUE,
     QUATERNION_OPERATIONS,
     CatalogueEntry,
@@ -54,6 +58,7 @@ __all__ = [
     "GENERIC_PORT_COLOUR",
     "MAT4_OPERATIONS",
     "MATH_OPERATIONS",
+    "MESH_OPERATIONS",
     "NODE_CATALOGUE",
     "NODE_HEADER_HEIGHT",
     "OPERATION_ARITY",
@@ -72,8 +77,10 @@ __all__ = [
     "MathNodeView",
     "MathNodeWindow",
     "MathType",
+    "MeshViewerNodeItem",
     "NodeCreationMenu",
     "NodePalette",
+    "ObjLoaderNodeItem",
     "Operation",
     "OperationNodeItem",
     "OutputNodeItem",
@@ -128,6 +135,18 @@ def main() -> int:
     """Run the maths node editor application."""
     application = QApplication.instance()
     if application is None:
+        surface_format = QSurfaceFormat()
+        surface_format.setSamples(4)
+        surface_format.setMajorVersion(4)
+        surface_format.setMinorVersion(1)
+        surface_format.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
+        surface_format.setDepthBufferSize(24)
+        QSurfaceFormat.setDefaultFormat(surface_format)
+        # The Mesh Viewer node's embedded preview and its pop-out window are
+        # two separate top-level GL surfaces; without this they don't share
+        # a context and ShaderLib's program ids from one are invalid in the
+        # other.
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
         application = QApplication(sys.argv)
     application.setApplicationName("PyNGL Maths Node Editor")
     window = MathNodeWindow(load_example=True)
