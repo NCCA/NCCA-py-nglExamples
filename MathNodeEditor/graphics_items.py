@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QGraphicsTextItem,
     QGridLayout,
     QHBoxLayout,
+    QLabel,
     QPushButton,
     QStyle,
     QStyleOptionGraphicsItem,
@@ -35,9 +36,11 @@ from PySide6.QtWidgets import (
 )
 
 from .math_graph import (
+    GENERATOR_OUTPUT_TYPE,
     MESH_VIEWER_INPUT_NAMES,
     OPERATION_ARITY,
     OPERATION_INPUT_NAMES,
+    OPERATION_PARAMETER_TYPES,
     TYPE_SHAPES,
     MathType,
     Operation,
@@ -97,6 +100,26 @@ def default_components(math_type: MathType) -> tuple[float, ...]:
         for row in range(rows)
         for column in range(columns)
     )
+
+
+GENERATOR_DEFAULTS: dict[Operation, tuple[tuple[float, ...], ...]] = {
+    Operation.LOOK_AT: ((0.0, 2.0, 8.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+    Operation.PERSPECTIVE: ((45.0,), (1.778,), (0.1,), (100.0,)),
+    Operation.ORTHO: ((-10.0,), (10.0,), (-10.0,), (10.0,), (0.1,), (100.0,)),
+    Operation.FRUSTUM: ((-1.0,), (1.0,), (-1.0,), (1.0,), (0.1,), (100.0,)),
+    Operation.MAT4_TRANSLATE: ((0.0,), (0.0,), (0.0,)),
+    Operation.MAT4_SCALE: ((1.0,), (1.0,), (1.0,)),
+    Operation.MAT4_ROTATE_X: ((0.0,),),
+    Operation.MAT4_ROTATE_Y: ((0.0,),),
+    Operation.MAT4_ROTATE_Z: ((0.0,),),
+    Operation.TRANSFORM: ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (1.0, 1.0, 1.0)),
+    Operation.QUATERNION_FROM_AXIS_ANGLE: ((0.0, 1.0, 0.0), (0.0,)),
+}
+
+
+def default_generator_parameters(operation: Operation) -> tuple[tuple[float, ...], ...]:
+    """Return teaching-friendly default parameters for a new generator node."""
+    return GENERATOR_DEFAULTS[operation]
 
 
 class PortItem(QGraphicsEllipseItem):
@@ -386,6 +409,85 @@ class ValueNodeItem(BaseNodeItem):
     def _values_changed(self, _value: float) -> None:
         """Send the edited components back to the graph model."""
         self.on_change(tuple(spin_box.value() for spin_box in self.spin_boxes))
+
+
+class GeneratorNodeItem(BaseNodeItem):
+    """An operation node whose named parameters are typed in, not wired.
+
+    Used for operations such as Look At, Perspective and Transform, whose
+    PyNGL parameters are plain Float/Vec3 numbers rather than other
+    computed values (see GeneratorNode in math_graph).
+    """
+
+    ROW_HEIGHT = 30.0
+
+    def __init__(
+        self,
+        node_id: str,
+        operation: Operation,
+        parameters: tuple[tuple[float, ...], ...],
+        on_change: Callable[[int, tuple[float, ...]], None],
+    ) -> None:
+        """Create one labelled spin-box row per named parameter."""
+        parameter_names = OPERATION_INPUT_NAMES[operation]
+        parameter_types = OPERATION_PARAMETER_TYPES[operation]
+        label_font = QFont()
+        label_font.setPointSize(9)
+        label_width = max(
+            QFontMetrics(label_font).horizontalAdvance(name) for name in parameter_names
+        )
+        max_columns = max(TYPE_SHAPES[math_type][1] for math_type in parameter_types)
+        width = max(200.0, label_width + 16.0 + max_columns * 76.0 + 24.0)
+        height = NODE_HEADER_HEIGHT + len(parameter_names) * self.ROW_HEIGHT + 20.0
+        output_type = GENERATOR_OUTPUT_TYPE[operation]
+        super().__init__(
+            node_id, operation.value, width, height, (), TYPE_COLOURS[output_type]
+        )
+        self.operation = operation
+        self.parameter_names = parameter_names
+        self.on_change = on_change
+        self.spin_box_rows: list[list[QDoubleSpinBox]] = []
+
+        editor = QWidget()
+        editor.setStyleSheet(
+            "QWidget { background: transparent; color: #c2cad7; }"
+            "QDoubleSpinBox { background: #151a24; color: #edf1f7; border: 1px solid #46536a; border-radius: 3px; padding: 2px; }"
+        )
+        layout = QGridLayout(editor)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setHorizontalSpacing(4)
+        layout.setVerticalSpacing(4)
+        for row_index, (name, components) in enumerate(
+            zip(parameter_names, parameters)
+        ):
+            label = QLabel(name)
+            layout.addWidget(label, row_index, 0)
+            row_boxes: list[QDoubleSpinBox] = []
+            for column_index, component in enumerate(components):
+                spin_box = QDoubleSpinBox()
+                spin_box.setRange(-1_000_000.0, 1_000_000.0)
+                spin_box.setDecimals(3)
+                spin_box.setSingleStep(0.1)
+                spin_box.setValue(component)
+                spin_box.setFixedWidth(68)
+                spin_box.valueChanged.connect(
+                    lambda _value, row=row_index: self._row_changed(row)
+                )
+                layout.addWidget(spin_box, row_index, column_index + 1)
+                row_boxes.append(spin_box)
+            self.spin_box_rows.append(row_boxes)
+
+        self.proxy = QGraphicsProxyWidget(self)
+        self.proxy.setWidget(editor)
+        self.proxy.setPos(12.0, NODE_HEADER_HEIGHT + 9.0)
+        self.proxy.setZValue(2.0)
+        if self.output_port is not None:
+            self.output_port.setPos(width, NODE_HEADER_HEIGHT + 20.0)
+
+    def _row_changed(self, row_index: int) -> None:
+        """Send one parameter's edited components back to the graph model."""
+        components = tuple(box.value() for box in self.spin_box_rows[row_index])
+        self.on_change(row_index, components)
 
 
 class OperationNodeItem(BaseNodeItem):

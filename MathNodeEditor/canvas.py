@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
 from .graphics_items import (
     BaseNodeItem,
     ConnectionItem,
+    GeneratorNodeItem,
     MeshViewerNodeItem,
     ObjLoaderNodeItem,
     OperationNodeItem,
@@ -49,6 +50,7 @@ from .graphics_items import (
     ValueNodeItem,
     _bezier_path,
     default_components,
+    default_generator_parameters,
 )
 from .math_graph import (
     FaceArray,
@@ -130,6 +132,34 @@ class MathNodeScene(QGraphicsScene):
         self.nodes[node_id] = node
         return node
 
+    def add_generator_node(
+        self,
+        operation: Operation,
+        position: QPointF | None = None,
+        parameters: tuple[tuple[float, ...], ...] | None = None,
+    ) -> GeneratorNodeItem:
+        """Add a parameter node (Look At, Perspective, ...) to the canvas."""
+        node_parameters = (
+            parameters
+            if parameters is not None
+            else default_generator_parameters(operation)
+        )
+        node_id = self.graph.add_generator(operation, node_parameters)
+        node = GeneratorNodeItem(
+            node_id,
+            operation,
+            node_parameters,
+            lambda parameter_index,
+            values,
+            generator_node_id=node_id: self._generator_changed(
+                generator_node_id, parameter_index, values
+            ),
+        )
+        self.addItem(node)
+        node.setPos(position if position is not None else self._next_position())
+        self.nodes[node_id] = node
+        return node
+
     def add_output_node(self, position: QPointF | None = None) -> OutputNodeItem:
         """Add a result node to the canvas."""
         node_id = self.graph.add_output()
@@ -202,6 +232,13 @@ class MathNodeScene(QGraphicsScene):
     def _value_changed(self, node_id: str, components: tuple[float, ...]) -> None:
         """Update a graph value after a spin box changes."""
         self.graph.set_value(node_id, components)
+        self.update_outputs()
+
+    def _generator_changed(
+        self, node_id: str, parameter_index: int, components: tuple[float, ...]
+    ) -> None:
+        """Update a graph generator parameter after a spin box changes."""
+        self.graph.set_generator_parameter(node_id, parameter_index, components)
         self.update_outputs()
 
     def _item_for_node_id(self, graph_node_id: str) -> BaseNodeItem:

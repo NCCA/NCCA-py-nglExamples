@@ -121,6 +121,51 @@ def test_new_quaternion_node_starts_as_the_identity(application: QApplication) -
     window.close()
 
 
+def test_generator_node_has_no_input_ports(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+
+    node = window.canvas.add_generator_node(node_editor.Operation.LOOK_AT)
+
+    assert node.input_ports == []
+    assert node.parameter_names == ("Eye", "Target", "Up")
+    assert [len(row) for row in node.spin_box_rows] == [3, 3, 3]
+    window.close()
+
+
+def test_generator_node_starts_with_teaching_friendly_defaults(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+
+    node = window.canvas.add_generator_node(node_editor.Operation.PERSPECTIVE)
+
+    values = [box.value() for row in node.spin_box_rows for box in row]
+    assert values == pytest.approx([45.0, 1.778, 0.1, 100.0])
+    window.close()
+
+
+def test_editing_a_generator_spin_box_updates_downstream_output(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    look_at_node = window.canvas.add_generator_node(node_editor.Operation.LOOK_AT)
+    output_node = window.canvas.add_output_node()
+    assert look_at_node.output_port is not None
+    window.canvas.connect_ports(look_at_node.output_port, output_node.input_ports[0])
+    application.processEvents()
+    before = window.canvas.output_texts()[0]
+
+    look_at_node.spin_box_rows[0][1].setValue(9.0)
+    application.processEvents()
+
+    assert window.canvas.output_texts()[0] != before
+    assert window.canvas.output_texts()[0].startswith("Mat4")
+    window.close()
+
+
 def test_quaternion_node_labels_its_component_order(application: QApplication) -> None:
     node_editor = _node_editor_module()
     window = node_editor.MathNodeWindow(load_example=False)
