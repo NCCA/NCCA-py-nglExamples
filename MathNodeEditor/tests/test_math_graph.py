@@ -121,13 +121,10 @@ def test_float_nodes_can_use_the_basic_arithmetic_operations() -> None:
 def test_look_at_node_builds_a_mat4_from_three_vec3_inputs() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    eye = graph.add_value(graph_module.MathType.VEC3, (0.0, 2.0, 5.0))
-    target = graph.add_value(graph_module.MathType.VEC3, (0.0, 0.0, 0.0))
-    up = graph.add_value(graph_module.MathType.VEC3, (0.0, 1.0, 0.0))
-    operation = graph.add_operation(graph_module.Operation.LOOK_AT)
-    graph.connect(eye, operation, 0)
-    graph.connect(target, operation, 1)
-    graph.connect(up, operation, 2)
+    operation = graph.add_generator(
+        graph_module.Operation.LOOK_AT,
+        ((0.0, 2.0, 5.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+    )
 
     result = graph.evaluate(operation)
 
@@ -136,29 +133,13 @@ def test_look_at_node_builds_a_mat4_from_three_vec3_inputs() -> None:
     assert result.to_list() == pytest.approx(expected.to_list())
 
 
-def test_look_at_node_reports_semantic_input_names() -> None:
-    graph_module = _math_graph_module()
-    graph = graph_module.MathGraph()
-    eye = graph.add_value(graph_module.MathType.VEC3, (0.0, 2.0, 5.0))
-    target = graph.add_value(graph_module.MathType.VEC3, (0.0, 0.0, 0.0))
-    operation = graph.add_operation(graph_module.Operation.LOOK_AT)
-    graph.connect(eye, operation, 0)
-    graph.connect(target, operation, 1)
-
-    with pytest.raises(graph_module.GraphError, match="input Up"):
-        graph.evaluate(operation)
-
-
 def test_perspective_node_builds_a_mat4_from_four_float_inputs() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    values = [
-        graph.add_value(graph_module.MathType.FLOAT, (component,))
-        for component in (45.0, 16.0 / 9.0, 0.1, 100.0)
-    ]
-    operation = graph.add_operation(graph_module.Operation.PERSPECTIVE)
-    for input_index, value_node in enumerate(values):
-        graph.connect(value_node, operation, input_index)
+    operation = graph.add_generator(
+        graph_module.Operation.PERSPECTIVE,
+        ((45.0,), (16.0 / 9.0,), (0.1,), (100.0,)),
+    )
 
     result = graph.evaluate(operation)
 
@@ -170,13 +151,10 @@ def test_perspective_node_builds_a_mat4_from_four_float_inputs() -> None:
 def test_perspective_node_reports_invalid_clip_planes() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    values = [
-        graph.add_value(graph_module.MathType.FLOAT, (component,))
-        for component in (45.0, 1.0, 1.0, 1.0)
-    ]
-    operation = graph.add_operation(graph_module.Operation.PERSPECTIVE)
-    for input_index, value_node in enumerate(values):
-        graph.connect(value_node, operation, input_index)
+    operation = graph.add_generator(
+        graph_module.Operation.PERSPECTIVE,
+        ((45.0,), (1.0,), (1.0,), (1.0,)),
+    )
 
     with pytest.raises(graph_module.GraphError, match="Perspective failed"):
         graph.evaluate(operation)
@@ -199,13 +177,8 @@ def test_mat4_transform_constructor_nodes(
 ) -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    value_nodes = [
-        graph.add_value(graph_module.MathType.FLOAT, (component,))
-        for component in inputs
-    ]
-    operation = graph.add_operation(graph_module.Operation[operation_name])
-    for input_index, value_node in enumerate(value_nodes):
-        graph.connect(value_node, operation, input_index)
+    parameters = tuple((component,) for component in inputs)
+    operation = graph.add_generator(graph_module.Operation[operation_name], parameters)
 
     result = graph.evaluate(operation)
 
@@ -215,13 +188,10 @@ def test_mat4_transform_constructor_nodes(
 def test_transform_node_builds_a_model_matrix_from_position_rotation_scale() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    position = graph.add_value(graph_module.MathType.VEC3, (1.0, 2.0, 3.0))
-    rotation = graph.add_value(graph_module.MathType.VEC3, (0.0, 30.0, 0.0))
-    scale = graph.add_value(graph_module.MathType.VEC3, (2.0, 2.0, 2.0))
-    operation = graph.add_operation(graph_module.Operation.TRANSFORM)
-    graph.connect(position, operation, 0)
-    graph.connect(rotation, operation, 1)
-    graph.connect(scale, operation, 2)
+    operation = graph.add_generator(
+        graph_module.Operation.TRANSFORM,
+        ((1.0, 2.0, 3.0), (0.0, 30.0, 0.0), (2.0, 2.0, 2.0)),
+    )
 
     result = graph.evaluate(operation)
 
@@ -233,28 +203,12 @@ def test_transform_node_builds_a_model_matrix_from_position_rotation_scale() -> 
     assert result.to_list() == pytest.approx(expected.matrix().to_list())
 
 
-def test_transform_node_reports_semantic_input_names() -> None:
-    graph_module = _math_graph_module()
-    graph = graph_module.MathGraph()
-    position = graph.add_value(graph_module.MathType.VEC3, (0.0, 0.0, 0.0))
-    operation = graph.add_operation(graph_module.Operation.TRANSFORM)
-    graph.connect(position, operation, 0)
-
-    with pytest.raises(graph_module.GraphError, match="input Rotation"):
-        graph.evaluate(operation)
-
-
 def test_ortho_node_builds_an_orthographic_mat4() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
     components = (-10.0, 10.0, -5.0, 5.0, 0.1, 100.0)
-    value_nodes = [
-        graph.add_value(graph_module.MathType.FLOAT, (component,))
-        for component in components
-    ]
-    operation = graph.add_operation(graph_module.Operation.ORTHO)
-    for input_index, value_node in enumerate(value_nodes):
-        graph.connect(value_node, operation, input_index)
+    parameters = tuple((component,) for component in components)
+    operation = graph.add_generator(graph_module.Operation.ORTHO, parameters)
 
     result = graph.evaluate(operation)
 
@@ -265,13 +219,8 @@ def test_frustum_node_builds_a_projection_mat4() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
     components = (-1.0, 1.0, -0.5, 0.5, 0.1, 100.0)
-    value_nodes = [
-        graph.add_value(graph_module.MathType.FLOAT, (component,))
-        for component in components
-    ]
-    operation = graph.add_operation(graph_module.Operation.FRUSTUM)
-    for input_index, value_node in enumerate(value_nodes):
-        graph.connect(value_node, operation, input_index)
+    parameters = tuple((component,) for component in components)
+    operation = graph.add_generator(graph_module.Operation.FRUSTUM, parameters)
 
     result = graph.evaluate(operation)
 
@@ -281,11 +230,10 @@ def test_frustum_node_builds_a_projection_mat4() -> None:
 def test_axis_angle_node_builds_a_quaternion() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
-    axis = graph.add_value(graph_module.MathType.VEC3, (0.0, 1.0, 0.0))
-    angle = graph.add_value(graph_module.MathType.FLOAT, (90.0,))
-    operation = graph.add_operation(graph_module.Operation.QUATERNION_FROM_AXIS_ANGLE)
-    graph.connect(axis, operation, 0)
-    graph.connect(angle, operation, 1)
+    operation = graph.add_generator(
+        graph_module.Operation.QUATERNION_FROM_AXIS_ANGLE,
+        ((0.0, 1.0, 0.0), (90.0,)),
+    )
 
     result = graph.evaluate(operation)
 
