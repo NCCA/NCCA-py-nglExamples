@@ -157,9 +157,18 @@ OPERATION_PARAMETER_TYPES: dict[Operation, tuple[MathType, ...]] = {
 """The MathType of each named parameter, in OPERATION_INPUT_NAMES order."""
 
 GENERATOR_OUTPUT_TYPE: dict[Operation, MathType] = {
-    operation: MathType.MAT4 for operation in GENERATOR_OPERATIONS
+    Operation.LOOK_AT: MathType.MAT4,
+    Operation.PERSPECTIVE: MathType.MAT4,
+    Operation.ORTHO: MathType.MAT4,
+    Operation.FRUSTUM: MathType.MAT4,
+    Operation.MAT4_TRANSLATE: MathType.MAT4,
+    Operation.MAT4_SCALE: MathType.MAT4,
+    Operation.MAT4_ROTATE_X: MathType.MAT4,
+    Operation.MAT4_ROTATE_Y: MathType.MAT4,
+    Operation.MAT4_ROTATE_Z: MathType.MAT4,
+    Operation.TRANSFORM: MathType.MAT4,
+    Operation.QUATERNION_FROM_AXIS_ANGLE: MathType.QUATERNION,
 }
-GENERATOR_OUTPUT_TYPE[Operation.QUATERNION_FROM_AXIS_ANGLE] = MathType.QUATERNION
 """The MathType each generator operation's output socket should be coloured as."""
 
 
@@ -684,8 +693,17 @@ class MathGraph:
         self, operation: Operation, parameters: tuple[tuple[float, ...], ...]
     ) -> str:
         """Add a parameter node (Look At, Perspective, ...) to the graph."""
+        if operation not in GENERATOR_OPERATIONS:
+            raise ValueError(
+                f"{operation.value} has no typed-in parameters; use add_operation instead"
+            )
         parameter_types = OPERATION_PARAMETER_TYPES[operation]
-        for parameter_type, components in zip(parameter_types, parameters):
+        if len(parameters) != len(parameter_types):
+            raise ValueError(
+                f"{operation.value} needs {len(parameter_types)} parameters, "
+                f"got {len(parameters)}"
+            )
+        for parameter_type, components in zip(parameter_types, parameters, strict=True):
             _validate_components(parameter_type, components)
         return self._add_node(GeneratorNode(operation, [tuple(p) for p in parameters]))
 
@@ -731,14 +749,14 @@ class MathGraph:
         """Connect a source node to an input on another node."""
         target = self._nodes[target_id]
         if isinstance(target, (ValueNode, LiteralNode, GeneratorNode)):
-            raise ValueError("Value nodes do not have inputs")
+            raise ValueError("This node type does not have inputs")
         target.inputs[input_index] = source_id
 
     def disconnect(self, target_id: str, input_index: int) -> None:
         """Remove one input wire without deleting either node."""
         target = self._nodes[target_id]
         if isinstance(target, (ValueNode, LiteralNode, GeneratorNode)):
-            raise ValueError("Value nodes do not have inputs")
+            raise ValueError("This node type does not have inputs")
         target.inputs.pop(input_index, None)
 
     def remove_node(self, node_id: str) -> None:
@@ -801,7 +819,7 @@ class MathGraph:
                 values = tuple(
                     VALUE_CLASSES[parameter_type](*components)
                     for parameter_type, components in zip(
-                        parameter_types, node.parameters
+                        parameter_types, node.parameters, strict=True
                     )
                 )
                 return apply_operation(node.operation, *values)

@@ -800,5 +800,13 @@ def test_generator_node_rejects_wired_connections() -> None:
         ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
     )
 
-    with pytest.raises(ValueError, match="do not have inputs"):
+    with pytest.raises(ValueError, match="does not have inputs"):
         graph.connect(value_node, operation, 0)
+
+
+def test_add_generator_rejects_the_wrong_number_of_parameters() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+
+    with pytest.raises(ValueError, match="needs 3 parameters"):
+        graph.add_generator(graph_module.Operation.LOOK_AT, ((0.0, 2.0, 5.0),))

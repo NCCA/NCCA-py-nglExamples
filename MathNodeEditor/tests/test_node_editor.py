@@ -599,6 +599,27 @@ def test_generator_node_round_trips_through_to_dict_and_from_dict(
     window.close()
 
 
+def test_generator_tables_agree_on_operations_and_arities() -> None:
+    math_graph = import_module("MathNodeEditor.math_graph")
+    from MathNodeEditor.graphics_items import GENERATOR_DEFAULTS
+
+    assert set(math_graph.OPERATION_PARAMETER_TYPES) == set(
+        math_graph.GENERATOR_OPERATIONS
+    )
+    assert set(math_graph.GENERATOR_OUTPUT_TYPE) == set(math_graph.GENERATOR_OPERATIONS)
+    assert set(GENERATOR_DEFAULTS) == set(math_graph.GENERATOR_OPERATIONS)
+
+    for operation in math_graph.GENERATOR_OPERATIONS:
+        parameter_types = math_graph.OPERATION_PARAMETER_TYPES[operation]
+        defaults = GENERATOR_DEFAULTS[operation]
+        assert len(parameter_types) == len(defaults), operation
+        for parameter_type, default_components in zip(
+            parameter_types, defaults, strict=True
+        ):
+            expected_count = math_graph.TYPE_SHAPES[parameter_type][1]
+            assert len(default_components) == expected_count, operation
+
+
 def test_save_to_file_and_load_from_file_round_trip(
     application: QApplication,
     tmp_path: Path,
