@@ -35,6 +35,7 @@ MATH_OPERATIONS = (
     Operation.CROSS,
     Operation.NORMALISE,
     Operation.TRANSPOSE,
+    Operation.INVERSE,
 )
 MAT4_OPERATIONS = (
     Operation.LOOK_AT,
@@ -46,6 +47,7 @@ MAT4_OPERATIONS = (
     Operation.MAT4_ROTATE_X,
     Operation.MAT4_ROTATE_Y,
     Operation.MAT4_ROTATE_Z,
+    Operation.MAT4_TO_MAT3,
 )
 QUATERNION_OPERATIONS = (
     Operation.QUATERNION_FROM_AXIS_ANGLE,
@@ -56,6 +58,10 @@ QUATERNION_OPERATIONS = (
     Operation.QUATERNION_SLERP,
     Operation.QUATERNION_CONJUGATE,
     Operation.QUATERNION_INVERSE,
+)
+MESH_OPERATIONS = (
+    Operation.TRANSFORM_VERTICES,
+    Operation.TRANSFORM_NORMALS,
 )
 
 CatalogueEntry = tuple[str, Callable[["MathNodeScene", "QPointF | None"], object]]
@@ -95,6 +101,20 @@ NODE_CATALOGUE: tuple[CatalogueSection, ...] = (
     ("Maths", _operation_catalogue_entries(MATH_OPERATIONS)),
     ("Mat4", _operation_catalogue_entries(MAT4_OPERATIONS)),
     ("Quaternion", _operation_catalogue_entries(QUATERNION_OPERATIONS)),
+    (
+        "Mesh",
+        [
+            (
+                "Obj Loader",
+                lambda canvas, position: canvas.add_obj_loader_node(position),
+            ),
+            *_operation_catalogue_entries(MESH_OPERATIONS),
+            (
+                "Mesh Viewer",
+                lambda canvas, position: canvas.add_mesh_viewer_node(position),
+            ),
+        ],
+    ),
     (
         "Result",
         [("Output", lambda canvas, position: canvas.add_output_node(position))],

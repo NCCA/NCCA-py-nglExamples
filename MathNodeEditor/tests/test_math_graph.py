@@ -1,12 +1,14 @@
 """Tests for the maths graph used by the node editor demo."""
 
 from importlib import import_module
+from pathlib import Path
 
 import pytest
 from ncca.ngl import (
     Mat2,
     Mat3,
     Mat4,
+    Obj,
     Quaternion,
     Vec2,
     Vec3,
@@ -17,6 +19,8 @@ from ncca.ngl import (
     perspective,
 )
 
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
 
 def _math_graph_module():
     """Load the graph module whilst keeping the first TDD failure readable."""
@@ -24,6 +28,13 @@ def _math_graph_module():
         return import_module("MathNodeEditor.math_graph")
     except ModuleNotFoundError:
         pytest.fail("MathNodeEditor.math_graph has not been implemented")
+
+
+def _load_obj(name: str) -> Obj:
+    """Load one of the tiny fixture meshes under ``tests/fixtures``."""
+    obj = Obj()
+    obj.load(str(FIXTURES_DIR / name))
+    return obj
 
 
 def test_vec3_multiply_is_component_wise() -> None:
@@ -551,3 +562,200 @@ def test_incompatible_operation_inputs_report_a_graph_error(
 
     with pytest.raises(graph_module.GraphError, match="failed"):
         graph.evaluate(operation)
+
+
+def test_mat4_to_mat3_drops_translation() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    matrix = Mat4.translate(5.0, 6.0, 7.0) @ Mat4.rotate_y(30.0)
+    value_node = graph.add_value(graph_module.MathType.MAT4, matrix.to_list())
+    operation = graph.add_operation(graph_module.Operation.MAT4_TO_MAT3)
+    graph.connect(value_node, operation, 0)
+
+    result = graph.evaluate(operation)
+
+    assert isinstance(result, Mat3)
+    assert result.to_list() == pytest.approx(Mat3.from_mat4(matrix).to_list())
+
+
+@pytest.mark.parametrize("math_type", ["MAT3", "MAT4"])
+def test_inverse_node_inverts_mat3_or_mat4(math_type: str) -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    matrix_class = Mat3 if math_type == "MAT3" else Mat4
+    matrix = matrix_class.rotate_y(40.0) if math_type == "MAT3" else Mat4.rotate_y(40.0)
+    value_node = graph.add_value(graph_module.MathType[math_type], matrix.to_list())
+    operation = graph.add_operation(graph_module.Operation.INVERSE)
+    graph.connect(value_node, operation, 0)
+
+    result = graph.evaluate(operation)
+
+    assert result.to_list() == pytest.approx(matrix.inverse().to_list())
+
+
+def test_transform_vertices_applies_translation_to_every_point() -> None:
+    graph_module = _math_graph_module()
+    matrix = Mat4.translate(1.0, 2.0, 3.0)
+    vertices = graph_module.VertexArray((Vec3(0.0, 0.0, 0.0), Vec3(1.0, 0.0, 0.0)))
+
+    result = graph_module.apply_operation(
+        graph_module.Operation.TRANSFORM_VERTICES, matrix, vertices
+    )
+
+    assert isinstance(result, graph_module.VertexArray)
+    flattened = [component for v in result.values for component in v.to_list()]
+    assert flattened == pytest.approx([1.0, 2.0, 3.0, 2.0, 2.0, 3.0])
+
+
+def test_transform_normals_ignores_translation() -> None:
+    graph_module = _math_graph_module()
+    linear_part = Mat3.from_mat4(Mat4.translate(9.0, 9.0, 9.0) @ Mat4.rotate_z(90.0))
+    normals = graph_module.NormalArray((Vec3(1.0, 0.0, 0.0),))
+
+    result = graph_module.apply_operation(
+        graph_module.Operation.TRANSFORM_NORMALS, linear_part, normals
+    )
+
+    assert isinstance(result, graph_module.NormalArray)
+    assert result.values[0].to_list() == pytest.approx(
+        (Vec3(1.0, 0.0, 0.0) @ linear_part).to_list()
+    )
+
+
+def test_transform_vertices_rejects_a_normal_array_input() -> None:
+    graph_module = _math_graph_module()
+    normals = graph_module.NormalArray((Vec3(1.0, 0.0, 0.0),))
+
+    with pytest.raises(graph_module.GraphError, match="failed"):
+        graph_module.apply_operation(
+            graph_module.Operation.TRANSFORM_VERTICES, Mat4(), normals
+        )
+
+
+def test_arrays_from_obj_splits_vertex_face_uv_normal_data() -> None:
+    graph_module = _math_graph_module()
+    obj = _load_obj("triangle.obj")
+
+    vertices, faces, uvs, normals = graph_module.arrays_from_obj(obj)
+
+    vertex_components = [c for v in vertices.values for c in v.to_list()]
+    assert vertex_components == pytest.approx(
+        [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0]
+    )
+    uv_components = [c for uv in uvs.values for c in uv.to_list()]
+    assert uv_components == pytest.approx([0.0, 0.0, 1.0, 0.0, 0.0, 1.0])
+    normal_components = [c for n in normals.values for c in n.to_list()]
+    assert normal_components == pytest.approx([0.0, 0.0, 1.0])
+    assert faces.triangles == (((0, 0, 0), (1, 1, 0), (2, 2, 0)),)
+
+
+def test_arrays_from_obj_rejects_a_non_triangular_mesh() -> None:
+    graph_module = _math_graph_module()
+    obj = _load_obj("quad.obj")
+
+    with pytest.raises(graph_module.GraphError, match="triangulated"):
+        graph_module.arrays_from_obj(obj)
+
+
+def test_obj_from_arrays_merges_vertex_face_uv_normal_data_back_together() -> None:
+    graph_module = _math_graph_module()
+    obj = _load_obj("triangle.obj")
+    vertices, faces, uvs, normals = graph_module.arrays_from_obj(obj)
+
+    merged = graph_module.obj_from_arrays(vertices, faces, uvs, normals)
+
+    merged_components = [c for v in merged.vertex for c in v.to_list()]
+    expected_components = [c for v in vertices.values for c in v.to_list()]
+    assert merged_components == pytest.approx(expected_components)
+    assert merged.is_triangular()
+    assert merged.faces[0].vertex == [0, 1, 2]
+    assert merged.faces[0].uv == [0, 1, 2]
+    assert merged.faces[0].normal == [0, 0, 0]
+
+
+def test_obj_from_arrays_omits_uv_and_normal_when_not_supplied() -> None:
+    graph_module = _math_graph_module()
+    obj = _load_obj("triangle.obj")
+    vertices, faces, _uvs, _normals = graph_module.arrays_from_obj(obj)
+
+    merged = graph_module.obj_from_arrays(vertices, faces, None, None)
+
+    assert merged.uv == []
+    assert merged.normals == []
+    assert merged.faces[0].uv == []
+    assert merged.faces[0].normal == []
+
+
+def test_mesh_viewer_needs_vertices_and_faces() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    viewer = graph.add_mesh_viewer()
+
+    with pytest.raises(graph_module.GraphError, match="input Vertices"):
+        graph.evaluate_mesh_viewer(viewer)
+
+    vertices = graph.add_literal(graph_module.VertexArray((Vec3(0.0, 0.0, 0.0),)))
+    graph.connect(vertices, viewer, 0)
+    with pytest.raises(graph_module.GraphError, match="input Faces"):
+        graph.evaluate_mesh_viewer(viewer)
+
+
+def test_mesh_viewer_evaluates_optional_inputs_when_wired() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    obj = _load_obj("triangle.obj")
+    vertices, faces, uvs, normals = graph_module.arrays_from_obj(obj)
+
+    viewer = graph.add_mesh_viewer()
+    graph.connect(graph.add_literal(vertices), viewer, 0)
+    graph.connect(graph.add_literal(faces), viewer, 1)
+    graph.connect(graph.add_literal(uvs), viewer, 2)
+    graph.connect(graph.add_literal(normals), viewer, 3)
+    graph.connect(graph.add_value(graph_module.MathType.VEC4, (1, 0, 0, 1)), viewer, 4)
+
+    result = graph.evaluate_mesh_viewer(viewer)
+
+    assert result.vertices is vertices
+    assert result.faces is faces
+    assert result.uvs is uvs
+    assert result.normals is normals
+    assert result.colour.to_list() == pytest.approx([1.0, 0.0, 0.0, 1.0])
+
+
+def test_mesh_viewer_leaves_unwired_optional_inputs_as_none() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    vertices = graph_module.VertexArray((Vec3(0.0, 0.0, 0.0),))
+    faces = graph_module.FaceArray(
+        (((0, None, None), (0, None, None), (0, None, None)),)
+    )
+
+    viewer = graph.add_mesh_viewer()
+    graph.connect(graph.add_literal(vertices), viewer, 0)
+    graph.connect(graph.add_literal(faces), viewer, 1)
+
+    result = graph.evaluate_mesh_viewer(viewer)
+
+    assert result.uvs is None
+    assert result.normals is None
+    assert result.colour is None
+
+
+def test_literal_node_value_can_be_replaced() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    literal = graph.add_literal(graph_module.VertexArray(()))
+
+    graph.set_literal(literal, graph_module.VertexArray((Vec3(1.0, 2.0, 3.0),)))
+
+    result = graph.evaluate(literal)
+    assert result.values[0].to_list() == pytest.approx([1.0, 2.0, 3.0])
+
+
+def test_set_literal_rejects_non_literal_nodes() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    value_node = graph.add_value(graph_module.MathType.FLOAT, (1.0,))
+
+    with pytest.raises(ValueError):
+        graph.set_literal(value_node, 2.0)

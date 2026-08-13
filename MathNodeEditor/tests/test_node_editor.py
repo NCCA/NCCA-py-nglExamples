@@ -241,7 +241,7 @@ def test_palette_groups_extended_operations_by_domain(
 
     group_titles = [group.title() for group in window.palette.findChildren(QGroupBox)]
 
-    assert group_titles == ["Values", "Maths", "Mat4", "Quaternion", "Result"]
+    assert group_titles == ["Values", "Maths", "Mat4", "Quaternion", "Mesh", "Result"]
     window.close()
 
 
@@ -275,6 +275,7 @@ def test_operation_groupings_cover_every_operation() -> None:
         set(node_editor.MATH_OPERATIONS)
         | set(node_editor.MAT4_OPERATIONS)
         | set(node_editor.QUATERNION_OPERATIONS)
+        | set(node_editor.MESH_OPERATIONS)
     )
     assert grouped_operations == set(node_editor.Operation)
 
