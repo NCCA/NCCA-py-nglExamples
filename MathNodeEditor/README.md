@@ -6,7 +6,7 @@ This is a small PySide6 node editor for experimenting with the PyNGL maths class
 
 The value palette has `Float`, `Vec2`, `Vec3`, `Vec4`, `Mat2`, `Mat3`, `Mat4` and `Quaternion`. Quaternions use the same `(s, x, y, z)` order as PyNGL and start as the identity quaternion.
 
-The Mat4 nodes cover translate, scale, rotation about each axis, `look_at`, perspective, orthographic and frustum projection, plus a `Transform` node wrapping PyNGL's `Transform` class (`Position`/`Rotation`/`Scale` `Vec3` inputs combined into one Model matrix, rotation in degrees, xyz order). The quaternion nodes cover axis-angle creation, Hamilton product, vector rotation, conversion to and from `Mat4`, slerp, conjugate and inverse. The original add, subtract, component multiply, matrix multiply, dot, cross, normalise and transpose nodes are still present.
+The Mat4 nodes cover translate, scale, rotation about each axis, `look_at`, perspective, orthographic and frustum projection, plus a `Transform` node wrapping PyNGL's `Transform` class (`Position`/`Rotation`/`Scale`, rotation in degrees, xyz order). These, and the quaternion axis-angle node, take their parameters from spin boxes built into the node itself rather than wired-in Value nodes — there's nothing to connect, just numbers to type. The remaining quaternion nodes (Hamilton product, vector rotation, conversion to and from `Mat4`, slerp, conjugate, inverse) still take wired inputs, since they combine other quaternions or matrices rather than raw numbers. The original add, subtract, component multiply, matrix multiply, dot, cross, normalise and transpose nodes are unchanged.
 
 `Multiply` is explicitly component-wise (PyNGL reserves `*` for scalar multiplication), whilst `Matrix Multiply` and `Quaternion Product` use the normal `@` operation.
 
@@ -22,9 +22,9 @@ Select a node or wire and press `Delete`/`Backspace` to remove it, or right-clic
 
 `examples/mesh_pipeline_demo.json` is a saved graph showing the mesh nodes in use: `Obj Loader` (reading `examples/cube.obj`) → `Mat4 Rotate Y` → `Transform Vertices`, plus the manual `Mat4 to Mat3` → `Inverse` → `Transpose` → `Transform Normals` pipeline, feeding a `Mesh Viewer` in `Diffuse` shading. Open it with `Load graph...`.
 
-`examples/mvp_demo.json` builds a typical Model/View/Projection matrix: a `Transform` node for Model, `Look At` for View, `Perspective` for Projection, combined with two `Matrix Multiply` nodes as `MVP = Projection @ (View @ Model)` — the same order used throughout this repo's OpenGL demos (e.g. `ObjViewer.py`'s `mvp = self.project @ self.view @ self.mouse_global_tx`) — and shown on an `Output` node.
+`examples/mvp_demo.json` builds a typical Model/View/Projection matrix: a `Transform` node for Model, `Look At` for View, `Perspective` for Projection — each carrying its own numbers directly, no Value nodes required — combined with two `Matrix Multiply` nodes as `MVP = Projection @ (View @ Model)` — the same order used throughout this repo's OpenGL demos (e.g. `ObjViewer.py`'s `mvp = self.project @ self.view @ self.mouse_global_tx`) — and shown on an `Output` node.
 
-`examples/mvp_mesh_demo.json` puts the Model half of that to work on a displayed mesh instead of a plain `Output` node: `Obj Loader` (`examples/cube.obj`) feeds a `Transform` node's `Position`/`Rotation`/`Scale` through `Transform Vertices` and the manual normal-matrix pipeline, landing on a `Mesh Viewer`. There's no `Look At`/`Perspective` in this one — View and Projection are the `Mesh Viewer`'s own arcball camera, which is what you're driving when you drag inside its preview or the `Pop Out` window.
+`examples/mvp_mesh_demo.json` puts the Model half of that to work on a displayed mesh instead of a plain `Output` node: `Obj Loader` (`examples/cube.obj`) feeds a `Transform` node's Position/Rotation/Scale spin boxes through `Transform Vertices` and the manual normal-matrix pipeline, landing on a `Mesh Viewer`. There's no `Look At`/`Perspective` in this one — View and Projection are the `Mesh Viewer`'s own arcball camera, which is what you're driving when you drag inside its preview or the `Pop Out` window.
 
 ## Running it
 
