@@ -48,6 +48,7 @@ MAT4_OPERATIONS = (
     Operation.MAT4_ROTATE_Y,
     Operation.MAT4_ROTATE_Z,
     Operation.MAT4_TO_MAT3,
+    Operation.TRANSFORM,
 )
 QUATERNION_OPERATIONS = (
     Operation.QUATERNION_FROM_AXIS_ANGLE,

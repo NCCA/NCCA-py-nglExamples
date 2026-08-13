@@ -13,6 +13,7 @@ from ncca.ngl import (
     Mat4,
     Obj,
     Quaternion,
+    Transform,
     Vec2,
     Vec3,
     Vec4,
@@ -59,6 +60,7 @@ class Operation(Enum):
     MAT4_ROTATE_X = "Mat4 Rotate X"
     MAT4_ROTATE_Y = "Mat4 Rotate Y"
     MAT4_ROTATE_Z = "Mat4 Rotate Z"
+    TRANSFORM = "Transform"
     QUATERNION_FROM_AXIS_ANGLE = "Quaternion from Axis Angle"
     QUATERNION_PRODUCT = "Quaternion Product"
     QUATERNION_ROTATE_VECTOR = "Quaternion Rotate Vector"
@@ -91,6 +93,7 @@ OPERATION_INPUT_NAMES: dict[Operation, tuple[str, ...]] = {
     Operation.MAT4_ROTATE_X: ("Angle",),
     Operation.MAT4_ROTATE_Y: ("Angle",),
     Operation.MAT4_ROTATE_Z: ("Angle",),
+    Operation.TRANSFORM: ("Position", "Rotation", "Scale"),
     Operation.QUATERNION_FROM_AXIS_ANGLE: ("Axis", "Angle"),
     Operation.QUATERNION_PRODUCT: ("A", "B"),
     Operation.QUATERNION_ROTATE_VECTOR: ("Quaternion", "Vector"),
@@ -362,6 +365,17 @@ def _mat4_rotate_z(angle: MathValue) -> MathValue:
     return Mat4.rotate_z(angle)
 
 
+def _transform(position: MathValue, rotation: MathValue, scale: MathValue) -> MathValue:
+    """Build a Model Mat4 from PyNGL's Transform (Position/Rotation/Scale)."""
+    if not all(isinstance(value, Vec3) for value in (position, rotation, scale)):
+        raise TypeError("Transform needs three Vec3 inputs")
+    transform = Transform()
+    transform.set_position(position)
+    transform.set_rotation(rotation)
+    transform.set_scale(scale)
+    return transform.matrix()
+
+
 def _quaternion_from_axis_angle(axis: MathValue, angle: MathValue) -> MathValue:
     """Build a Quaternion from a Vec3 axis and a Float angle."""
     if not isinstance(axis, Vec3) or not isinstance(angle, float):
@@ -442,6 +456,7 @@ _OPERATION_HANDLERS: dict[Operation, Callable[..., MathValue]] = {
     Operation.MAT4_ROTATE_X: _mat4_rotate_x,
     Operation.MAT4_ROTATE_Y: _mat4_rotate_y,
     Operation.MAT4_ROTATE_Z: _mat4_rotate_z,
+    Operation.TRANSFORM: _transform,
     Operation.QUATERNION_FROM_AXIS_ANGLE: _quaternion_from_axis_angle,
     Operation.QUATERNION_PRODUCT: _quaternion_product,
     Operation.QUATERNION_ROTATE_VECTOR: _quaternion_rotate_vector,

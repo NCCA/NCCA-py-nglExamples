@@ -632,6 +632,28 @@ def test_mesh_pipeline_example_loads_without_errors(application: QApplication) -
     window.close()
 
 
+def test_mvp_example_loads_and_evaluates_a_single_matrix(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    example_path = Path(__file__).parent.parent / "examples" / "mvp_demo.json"
+
+    window.canvas.load_from_file(example_path)
+    application.processEvents()
+
+    assert len(window.canvas.output_texts()) == 1
+    assert window.canvas.output_texts()[0].startswith("Mat4")
+    transform_node = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.OperationNodeItem)
+        and node.operation is node_editor.Operation.TRANSFORM
+    )
+    assert transform_node.input_names == ("Position", "Rotation", "Scale")
+    window.close()
+
+
 def test_wheel_zoom_step_is_gentle(application: QApplication) -> None:
     node_editor = _node_editor_module()
     window = node_editor.MathNodeWindow(load_example=False)

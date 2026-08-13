@@ -10,6 +10,7 @@ from ncca.ngl import (
     Mat4,
     Obj,
     Quaternion,
+    Transform,
     Vec2,
     Vec3,
     Vec4,
@@ -209,6 +210,38 @@ def test_mat4_transform_constructor_nodes(
     result = graph.evaluate(operation)
 
     assert result.to_list() == pytest.approx(expected.to_list())
+
+
+def test_transform_node_builds_a_model_matrix_from_position_rotation_scale() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    position = graph.add_value(graph_module.MathType.VEC3, (1.0, 2.0, 3.0))
+    rotation = graph.add_value(graph_module.MathType.VEC3, (0.0, 30.0, 0.0))
+    scale = graph.add_value(graph_module.MathType.VEC3, (2.0, 2.0, 2.0))
+    operation = graph.add_operation(graph_module.Operation.TRANSFORM)
+    graph.connect(position, operation, 0)
+    graph.connect(rotation, operation, 1)
+    graph.connect(scale, operation, 2)
+
+    result = graph.evaluate(operation)
+
+    expected = Transform()
+    expected.set_position(Vec3(1.0, 2.0, 3.0))
+    expected.set_rotation(Vec3(0.0, 30.0, 0.0))
+    expected.set_scale(Vec3(2.0, 2.0, 2.0))
+    assert isinstance(result, Mat4)
+    assert result.to_list() == pytest.approx(expected.matrix().to_list())
+
+
+def test_transform_node_reports_semantic_input_names() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    position = graph.add_value(graph_module.MathType.VEC3, (0.0, 0.0, 0.0))
+    operation = graph.add_operation(graph_module.Operation.TRANSFORM)
+    graph.connect(position, operation, 0)
+
+    with pytest.raises(graph_module.GraphError, match="input Rotation"):
+        graph.evaluate(operation)
 
 
 def test_ortho_node_builds_an_orthographic_mat4() -> None:
