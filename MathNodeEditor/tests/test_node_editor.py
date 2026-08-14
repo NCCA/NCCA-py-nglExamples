@@ -448,6 +448,25 @@ def test_delete_key_removes_selected_node_and_its_wires(
 
     assert multiply_node.node_id not in window.canvas.nodes
     assert len(window.canvas.connections) == 0
+    assert window.canvas.modified is True
+    window.close()
+
+
+@pytest.mark.parametrize("key", [Qt.Key.Key_Delete, Qt.Key.Key_Backspace])
+def test_delete_key_with_no_selection_does_not_mark_the_scene_modified(
+    application: QApplication,
+    key: Qt.Key,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    window.show()
+    window.view.setFocus()
+    assert window.canvas.modified is False
+
+    QTest.keyClick(window.view, key)
+    application.processEvents()
+
+    assert window.canvas.modified is False
     window.close()
 
 

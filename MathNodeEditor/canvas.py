@@ -308,6 +308,8 @@ class MathNodeScene(QGraphicsScene):
         selected_connections = [
             item for item in self.selectedItems() if isinstance(item, ConnectionItem)
         ]
+        if not selected_nodes and not selected_connections:
+            return
         for node in selected_nodes:
             self._delete_node(node)
         for connection in selected_connections:
