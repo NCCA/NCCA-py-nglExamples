@@ -76,6 +76,10 @@ _OBJ_PARSE_ERRORS = (
     ObjParseFaceError,
 )
 
+DEFAULT_EXAMPLE_PATH = (
+    Path(__file__).resolve().parent / "examples" / "vec3_multiply_demo.json"
+)
+
 
 class MathNodeScene(QGraphicsScene):
     """Graphics scene which keeps visible wires and the maths graph in sync."""
@@ -331,22 +335,8 @@ class MathNodeScene(QGraphicsScene):
         self._insertion_index = 0
 
     def load_example(self) -> None:
-        """Build the requested component-wise Vec3 multiplication example."""
-        self.clear_graph()
-        left = self.add_value_node(
-            MathType.VEC3, QPointF(-520.0, -130.0), (1.0, 2.0, 3.0)
-        )
-        right = self.add_value_node(
-            MathType.VEC3, QPointF(-520.0, 100.0), (4.0, 5.0, 6.0)
-        )
-        multiply = self.add_operation_node(Operation.MULTIPLY, QPointF(-140.0, 0.0))
-        output = self.add_output_node(QPointF(220.0, 0.0))
-        assert left.output_port is not None
-        assert right.output_port is not None
-        assert multiply.output_port is not None
-        self.connect_ports(left.output_port, multiply.input_ports[0])
-        self.connect_ports(right.output_port, multiply.input_ports[1])
-        self.connect_ports(multiply.output_port, output.input_ports[0])
+        """Load the bundled Vec3 component-multiply example graph."""
+        self.load_from_file(DEFAULT_EXAMPLE_PATH)
 
     def to_dict(self) -> dict[str, object]:
         """Return a JSON-serialisable snapshot of the graph and node layout."""

@@ -1,0 +1,58 @@
+{
+  "nodes": [
+    {
+      "id": "node-1",
+      "x": -520.0,
+      "y": -130.0,
+      "kind": "value",
+      "math_type": "VEC3",
+      "components": [
+        1.0,
+        2.0,
+        3.0
+      ]
+    },
+    {
+      "id": "node-2",
+      "x": -520.0,
+      "y": 100.0,
+      "kind": "value",
+      "math_type": "VEC3",
+      "components": [
+        4.0,
+        5.0,
+        6.0
+      ]
+    },
+    {
+      "id": "node-3",
+      "x": -140.0,
+      "y": 0.0,
+      "kind": "operation",
+      "operation": "MULTIPLY"
+    },
+    {
+      "id": "node-4",
+      "x": 220.0,
+      "y": 0.0,
+      "kind": "output"
+    }
+  ],
+  "connections": [
+    {
+      "source": "node-1",
+      "target": "node-3",
+      "input": 0
+    },
+    {
+      "source": "node-2",
+      "target": "node-3",
+      "input": 1
+    },
+    {
+      "source": "node-3",
+      "target": "node-4",
+      "input": 0
+    }
+  ]
+}

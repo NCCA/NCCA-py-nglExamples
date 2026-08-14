@@ -750,6 +750,20 @@ def test_mesh_pipeline_example_loads_without_errors(application: QApplication) -
     window.close()
 
 
+def test_default_example_file_loads_the_vec3_multiply_result(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    example_path = Path(__file__).parent.parent / "examples" / "vec3_multiply_demo.json"
+
+    window.canvas.load_from_file(example_path)
+    application.processEvents()
+
+    assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
+    window.close()
+
+
 def test_mvp_example_loads_and_evaluates_a_single_matrix(
     application: QApplication,
 ) -> None:
