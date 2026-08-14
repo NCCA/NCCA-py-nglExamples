@@ -1,5 +1,6 @@
 """Qt integration tests for the maths node editor."""
 
+import json
 import os
 from importlib import import_module
 from pathlib import Path
@@ -60,11 +61,10 @@ def _redirect_default_settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
     ``MathNodeWindow(load_example=...)`` calls elsewhere in this file (there
     are dozens, from before this task) never pass ``settings=`` explicitly,
     so without this autouse fixture they'd fall through to
-    ``node_editor._default_settings()`` -> a bare ``QSettings()`` with no
-    organization/application name set (``main()`` is what sets those, and
-    tests never call ``main()``), which warns on stderr and, on macOS,
-    resolves to a native preferences store keyed by an empty bundle id
-    instead of a clean temp file.
+    ``node_editor._default_settings()`` -> ``QSettings("NCCA",
+    "MathNodeEditor")``, which resolves to the same real, persistent
+    preferences store the actual application uses, instead of a clean temp
+    file.
     """
     node_editor = _node_editor_module()
     ini_path = str(tmp_path / "default-settings.ini")
@@ -777,6 +777,65 @@ def test_open_action_reports_a_malformed_file_instead_of_crashing(
 
     assert len(warnings) == 1
     assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
+    window.close()
+
+
+def test_open_action_restores_the_previous_graph_after_a_schema_error(
+    application: QApplication,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A schema-invalid (but JSON-valid) file must not wreck the open graph.
+
+    ``MathNodeScene.from_dict`` clears the graph before rebuilding it, so a
+    file that's valid JSON but fails schema validation (an unknown node
+    ``kind``, here) leaves the canvas half-built rather than untouched. Left
+    unhandled, the user would see a wrecked canvas under a clean (non-dirty)
+    title bar, and a following ``Ctrl+S`` would silently overwrite
+    ``good_file`` on disk with that wreckage.
+    """
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=True, settings=_isolated_settings(tmp_path)
+    )
+    good_file = tmp_path / "good.json"
+    window.canvas.save_to_file(good_file)
+    monkeypatch.setattr(
+        QFileDialog,
+        "getOpenFileName",
+        lambda *args, **kwargs: (str(good_file), ""),
+    )
+    window.action_open.trigger()
+    application.processEvents()
+    assert window.current_file == good_file
+
+    broken_file = tmp_path / "bad_schema.json"
+    broken_file.write_text(
+        json.dumps(
+            {
+                "nodes": [{"id": "n1", "x": 0.0, "y": 0.0, "kind": "not_a_real_kind"}],
+                "connections": [],
+            }
+        )
+    )
+    monkeypatch.setattr(
+        QFileDialog,
+        "getOpenFileName",
+        lambda *args, **kwargs: (str(broken_file), ""),
+    )
+    warnings: list[object] = []
+    monkeypatch.setattr(
+        QMessageBox,
+        "warning",
+        lambda *args, **kwargs: warnings.append(args),
+    )
+
+    window.action_open.trigger()
+    application.processEvents()
+
+    assert len(warnings) == 1
+    assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
+    assert window.current_file == good_file
     window.close()
 
 

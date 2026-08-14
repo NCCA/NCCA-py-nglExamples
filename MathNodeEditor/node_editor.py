@@ -113,7 +113,7 @@ _LOAD_ERRORS = (
 
 def _default_settings() -> QSettings:
     """Return the QSettings store used when a window isn't given one explicitly."""
-    return QSettings()
+    return QSettings("NCCA", "MathNodeEditor")
 
 
 class MathNodeWindow(QMainWindow):
@@ -252,9 +252,17 @@ class MathNodeWindow(QMainWindow):
 
     def _open_path(self, path: Path) -> bool:
         """Load a graph file, reporting failure instead of raising. Return success."""
+        snapshot = self.canvas.to_dict()
         try:
             self.canvas.load_from_file(path)
         except _LOAD_ERRORS as error:
+            # from_dict clears the graph before rebuilding it, so a schema
+            # error partway through leaves a half-built graph rather than the
+            # one the user actually had open. Restore it from the snapshot
+            # taken above instead of leaving that wreckage sitting under a
+            # clean (non-dirty) title bar, ready for Ctrl+S to overwrite the
+            # good file on disk with it.
+            self.canvas.from_dict(snapshot)
             QMessageBox.warning(self, "Open Graph", f"Could not open graph: {error}")
             return False
         self.current_file = path
@@ -317,9 +325,10 @@ def main() -> int:
         # other.
         QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
         application = QApplication(sys.argv)
-    # QSettings derives its storage path from the organization/application
-    # name, so this has to happen before the first QSettings() is created
-    # (inside MathNodeWindow.__init__) or it falls back to an unnamed store.
+    # _default_settings() names its own QSettings store explicitly, so it
+    # doesn't depend on this ordering. Still worth setting for Qt-wide
+    # consistency (window/dialog defaults, and any QSettings() a caller
+    # might construct by hand elsewhere).
     application.setOrganizationName("NCCA")
     application.setApplicationName("MathNodeEditor")
     window = MathNodeWindow(load_example=True)
