@@ -202,6 +202,26 @@ class MathNodeWindow(QMainWindow):
         star = "*" if self.canvas.modified else ""
         self.setWindowTitle(f"{WINDOW_TITLE} — {name}{star}")
 
+    def _confirm_discard_changes(self) -> bool:
+        """Ask to save unsaved changes; return whether it's safe to proceed."""
+        if not self.canvas.modified:
+            return True
+        response = QMessageBox.question(
+            self,
+            WINDOW_TITLE,
+            "Save changes to the current graph before continuing?",
+            QMessageBox.StandardButton.Save
+            | QMessageBox.StandardButton.Discard
+            | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Save,
+        )
+        if response == QMessageBox.StandardButton.Cancel:
+            return False
+        if response == QMessageBox.StandardButton.Discard:
+            return True
+        self._save_graph()
+        return not self.canvas.modified
+
     def _load_startup_graph(self) -> None:
         """Reopen the last file used, falling back to the bundled example."""
         recent_file = self.settings.value("recentFile", "", type=str)
@@ -213,12 +233,16 @@ class MathNodeWindow(QMainWindow):
 
     def _new_graph(self) -> None:
         """Discard the current graph and start a blank one."""
+        if not self._confirm_discard_changes():
+            return
         self.canvas.clear_graph()
         self.current_file = None
         self._update_title()
 
     def _open_graph(self) -> None:
         """Prompt for a path and replace the current graph with its contents."""
+        if not self._confirm_discard_changes():
+            return
         path, _name_filter = QFileDialog.getOpenFileName(
             self, "Open Graph", "", "JSON Files (*.json)"
         )
@@ -268,7 +292,10 @@ class MathNodeWindow(QMainWindow):
         return True
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        """Persist the window geometry before closing."""
+        """Confirm discarding unsaved changes, then persist the window geometry."""
+        if not self._confirm_discard_changes():
+            event.ignore()
+            return
         self.settings.setValue("geometry", self.saveGeometry())
         super().closeEvent(event)
 

@@ -8,7 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
 from PySide6.QtCore import QPoint, QPointF, QSettings, Qt
-from PySide6.QtGui import QFont, QFontMetrics, QKeySequence, QWheelEvent
+from PySide6.QtGui import QCloseEvent, QFont, QFontMetrics, QKeySequence, QWheelEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QApplication,
@@ -72,6 +72,24 @@ def _redirect_default_settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
         node_editor,
         "_default_settings",
         lambda: QSettings(ini_path, QSettings.Format.IniFormat),
+    )
+
+
+@pytest.fixture(autouse=True)
+def _default_discard_confirmation(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Answer "Discard" to any unmocked save-changes prompt.
+
+    Dozens of tests in this file add nodes and then call ``window.close()``
+    without caring about the unsaved-changes prompt added in this task. Left
+    unmocked, ``closeEvent``'s call to ``QMessageBox.question()`` would raise
+    a real modal dialog and hang the test under the offscreen QPA platform.
+    Tests that exercise the prompt itself override this with their own
+    ``monkeypatch.setattr(QMessageBox, "question", ...)`` call.
+    """
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        lambda *args, **kwargs: QMessageBox.StandardButton.Discard,
     )
 
 
@@ -1242,4 +1260,141 @@ def test_modified_changed_signal_fires_once_on_transition(
     window.canvas.add_value_node(node_editor.MathType.VEC3)
 
     assert seen == [True]
+    window.close()
+
+
+def test_new_prompts_and_cancels_when_discarding_is_declined(
+    application: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=False, settings=_isolated_settings(tmp_path)
+    )
+    window.canvas.add_value_node(node_editor.MathType.VEC3)
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        lambda *args, **kwargs: QMessageBox.StandardButton.Cancel,
+    )
+
+    window.action_new.trigger()
+
+    assert len(window.canvas.nodes) == 1
+    window.close()
+
+
+def test_new_discards_without_saving_when_chosen(
+    application: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=False, settings=_isolated_settings(tmp_path)
+    )
+    window.canvas.add_value_node(node_editor.MathType.VEC3)
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        lambda *args, **kwargs: QMessageBox.StandardButton.Discard,
+    )
+
+    window.action_new.trigger()
+
+    assert window.canvas.nodes == {}
+    window.close()
+
+
+def test_new_saves_first_when_save_is_chosen(
+    application: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=False, settings=_isolated_settings(tmp_path)
+    )
+    window.canvas.add_value_node(node_editor.MathType.VEC3)
+    file_path = tmp_path / "graph.json"
+    monkeypatch.setattr(
+        QFileDialog, "getSaveFileName", lambda *args, **kwargs: (str(file_path), "")
+    )
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        lambda *args, **kwargs: QMessageBox.StandardButton.Save,
+    )
+
+    window.action_new.trigger()
+
+    assert file_path.exists()
+    assert window.canvas.nodes == {}
+    window.close()
+
+
+def test_new_does_not_prompt_when_the_graph_is_unmodified(
+    application: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=False, settings=_isolated_settings(tmp_path)
+    )
+
+    def _fail_if_called(
+        *_args: object, **_kwargs: object
+    ) -> QMessageBox.StandardButton:
+        raise AssertionError("Must not prompt on a clean graph")
+
+    monkeypatch.setattr(QMessageBox, "question", _fail_if_called)
+
+    window.action_new.trigger()
+
+    assert window.canvas.nodes == {}
+    window.close()
+
+
+def test_open_prompts_before_replacing_a_modified_graph(
+    application: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=False, settings=_isolated_settings(tmp_path)
+    )
+    window.canvas.add_value_node(node_editor.MathType.VEC3)
+    other_path = tmp_path / "other.json"
+    seed_window = node_editor.MathNodeWindow(
+        load_example=True, settings=_isolated_settings(tmp_path)
+    )
+    seed_window.canvas.save_to_file(other_path)
+    seed_window.close()
+    monkeypatch.setattr(
+        QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(other_path), "")
+    )
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        lambda *args, **kwargs: QMessageBox.StandardButton.Cancel,
+    )
+
+    window.action_open.trigger()
+
+    assert len(window.canvas.nodes) == 1
+    window.close()
+
+
+def test_close_event_ignored_when_discard_is_cancelled(
+    application: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=False, settings=_isolated_settings(tmp_path)
+    )
+    window.canvas.add_value_node(node_editor.MathType.VEC3)
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        lambda *args, **kwargs: QMessageBox.StandardButton.Cancel,
+    )
+    close_event = QCloseEvent()
+
+    window.closeEvent(close_event)
+
+    assert close_event.isAccepted() is False
+    window.canvas.clear_graph()
     window.close()
