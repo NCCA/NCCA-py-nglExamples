@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 from PySide6.QtCore import QSettings, Qt
-from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QSurfaceFormat
+from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
-    QApplication,
     QFileDialog,
     QHBoxLayout,
     QMainWindow,
@@ -94,7 +92,6 @@ __all__ = [
     "ValueNodeItem",
     "default_components",
     "format_value",
-    "main",
     "node_title_font",
 ]
 
@@ -306,35 +303,3 @@ class MathNodeWindow(QMainWindow):
             return
         self.settings.setValue("geometry", self.saveGeometry())
         super().closeEvent(event)
-
-
-def main() -> int:
-    """Run the maths node editor application."""
-    application = QApplication.instance()
-    if application is None:
-        surface_format = QSurfaceFormat()
-        surface_format.setSamples(4)
-        surface_format.setMajorVersion(4)
-        surface_format.setMinorVersion(1)
-        surface_format.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
-        surface_format.setDepthBufferSize(24)
-        QSurfaceFormat.setDefaultFormat(surface_format)
-        # The Mesh Viewer node's embedded preview and its pop-out window are
-        # two separate top-level GL surfaces; without this they don't share
-        # a context and ShaderLib's program ids from one are invalid in the
-        # other.
-        QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
-        application = QApplication(sys.argv)
-    # _default_settings() names its own QSettings store explicitly, so it
-    # doesn't depend on this ordering. Still worth setting for Qt-wide
-    # consistency (window/dialog defaults, and any QSettings() a caller
-    # might construct by hand elsewhere).
-    application.setOrganizationName("NCCA")
-    application.setApplicationName("MathNodeEditor")
-    window = MathNodeWindow(load_example=True)
-    window.show()
-    return application.exec()
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
