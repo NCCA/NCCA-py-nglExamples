@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import json
 import sys
+from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QSurfaceFormat
+from PySide6.QtCore import QSettings, Qt
+from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QSurfaceFormat
 from PySide6.QtWidgets import (
     QApplication,
+    QFileDialog,
     QHBoxLayout,
     QMainWindow,
+    QMessageBox,
     QScrollArea,
     QSizePolicy,
     QWidget,
@@ -94,15 +98,41 @@ __all__ = [
     "node_title_font",
 ]
 
+WINDOW_TITLE = "PyNGL Maths Node Editor"
+
+_LOAD_ERRORS = (
+    OSError,
+    json.JSONDecodeError,
+    GraphError,
+    KeyError,
+    TypeError,
+    ValueError,
+    IndexError,
+)
+
+
+def _default_settings() -> QSettings:
+    """Return the QSettings store used when a window isn't given one explicitly."""
+    return QSettings()
+
 
 class MathNodeWindow(QMainWindow):
     """Main window containing the palette and node graph canvas."""
 
-    def __init__(self, load_example: bool = True) -> None:
-        """Create the editor and optionally load the Vec3 example."""
+    def __init__(
+        self,
+        load_example: bool = True,
+        settings: QSettings | None = None,
+    ) -> None:
+        """Create the editor, restore its settings, and load a starting graph."""
         super().__init__()
-        self.setWindowTitle("PyNGL Maths Node Editor")
-        self.resize(1280, 760)
+        self.settings = settings if settings is not None else _default_settings()
+        self.current_file: Path | None = None
+        geometry = self.settings.value("geometry")
+        if geometry is not None:
+            self.restoreGeometry(geometry)
+        else:
+            self.resize(1280, 760)
         self.canvas = MathNodeScene(self)
         self.view = MathNodeView(self.canvas, self)
         self.view.setSizePolicy(
@@ -128,9 +158,119 @@ class MathNodeWindow(QMainWindow):
         self.statusBar().showMessage(
             "Press Tab to add a node; edit values and wire nodes together"
         )
+        self._build_file_menu()
+        self.canvas.modifiedChanged.connect(lambda _modified: self._update_title())
         if load_example:
-            self.canvas.load_example()
+            self._load_startup_graph()
             self.view.centerOn(0.0, 0.0)
+        self._update_title()
+
+    def _build_file_menu(self) -> None:
+        """Build the File menu's New/Open/Save/Save As/Quit actions."""
+        file_menu = self.menuBar().addMenu("&File")
+
+        self.action_new = QAction("&New", self)
+        self.action_new.setShortcut(QKeySequence.StandardKey.New)
+        self.action_new.triggered.connect(self._new_graph)
+        file_menu.addAction(self.action_new)
+
+        self.action_open = QAction("&Open...", self)
+        self.action_open.setShortcut(QKeySequence.StandardKey.Open)
+        self.action_open.triggered.connect(self._open_graph)
+        file_menu.addAction(self.action_open)
+
+        self.action_save = QAction("&Save", self)
+        self.action_save.setShortcut(QKeySequence.StandardKey.Save)
+        self.action_save.triggered.connect(self._save_graph)
+        file_menu.addAction(self.action_save)
+
+        self.action_save_as = QAction("Save &As...", self)
+        self.action_save_as.setShortcut(QKeySequence.StandardKey.SaveAs)
+        self.action_save_as.triggered.connect(self._save_graph_as)
+        file_menu.addAction(self.action_save_as)
+
+        file_menu.addSeparator()
+
+        self.action_quit = QAction("&Quit", self)
+        self.action_quit.setShortcut(QKeySequence.StandardKey.Quit)
+        self.action_quit.triggered.connect(self.close)
+        file_menu.addAction(self.action_quit)
+
+    def _update_title(self) -> None:
+        """Show the current file name and an unsaved-changes marker in the title bar."""
+        name = self.current_file.name if self.current_file else "Untitled"
+        star = "*" if self.canvas.modified else ""
+        self.setWindowTitle(f"{WINDOW_TITLE} — {name}{star}")
+
+    def _load_startup_graph(self) -> None:
+        """Reopen the last file used, falling back to the bundled example."""
+        recent_file = self.settings.value("recentFile", "", type=str)
+        if recent_file and Path(recent_file).is_file():
+            if self._open_path(Path(recent_file)):
+                return
+        self.canvas.load_example()
+        self.current_file = None
+
+    def _new_graph(self) -> None:
+        """Discard the current graph and start a blank one."""
+        self.canvas.clear_graph()
+        self.current_file = None
+        self._update_title()
+
+    def _open_graph(self) -> None:
+        """Prompt for a path and replace the current graph with its contents."""
+        path, _name_filter = QFileDialog.getOpenFileName(
+            self, "Open Graph", "", "JSON Files (*.json)"
+        )
+        if not path:
+            return
+        self._open_path(Path(path))
+
+    def _open_path(self, path: Path) -> bool:
+        """Load a graph file, reporting failure instead of raising. Return success."""
+        try:
+            self.canvas.load_from_file(path)
+        except _LOAD_ERRORS as error:
+            QMessageBox.warning(self, "Open Graph", f"Could not open graph: {error}")
+            return False
+        self.current_file = path
+        self.settings.setValue("recentFile", str(path))
+        self._update_title()
+        return True
+
+    def _save_graph(self) -> None:
+        """Save to the current file, or prompt for one if there isn't one yet."""
+        if self.current_file is None:
+            self._save_graph_as()
+            return
+        self._save_path(self.current_file)
+
+    def _save_graph_as(self) -> None:
+        """Prompt for a path and save the current graph to it."""
+        path, _name_filter = QFileDialog.getSaveFileName(
+            self, "Save Graph As", "", "JSON Files (*.json)"
+        )
+        if not path:
+            return
+        self._save_path(Path(path))
+
+    def _save_path(self, path: Path) -> bool:
+        """Write the current graph to a path, reporting failure. Return success."""
+        try:
+            self.canvas.save_to_file(path)
+        except OSError as error:
+            QMessageBox.warning(self, "Save Graph", f"Could not save graph: {error}")
+            return False
+        self.current_file = path
+        self.settings.setValue("recentFile", str(path))
+        self.canvas.modified = False
+        self._update_title()
+        return True
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """Persist the window geometry before closing."""
+        self.settings.setValue("geometry", self.saveGeometry())
+        super().closeEvent(event)
 
 
 def main() -> int:
@@ -150,7 +290,11 @@ def main() -> int:
         # other.
         QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
         application = QApplication(sys.argv)
-    application.setApplicationName("PyNGL Maths Node Editor")
+    # QSettings derives its storage path from the organization/application
+    # name, so this has to happen before the first QSettings() is created
+    # (inside MathNodeWindow.__init__) or it falls back to an unnamed store.
+    application.setOrganizationName("NCCA")
+    application.setApplicationName("MathNodeEditor")
     window = MathNodeWindow(load_example=True)
     window.show()
     return application.exec()

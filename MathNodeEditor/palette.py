@@ -2,26 +2,23 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
-    QFileDialog,
     QGroupBox,
     QLabel,
     QLineEdit,
     QMenu,
-    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
     QWidgetAction,
 )
 
-from .math_graph import GENERATOR_OPERATIONS, GraphError, MathType, Operation
+from .math_graph import GENERATOR_OPERATIONS, MathType, Operation
 
 if TYPE_CHECKING:
     from .canvas import MathNodeScene, MathNodeView
@@ -244,52 +241,6 @@ class NodePalette(QWidget):
         frame_all_button = QPushButton("Frame All")
         frame_all_button.clicked.connect(lambda _checked=False: self.view.frame_all())
         layout.addWidget(frame_all_button)
-        example_button = QPushButton("Load Vec3 example")
-        example_button.clicked.connect(
-            lambda _checked=False: self.canvas.load_example()
-        )
-        layout.addWidget(example_button)
-        clear_button = QPushButton("Clear graph")
-        clear_button.clicked.connect(lambda _checked=False: self.canvas.clear_graph())
-        layout.addWidget(clear_button)
-        save_button = QPushButton("Save graph...")
-        save_button.clicked.connect(lambda _checked=False: self._save_graph())
-        layout.addWidget(save_button)
-        load_button = QPushButton("Load graph...")
-        load_button.clicked.connect(lambda _checked=False: self._load_graph())
-        layout.addWidget(load_button)
-
-    def _save_graph(self) -> None:
-        """Prompt for a path and write the current graph to it."""
-        path, _name_filter = QFileDialog.getSaveFileName(
-            self, "Save Graph", "", "JSON Files (*.json)"
-        )
-        if not path:
-            return
-        try:
-            self.canvas.save_to_file(path)
-        except OSError as error:
-            QMessageBox.warning(self, "Save Graph", f"Could not save graph: {error}")
-
-    def _load_graph(self) -> None:
-        """Prompt for a path and replace the current graph with its contents."""
-        path, _name_filter = QFileDialog.getOpenFileName(
-            self, "Load Graph", "", "JSON Files (*.json)"
-        )
-        if not path:
-            return
-        try:
-            self.canvas.load_from_file(path)
-        except (
-            OSError,
-            json.JSONDecodeError,
-            GraphError,
-            KeyError,
-            TypeError,
-            ValueError,
-            IndexError,
-        ) as error:
-            QMessageBox.warning(self, "Load Graph", f"Could not load graph: {error}")
 
     def _add_group(
         self,

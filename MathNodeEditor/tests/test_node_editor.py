@@ -7,8 +7,8 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QPoint, QPointF, Qt
-from PySide6.QtGui import QFont, QFontMetrics, QWheelEvent
+from PySide6.QtCore import QPoint, QPointF, QSettings, Qt
+from PySide6.QtGui import QFont, QFontMetrics, QKeySequence, QWheelEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QApplication,
@@ -46,6 +46,33 @@ def _node_editor_module():
 def application() -> QApplication:
     """Return the shared Qt application used by the window test."""
     return QApplication.instance() or QApplication([])
+
+
+def _isolated_settings(tmp_path: Path) -> QSettings:
+    """Build a throwaway QSettings store so tests never touch real user prefs."""
+    return QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
+
+
+@pytest.fixture(autouse=True)
+def _redirect_default_settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Point every bare QSettings() at a throwaway file for this test only.
+
+    ``MathNodeWindow(load_example=...)`` calls elsewhere in this file (there
+    are dozens, from before this task) never pass ``settings=`` explicitly,
+    so without this autouse fixture they'd fall through to
+    ``node_editor._default_settings()`` -> a bare ``QSettings()`` with no
+    organization/application name set (``main()`` is what sets those, and
+    tests never call ``main()``), which warns on stderr and, on macOS,
+    resolves to a native preferences store keyed by an empty bundle id
+    instead of a clean temp file.
+    """
+    node_editor = _node_editor_module()
+    ini_path = str(tmp_path / "default-settings.ini")
+    monkeypatch.setattr(
+        node_editor,
+        "_default_settings",
+        lambda: QSettings(ini_path, QSettings.Format.IniFormat),
+    )
 
 
 def test_example_graph_displays_the_vec3_multiply_result(
@@ -656,39 +683,38 @@ def test_save_to_file_and_load_from_file_round_trip(
     window.close()
 
 
-def test_save_graph_button_writes_a_json_file(
+def test_save_action_writes_a_json_file(
     application: QApplication,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     node_editor = _node_editor_module()
-    window = node_editor.MathNodeWindow(load_example=True)
+    window = node_editor.MathNodeWindow(
+        load_example=True, settings=_isolated_settings(tmp_path)
+    )
     file_path = tmp_path / "graph.json"
     monkeypatch.setattr(
         QFileDialog,
         "getSaveFileName",
         lambda *args, **kwargs: (str(file_path), ""),
     )
-    save_button = next(
-        child
-        for child in window.palette.findChildren(QPushButton)
-        if child.text() == "Save graph..."
-    )
 
-    save_button.click()
+    window.action_save.trigger()
     application.processEvents()
 
     assert file_path.exists()
     window.close()
 
 
-def test_load_graph_button_replaces_the_current_graph(
+def test_open_action_replaces_the_current_graph(
     application: QApplication,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     node_editor = _node_editor_module()
-    window = node_editor.MathNodeWindow(load_example=True)
+    window = node_editor.MathNodeWindow(
+        load_example=True, settings=_isolated_settings(tmp_path)
+    )
     file_path = tmp_path / "graph.json"
     window.canvas.save_to_file(file_path)
     window.canvas.clear_graph()
@@ -697,26 +723,23 @@ def test_load_graph_button_replaces_the_current_graph(
         "getOpenFileName",
         lambda *args, **kwargs: (str(file_path), ""),
     )
-    load_button = next(
-        child
-        for child in window.palette.findChildren(QPushButton)
-        if child.text() == "Load graph..."
-    )
 
-    load_button.click()
+    window.action_open.trigger()
     application.processEvents()
 
     assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
     window.close()
 
 
-def test_load_graph_button_reports_a_malformed_file_instead_of_crashing(
+def test_open_action_reports_a_malformed_file_instead_of_crashing(
     application: QApplication,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     node_editor = _node_editor_module()
-    window = node_editor.MathNodeWindow(load_example=True)
+    window = node_editor.MathNodeWindow(
+        load_example=True, settings=_isolated_settings(tmp_path)
+    )
     file_path = tmp_path / "broken.json"
     file_path.write_text("not valid json")
     monkeypatch.setattr(
@@ -730,17 +753,208 @@ def test_load_graph_button_reports_a_malformed_file_instead_of_crashing(
         "warning",
         lambda *args, **kwargs: warnings.append(args),
     )
-    load_button = next(
-        child
-        for child in window.palette.findChildren(QPushButton)
-        if child.text() == "Load graph..."
-    )
 
-    load_button.click()
+    window.action_open.trigger()
     application.processEvents()
 
     assert len(warnings) == 1
     assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
+    window.close()
+
+
+def test_file_menu_has_the_expected_actions_and_shortcuts(
+    application: QApplication, tmp_path: Path
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=False, settings=_isolated_settings(tmp_path)
+    )
+
+    assert window.action_new.shortcut() == QKeySequence.StandardKey.New
+    assert window.action_open.shortcut() == QKeySequence.StandardKey.Open
+    assert window.action_save.shortcut() == QKeySequence.StandardKey.Save
+    assert window.action_save_as.shortcut() == QKeySequence.StandardKey.SaveAs
+    window.close()
+
+
+def test_new_clears_the_graph_and_forgets_the_current_file(
+    application: QApplication, tmp_path: Path
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=True, settings=_isolated_settings(tmp_path)
+    )
+
+    window.action_new.trigger()
+
+    assert window.canvas.nodes == {}
+    assert window.current_file is None
+    window.close()
+
+
+def test_save_as_writes_a_file_and_becomes_the_current_file(
+    application: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=True, settings=_isolated_settings(tmp_path)
+    )
+    file_path = tmp_path / "graph.json"
+    monkeypatch.setattr(
+        QFileDialog, "getSaveFileName", lambda *args, **kwargs: (str(file_path), "")
+    )
+
+    window.action_save_as.trigger()
+
+    assert file_path.exists()
+    assert window.current_file == file_path
+    window.close()
+
+
+def test_save_writes_to_the_current_file_without_prompting(
+    application: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=True, settings=_isolated_settings(tmp_path)
+    )
+    window.current_file = tmp_path / "graph.json"
+
+    def _fail_if_called(*_args: object, **_kwargs: object) -> tuple[str, str]:
+        raise AssertionError("Save must not prompt when a current file is set")
+
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", _fail_if_called)
+
+    window.action_save.trigger()
+
+    assert window.current_file.exists()
+    window.close()
+
+
+def test_save_without_a_current_file_behaves_like_save_as(
+    application: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=True, settings=_isolated_settings(tmp_path)
+    )
+    file_path = tmp_path / "graph.json"
+    monkeypatch.setattr(
+        QFileDialog, "getSaveFileName", lambda *args, **kwargs: (str(file_path), "")
+    )
+
+    window.action_save.trigger()
+
+    assert window.current_file == file_path
+    window.close()
+
+
+def test_open_replaces_the_graph_and_updates_recent_file_setting(
+    application: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    node_editor = _node_editor_module()
+    settings = _isolated_settings(tmp_path)
+    window = node_editor.MathNodeWindow(load_example=True, settings=settings)
+    file_path = tmp_path / "graph.json"
+    window.canvas.save_to_file(file_path)
+    window.action_new.trigger()
+    monkeypatch.setattr(
+        QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(file_path), "")
+    )
+
+    window.action_open.trigger()
+    application.processEvents()
+
+    assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
+    assert settings.value("recentFile") == str(file_path)
+    window.close()
+
+
+def test_startup_reopens_the_recent_file_when_present(
+    application: QApplication, tmp_path: Path
+) -> None:
+    node_editor = _node_editor_module()
+    settings = _isolated_settings(tmp_path)
+    seed_window = node_editor.MathNodeWindow(load_example=False, settings=settings)
+    seed_window.canvas.add_value_node(node_editor.MathType.VEC3)
+    seed_window.canvas.add_output_node()
+    file_path = tmp_path / "graph.json"
+    seed_window.canvas.save_to_file(file_path)
+    seed_window.close()
+    settings.setValue("recentFile", str(file_path))
+
+    window = node_editor.MathNodeWindow(load_example=True, settings=settings)
+    application.processEvents()
+
+    assert window.current_file == file_path
+    assert len(window.canvas.nodes) == 2
+    window.close()
+
+
+def test_startup_falls_back_to_the_bundled_demo_without_a_recent_file(
+    application: QApplication, tmp_path: Path
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=True, settings=_isolated_settings(tmp_path)
+    )
+    application.processEvents()
+
+    assert window.current_file is None
+    assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
+    window.close()
+
+
+def test_startup_falls_back_when_the_recent_file_is_missing(
+    application: QApplication, tmp_path: Path
+) -> None:
+    node_editor = _node_editor_module()
+    settings = _isolated_settings(tmp_path)
+    settings.setValue("recentFile", str(tmp_path / "does-not-exist.json"))
+
+    window = node_editor.MathNodeWindow(load_example=True, settings=settings)
+    application.processEvents()
+
+    assert window.current_file is None
+    assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
+    window.close()
+
+
+def test_window_geometry_round_trips_through_settings(
+    application: QApplication, tmp_path: Path
+) -> None:
+    # 700x480 rather than a larger size: the offscreen QPA platform used for
+    # these tests has a fixed 800x800 virtual screen, and QWidget.restoreGeometry
+    # clamps a restored size down to the available screen area, so anything
+    # wider/taller than that can never round-trip exactly under this platform.
+    node_editor = _node_editor_module()
+    settings = _isolated_settings(tmp_path)
+    first = node_editor.MathNodeWindow(load_example=False, settings=settings)
+    first.resize(700, 480)
+    first.show()
+    application.processEvents()
+    first.close()
+
+    second = node_editor.MathNodeWindow(load_example=False, settings=settings)
+
+    assert second.size().width() == 700
+    assert second.size().height() == 480
+    second.close()
+
+
+def test_title_shows_the_current_file_name_and_dirty_marker(
+    application: QApplication, tmp_path: Path
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=False, settings=_isolated_settings(tmp_path)
+    )
+    assert window.windowTitle().endswith("Untitled")
+
+    window.canvas.add_value_node(node_editor.MathType.VEC3)
+    application.processEvents()
+
+    assert window.windowTitle().endswith("Untitled*")
     window.close()
 
 
