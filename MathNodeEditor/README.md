@@ -16,7 +16,7 @@ A `Mesh Viewer` node merges `Vertices`/`Faces`/`UVs`/`Normals` (plus an optional
 
 Click a palette button to add a node, or move the pointer over the canvas and press `Tab` to open the node menu at that position. Start typing to filter the menu and press `Return` to create the first matching node. You can also select an entry with the mouse.
 
-Drag from an output socket to an input socket to connect it. Value nodes use zero vectors and identity matrices as their defaults. Generator nodes start pre-filled with sensible non-zero numbers instead, so a new Look At or Perspective node gives you something reasonable to look at straight away rather than a degenerate matrix. The palette scrolls, the mouse wheel zooms the canvas (clamped to sensible limits) and nodes can be selected and dragged around. Press `H` to frame every node in the view.
+Drag from an output socket to an input socket to connect it. Value nodes use zero vectors and identity matrices as their defaults. Generator nodes start pre-filled with sensible non-zero numbers instead, so a new Look At or Perspective node gives you something reasonable to look at straight away rather than a degenerate matrix. The palette scrolls, the mouse wheel zooms the canvas (clamped to sensible limits) and nodes can be selected and dragged around — hover over a numeric field first and the wheel edits that value instead. Press `H` to frame every node in the view.
 
 Select a node or wire and press `Delete`/`Backspace` to remove it, or right-click it for the same option. The `Save graph...`/`Load graph...` buttons write the current graph out as JSON and read it back in.
 

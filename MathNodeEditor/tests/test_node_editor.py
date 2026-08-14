@@ -19,11 +19,12 @@ from PySide6.QtWidgets import (
 )
 
 
-def _wheel_event(delta_y: int) -> QWheelEvent:
+def _wheel_event(delta_y: int, position: QPointF | None = None) -> QWheelEvent:
     """Build a synthetic wheel event scrolling up (positive) or down."""
+    event_position = position if position is not None else QPointF(0.0, 0.0)
     return QWheelEvent(
-        QPointF(0.0, 0.0),
-        QPointF(0.0, 0.0),
+        event_position,
+        event_position,
         QPoint(0, 0),
         QPoint(0, delta_y),
         Qt.MouseButton.NoButton,
@@ -832,6 +833,25 @@ def test_wheel_zoom_is_clamped_to_the_minimum(application: QApplication) -> None
     assert window.view.transform().m11() == pytest.approx(
         node_editor.MathNodeView.MIN_ZOOM
     )
+    window.close()
+
+
+def test_wheel_over_a_spin_box_edits_it_instead_of_zooming(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    value_node = window.canvas.add_value_node(node_editor.MathType.FLOAT)
+    application.processEvents()
+    spin_box = value_node.spin_boxes[0]
+    starting_value = spin_box.value()
+    scene_position = value_node.proxy.mapToScene(QPointF(spin_box.geometry().center()))
+    view_position = QPointF(window.view.mapFromScene(scene_position))
+
+    window.view.wheelEvent(_wheel_event(120, view_position))
+
+    assert spin_box.value() == pytest.approx(starting_value + spin_box.singleStep())
+    assert window.view.transform().m11() == pytest.approx(1.0)
     window.close()
 
 

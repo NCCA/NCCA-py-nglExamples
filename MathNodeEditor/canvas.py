@@ -27,6 +27,8 @@ from PySide6.QtGui import (
     QWheelEvent,
 )
 from PySide6.QtWidgets import (
+    QAbstractSpinBox,
+    QApplication,
     QFileDialog,
     QGraphicsItem,
     QGraphicsPathItem,
@@ -721,8 +723,28 @@ class MathNodeView(QGraphicsView):
         painter.drawLines(major_lines)
 
     def wheelEvent(self, event: QWheelEvent) -> None:
-        """Zoom the canvas around the pointer, within the configured limits."""
+        """Adjust a spin box under the pointer, or zoom the canvas around it."""
+        if self._forward_wheel_to_spin_box(event):
+            return
         factor = self.ZOOM_STEP if event.angleDelta().y() > 0 else 1.0 / self.ZOOM_STEP
         current_scale = self.transform().m11()
         clamped_scale = min(max(current_scale * factor, self.MIN_ZOOM), self.MAX_ZOOM)
         self.scale(clamped_scale / current_scale, clamped_scale / current_scale)
+
+    def _forward_wheel_to_spin_box(self, event: QWheelEvent) -> bool:
+        """Forward the event to a spin box under the pointer; report whether it was."""
+        scene_position = self.mapToScene(event.position().toPoint())
+        item = self.scene().itemAt(scene_position, QTransform())
+        if not isinstance(item, QGraphicsProxyWidget):
+            return False
+        widget = item.widget()
+        if widget is None:
+            return False
+        local_position = item.mapFromScene(scene_position).toPoint()
+        child = widget.childAt(local_position)
+        while child is not None and not isinstance(child, QAbstractSpinBox):
+            child = child.parentWidget()
+        if child is None:
+            return False
+        QApplication.sendEvent(child, event)
+        return True
