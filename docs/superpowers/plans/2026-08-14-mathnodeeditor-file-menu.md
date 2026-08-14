@@ -1352,6 +1352,7 @@ def test_new_does_not_prompt_when_the_graph_is_unmodified(
 
     window.action_new.trigger()
 
+    assert window.canvas.nodes == {}
     window.close()
 
 
