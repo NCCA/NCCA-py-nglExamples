@@ -2,7 +2,7 @@
 
 ![MathNodeEditor](MathNodeEditor.png)
 
-This is a small PySide6 node editor for experimenting with the PyNGL maths classes. It starts with two editable `Vec3` nodes wired through a component multiply node, so changing any value updates the output straight away.
+This is a small PySide6 node editor for experimenting with the PyNGL maths classes. It reopens whichever graph you had open last; the first time you run it (or if that file's gone missing) it opens `examples/vec3_multiply_demo.json` instead — two editable `Vec3` nodes wired through a component multiply node, so changing any value updates the output straight away.
 
 The value palette has `Float`, `Vec2`, `Vec3`, `Vec4`, `Mat2`, `Mat3`, `Mat4` and `Quaternion`. Quaternions use the same `(s, x, y, z)` order as PyNGL and start as the identity quaternion.
 
@@ -18,7 +18,9 @@ Click a palette button to add a node, or move the pointer over the canvas and pr
 
 Drag from an output socket to an input socket to connect it. Value nodes use zero vectors and identity matrices as their defaults. Generator nodes start pre-filled with sensible non-zero numbers instead, so a new Look At or Perspective node gives you something reasonable to look at straight away rather than a degenerate matrix. The palette scrolls, the mouse wheel zooms the canvas (clamped to sensible limits) and nodes can be selected and dragged around — hover over a numeric field first and the wheel edits that value instead. Press `H` to frame every node in the view.
 
-Select a node or wire and press `Delete`/`Backspace` to remove it, or right-click it for the same option. The `Save graph...`/`Load graph...` buttons write the current graph out as JSON and read it back in.
+Select a node or wire and press `Delete`/`Backspace` to remove it, or right-click it for the same option. The `File` menu's `New` (`Ctrl+N`), `Open...` (`Ctrl+O`), `Save` (`Ctrl+S`) and `Save As...` (`Ctrl+Shift+S`) read and write the graph as JSON — `Save` writes straight back to whichever file is open, prompting for one the first time. `New`, `Open...` and closing the window all ask to save first if the graph has unsaved changes. The window remembers its size and the last file you had open between runs.
+
+`examples/vec3_multiply_demo.json` is the bundled starting graph described above — two `Vec3` values multiplied component-wise into an `Output` node.
 
 `examples/mesh_pipeline_demo.json` is a saved graph showing the mesh nodes in use: `Obj Loader` (reading `examples/cube.obj`) → `Mat4 Rotate Y` → `Transform Vertices`, plus the manual `Mat4 to Mat3` → `Inverse` → `Transpose` → `Transform Normals` pipeline, feeding a `Mesh Viewer` in `Diffuse` shading. Open it with `Load graph...`.
 
