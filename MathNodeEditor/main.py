@@ -11,10 +11,6 @@ from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtWidgets import QApplication
 
 
-class MainWindow(MathNodeWindow):
-    """Main application window for the maths node editor."""
-
-
 def main() -> int:
     """Run the maths node editor application."""
     application = QApplication.instance()
@@ -32,7 +28,7 @@ def main() -> int:
         application = QApplication(sys.argv)
     application.setOrganizationName("NCCA")
     application.setApplicationName("MathNodeEditor")
-    window = MainWindow(load_example=True)
+    window = MathNodeWindow(load_example=True)
     window.show()
     return application.exec()
 
