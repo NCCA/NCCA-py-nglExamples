@@ -345,12 +345,15 @@ class BaseNodeItem(QGraphicsObject):
         change: QGraphicsItem.GraphicsItemChange,
         value: object,
     ) -> object:
-        """Keep attached wires aligned when the node moves."""
+        """Keep attached wires aligned when the node moves, and flag the scene dirty."""
         if change is QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
             ports = [*self.input_ports, *self.output_ports]
             for port in ports:
                 for connection in port.connections:
                     connection.update_path()
+            scene = self.scene()
+            if scene is not None:
+                scene.mark_modified()
         return super().itemChange(change, value)
 
 

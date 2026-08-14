@@ -14,7 +14,7 @@ from ncca.ngl import (
     Vec2,
     Vec3,
 )
-from PySide6.QtCore import QEvent, QLineF, QPoint, QPointF, QRectF, Qt
+from PySide6.QtCore import QEvent, QLineF, QPoint, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import (
     QBrush,
     QColor,
@@ -84,6 +84,8 @@ DEFAULT_EXAMPLE_PATH = (
 class MathNodeScene(QGraphicsScene):
     """Graphics scene which keeps visible wires and the maths graph in sync."""
 
+    modifiedChanged = Signal(bool)
+
     def __init__(self, parent: QWidget | None = None) -> None:
         """Create an empty node graph canvas."""
         super().__init__(parent)
@@ -94,6 +96,15 @@ class MathNodeScene(QGraphicsScene):
         self._drag_source: PortItem | None = None
         self._preview_connection: QGraphicsPathItem | None = None
         self._insertion_index = 0
+        self.modified = False
+        self._loading = False
+
+    def mark_modified(self) -> None:
+        """Flag the graph as having unsaved changes, unless a file load is in progress."""
+        if self._loading or self.modified:
+            return
+        self.modified = True
+        self.modifiedChanged.emit(True)
 
     def _next_position(self) -> QPointF:
         """Return a slightly offset position for the next palette node."""
@@ -333,6 +344,9 @@ class MathNodeScene(QGraphicsScene):
         self._drag_source = None
         self._preview_connection = None
         self._insertion_index = 0
+        if self.modified:
+            self.modified = False
+            self.modifiedChanged.emit(False)
 
     def load_example(self) -> None:
         """Load the bundled Vec3 component-multiply example graph."""
@@ -394,66 +408,76 @@ class MathNodeScene(QGraphicsScene):
 
     def from_dict(self, data: dict[str, object]) -> None:
         """Replace the current graph with one built from ``to_dict`` data."""
-        self.clear_graph()
-        id_map: dict[str, str] = {}
-        for entry in data["nodes"]:
-            position = QPointF(entry["x"], entry["y"])
-            kind = entry["kind"]
-            if kind == "value":
-                node = self.add_value_node(
-                    MathType[entry["math_type"]],
-                    position,
-                    tuple(entry["components"]),
-                )
-                id_map[entry["id"]] = node.node_id
-            elif kind == "operation":
-                node = self.add_operation_node(Operation[entry["operation"]], position)
-                id_map[entry["id"]] = node.node_id
-            elif kind == "generator":
-                node = self.add_generator_node(
-                    Operation[entry["operation"]],
-                    position,
-                    tuple(tuple(p) for p in entry["parameters"]),
-                )
-                id_map[entry["id"]] = node.node_id
-            elif kind == "output":
-                node = self.add_output_node(position)
-                id_map[entry["id"]] = node.node_id
-            elif kind == "obj_loader":
-                node = self.add_obj_loader_node(position)
-                node.set_status(entry.get("status", ""))
-                vertices = VertexArray(tuple(Vec3(*v) for v in entry["vertices"]))
-                faces = FaceArray(
-                    tuple(
-                        tuple((corner[0], corner[1], corner[2]) for corner in triangle)
-                        for triangle in entry["faces"]
+        self._loading = True
+        try:
+            self.clear_graph()
+            id_map: dict[str, str] = {}
+            for entry in data["nodes"]:
+                position = QPointF(entry["x"], entry["y"])
+                kind = entry["kind"]
+                if kind == "value":
+                    node = self.add_value_node(
+                        MathType[entry["math_type"]],
+                        position,
+                        tuple(entry["components"]),
                     )
+                    id_map[entry["id"]] = node.node_id
+                elif kind == "operation":
+                    node = self.add_operation_node(
+                        Operation[entry["operation"]], position
+                    )
+                    id_map[entry["id"]] = node.node_id
+                elif kind == "generator":
+                    node = self.add_generator_node(
+                        Operation[entry["operation"]],
+                        position,
+                        tuple(tuple(p) for p in entry["parameters"]),
+                    )
+                    id_map[entry["id"]] = node.node_id
+                elif kind == "output":
+                    node = self.add_output_node(position)
+                    id_map[entry["id"]] = node.node_id
+                elif kind == "obj_loader":
+                    node = self.add_obj_loader_node(position)
+                    node.set_status(entry.get("status", ""))
+                    vertices = VertexArray(tuple(Vec3(*v) for v in entry["vertices"]))
+                    faces = FaceArray(
+                        tuple(
+                            tuple(
+                                (corner[0], corner[1], corner[2]) for corner in triangle
+                            )
+                            for triangle in entry["faces"]
+                        )
+                    )
+                    uvs = UVArray(tuple(Vec2(*uv) for uv in entry["uvs"]))
+                    normals = NormalArray(tuple(Vec3(*n) for n in entry["normals"]))
+                    self.graph.set_literal(node.array_node_ids[0], vertices)
+                    self.graph.set_literal(node.array_node_ids[1], faces)
+                    self.graph.set_literal(node.array_node_ids[2], uvs)
+                    self.graph.set_literal(node.array_node_ids[3], normals)
+                    for old_id, new_id in zip(entry["array_ids"], node.array_node_ids):
+                        id_map[old_id] = new_id
+                elif kind == "mesh_viewer":
+                    node = self.add_mesh_viewer_node(
+                        position,
+                        shading_mode=entry.get("shading_mode", SHADING_SOLID),
+                        wireframe=bool(entry.get("wireframe", False)),
+                    )
+                    id_map[entry["id"]] = node.node_id
+                else:
+                    raise GraphError(f"Unknown node kind {kind!r}")
+            for connection in data["connections"]:
+                source_port = self._output_port_for_node_id(
+                    id_map[connection["source"]]
                 )
-                uvs = UVArray(tuple(Vec2(*uv) for uv in entry["uvs"]))
-                normals = NormalArray(tuple(Vec3(*n) for n in entry["normals"]))
-                self.graph.set_literal(node.array_node_ids[0], vertices)
-                self.graph.set_literal(node.array_node_ids[1], faces)
-                self.graph.set_literal(node.array_node_ids[2], uvs)
-                self.graph.set_literal(node.array_node_ids[3], normals)
-                for old_id, new_id in zip(entry["array_ids"], node.array_node_ids):
-                    id_map[old_id] = new_id
-            elif kind == "mesh_viewer":
-                node = self.add_mesh_viewer_node(
-                    position,
-                    shading_mode=entry.get("shading_mode", SHADING_SOLID),
-                    wireframe=bool(entry.get("wireframe", False)),
+                target_node = self.nodes[id_map[connection["target"]]]
+                self.connect_ports(
+                    source_port,
+                    target_node.input_ports[connection["input"]],
                 )
-                id_map[entry["id"]] = node.node_id
-            else:
-                raise GraphError(f"Unknown node kind {kind!r}")
-        for connection in data["connections"]:
-            source_port = self._output_port_for_node_id(id_map[connection["source"]])
-            target_node = self.nodes[id_map[connection["target"]]]
-            self.connect_ports(
-                source_port,
-                target_node.input_ports[connection["input"]],
-            )
-        self.update_outputs()
+            self.update_outputs()
+        finally:
+            self._loading = False
 
     def save_to_file(self, path: str | Path) -> None:
         """Write the current graph to a JSON file."""
@@ -465,6 +489,7 @@ class MathNodeScene(QGraphicsScene):
 
     def update_outputs(self) -> None:
         """Evaluate and refresh every output and mesh viewer node in the scene."""
+        self.mark_modified()
         for node_id, node in self.nodes.items():
             if isinstance(node, OutputNodeItem):
                 try:

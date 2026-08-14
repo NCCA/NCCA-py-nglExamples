@@ -934,3 +934,79 @@ def test_frame_all_button_calls_view_frame_all(application: QApplication) -> Non
 
     assert calls == [True]
     window.close()
+
+
+def test_adding_a_node_marks_the_scene_modified(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+
+    window.canvas.add_value_node(node_editor.MathType.VEC3)
+
+    assert window.canvas.modified is True
+    window.close()
+
+
+def test_editing_a_value_marks_the_scene_modified(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    node = window.canvas.add_value_node(node_editor.MathType.VEC3)
+    window.canvas.modified = False
+
+    node.spin_boxes[0].setValue(9.0)
+
+    assert window.canvas.modified is True
+    window.close()
+
+
+def test_dragging_a_node_marks_the_scene_modified(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    node = window.canvas.add_value_node(node_editor.MathType.VEC3)
+    window.canvas.modified = False
+
+    node.setPos(QPointF(50.0, 50.0))
+
+    assert window.canvas.modified is True
+    window.close()
+
+
+def test_loading_a_file_leaves_the_scene_unmodified(
+    application: QApplication, tmp_path: Path
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    window.canvas.add_value_node(node_editor.MathType.VEC3)
+    file_path = tmp_path / "graph.json"
+    window.canvas.save_to_file(file_path)
+
+    window.canvas.load_from_file(file_path)
+
+    assert window.canvas.modified is False
+    window.close()
+
+
+def test_clear_graph_resets_modified(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    window.canvas.add_value_node(node_editor.MathType.VEC3)
+    assert window.canvas.modified is True
+
+    window.canvas.clear_graph()
+
+    assert window.canvas.modified is False
+    window.close()
+
+
+def test_modified_changed_signal_fires_once_on_transition(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    seen: list[bool] = []
+    window.canvas.modifiedChanged.connect(seen.append)
+
+    window.canvas.add_value_node(node_editor.MathType.VEC3)
+    window.canvas.add_value_node(node_editor.MathType.VEC3)
+
+    assert seen == [True]
+    window.close()
