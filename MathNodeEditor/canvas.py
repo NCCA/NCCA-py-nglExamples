@@ -5,6 +5,33 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from graphics_items import (
+    BaseNodeItem,
+    ConnectionItem,
+    GeneratorNodeItem,
+    MeshViewerNodeItem,
+    ObjLoaderNodeItem,
+    OperationNodeItem,
+    OutputNodeItem,
+    PortItem,
+    ValueNodeItem,
+    _bezier_path,
+    default_components,
+    default_generator_parameters,
+)
+from math_graph import (
+    FaceArray,
+    GraphError,
+    MathGraph,
+    MathType,
+    NormalArray,
+    Operation,
+    UVArray,
+    VertexArray,
+    arrays_from_obj,
+    format_value,
+)
+from mesh_view import SHADING_DIFFUSE, SHADING_SOLID
 from ncca.ngl import (
     Obj,
     ObjParseFaceError,
@@ -14,6 +41,7 @@ from ncca.ngl import (
     Vec2,
     Vec3,
 )
+from palette import NodeCreationMenu
 from PySide6.QtCore import QEvent, QLineF, QPoint, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import (
     QBrush,
@@ -39,35 +67,6 @@ from PySide6.QtWidgets import (
     QMenu,
     QWidget,
 )
-
-from .graphics_items import (
-    BaseNodeItem,
-    ConnectionItem,
-    GeneratorNodeItem,
-    MeshViewerNodeItem,
-    ObjLoaderNodeItem,
-    OperationNodeItem,
-    OutputNodeItem,
-    PortItem,
-    ValueNodeItem,
-    _bezier_path,
-    default_components,
-    default_generator_parameters,
-)
-from .math_graph import (
-    FaceArray,
-    GraphError,
-    MathGraph,
-    MathType,
-    NormalArray,
-    Operation,
-    UVArray,
-    VertexArray,
-    arrays_from_obj,
-    format_value,
-)
-from .mesh_view import SHADING_DIFFUSE, SHADING_SOLID
-from .palette import NodeCreationMenu
 
 _OBJ_PARSE_ERRORS = (
     ObjParseVertexError,

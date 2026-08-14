@@ -5,20 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from PySide6.QtCore import QSettings, Qt
-from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
-from PySide6.QtWidgets import (
-    QFileDialog,
-    QHBoxLayout,
-    QMainWindow,
-    QMessageBox,
-    QScrollArea,
-    QSizePolicy,
-    QWidget,
-)
-
-from .canvas import MathNodeScene, MathNodeView
-from .graphics_items import (
+from canvas import MathNodeScene, MathNodeView
+from graphics_items import (
     GENERIC_PORT_COLOUR,
     NODE_HEADER_HEIGHT,
     PORT_RADIUS,
@@ -35,7 +23,7 @@ from .graphics_items import (
     default_components,
     node_title_font,
 )
-from .math_graph import (
+from math_graph import (
     OPERATION_ARITY,
     OPERATION_INPUT_NAMES,
     TYPE_SHAPES,
@@ -45,7 +33,7 @@ from .math_graph import (
     Operation,
     format_value,
 )
-from .palette import (
+from palette import (
     MAT4_OPERATIONS,
     MATH_OPERATIONS,
     MESH_OPERATIONS,
@@ -55,6 +43,17 @@ from .palette import (
     CatalogueSection,
     NodeCreationMenu,
     NodePalette,
+)
+from PySide6.QtCore import QSettings, Qt
+from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QHBoxLayout,
+    QMainWindow,
+    QMessageBox,
+    QScrollArea,
+    QSizePolicy,
+    QWidget,
 )
 
 __all__ = [

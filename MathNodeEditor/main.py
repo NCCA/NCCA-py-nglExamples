@@ -4,16 +4,11 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
-if __package__ is None or __package__ == "":
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
+from node_editor import MathNodeWindow
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtWidgets import QApplication
-
-from MathNodeEditor.node_editor import MathNodeWindow
 
 
 class MainWindow(MathNodeWindow):

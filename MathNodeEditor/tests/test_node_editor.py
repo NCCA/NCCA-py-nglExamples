@@ -2,10 +2,12 @@
 
 import json
 import os
+import sys
 from importlib import import_module
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
 from PySide6.QtCore import QPoint, QPointF, QSettings, Qt
@@ -38,9 +40,9 @@ def _wheel_event(delta_y: int, position: QPointF | None = None) -> QWheelEvent:
 def _node_editor_module():
     """Load the editor module whilst keeping the first TDD failure readable."""
     try:
-        return import_module("MathNodeEditor.node_editor")
+        return import_module("node_editor")
     except ModuleNotFoundError:
-        pytest.fail("MathNodeEditor.node_editor has not been implemented")
+        pytest.fail("node_editor has not been implemented")
 
 
 @pytest.fixture(scope="module")
@@ -665,8 +667,8 @@ def test_generator_node_round_trips_through_to_dict_and_from_dict(
 
 
 def test_generator_tables_agree_on_operations_and_arities() -> None:
-    math_graph = import_module("MathNodeEditor.math_graph")
-    from MathNodeEditor.graphics_items import GENERATOR_DEFAULTS
+    math_graph = import_module("math_graph")
+    from graphics_items import GENERATOR_DEFAULTS
 
     assert set(math_graph.OPERATION_PARAMETER_TYPES) == set(
         math_graph.GENERATOR_OPERATIONS

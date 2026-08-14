@@ -11,12 +11,11 @@ shared, never GL objects.
 from __future__ import annotations
 
 import OpenGL.GL as gl
+from math_graph import MeshViewerInputs, obj_from_arrays
 from ncca.ngl import Mat3, Mat4, Obj, Vec3, look_at, perspective
 from ncca.ngl.opengl import DefaultShader, PySideEventHandlingMixin, ShaderLib
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
-
-from .math_graph import MeshViewerInputs, obj_from_arrays
 
 SHADING_SOLID = "Solid Colour"
 SHADING_DIFFUSE = "Diffuse"

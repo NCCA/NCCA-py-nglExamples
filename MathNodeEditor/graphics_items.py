@@ -5,6 +5,23 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+from math_graph import (
+    GENERATOR_OUTPUT_TYPE,
+    MESH_VIEWER_INPUT_NAMES,
+    OPERATION_ARITY,
+    OPERATION_INPUT_NAMES,
+    OPERATION_PARAMETER_TYPES,
+    TYPE_SHAPES,
+    MathType,
+    Operation,
+)
+from mesh_view import (
+    SHADING_MODES,
+    SHADING_SOLID,
+    MeshPopupWindow,
+    MeshPreviewWidget,
+    MeshRenderState,
+)
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import (
     QBrush,
@@ -35,26 +52,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .math_graph import (
-    GENERATOR_OUTPUT_TYPE,
-    MESH_VIEWER_INPUT_NAMES,
-    OPERATION_ARITY,
-    OPERATION_INPUT_NAMES,
-    OPERATION_PARAMETER_TYPES,
-    TYPE_SHAPES,
-    MathType,
-    Operation,
-)
-from .mesh_view import (
-    SHADING_MODES,
-    SHADING_SOLID,
-    MeshPopupWindow,
-    MeshPreviewWidget,
-    MeshRenderState,
-)
-
 if TYPE_CHECKING:
-    from .math_graph import MeshViewerInputs
+    from math_graph import MeshViewerInputs
 
 NODE_HEADER_HEIGHT = 32.0
 PORT_RADIUS = 6.0

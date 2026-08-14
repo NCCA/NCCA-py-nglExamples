@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+from math_graph import GENERATOR_OPERATIONS, MathType, Operation
 from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
@@ -18,10 +19,8 @@ from PySide6.QtWidgets import (
     QWidgetAction,
 )
 
-from .math_graph import GENERATOR_OPERATIONS, MathType, Operation
-
 if TYPE_CHECKING:
-    from .canvas import MathNodeScene, MathNodeView
+    from canvas import MathNodeScene, MathNodeView
 
 MATH_OPERATIONS = (
     Operation.ADD,

@@ -1,5 +1,6 @@
 """Tests for the maths graph used by the node editor demo."""
 
+import sys
 from importlib import import_module
 from pathlib import Path
 
@@ -21,14 +22,15 @@ from ncca.ngl import (
 )
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 def _math_graph_module():
     """Load the graph module whilst keeping the first TDD failure readable."""
     try:
-        return import_module("MathNodeEditor.math_graph")
+        return import_module("math_graph")
     except ModuleNotFoundError:
-        pytest.fail("MathNodeEditor.math_graph has not been implemented")
+        pytest.fail("math_graph has not been implemented")
 
 
 def _load_obj(name: str) -> Obj:
