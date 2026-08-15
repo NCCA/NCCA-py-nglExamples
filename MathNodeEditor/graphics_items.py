@@ -42,9 +42,11 @@ from PySide6.QtWidgets import (
     QGraphicsPathItem,
     QGraphicsProxyWidget,
     QGraphicsSceneHoverEvent,
+    QGraphicsSceneMouseEvent,
     QGraphicsTextItem,
     QGridLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QPushButton,
     QStyle,
@@ -302,6 +304,49 @@ class BaseNodeItem(QGraphicsObject):
         """
         return (self.node_id,)
 
+    def set_name(self, name: str) -> None:
+        """Set the name shown in the node header."""
+        clean_name = name.strip()
+        if not clean_name or clean_name == self.title:
+            return
+        self.title = clean_name
+        title_width = QFontMetrics(node_title_font()).horizontalAdvance(self.title) + 24
+        self._set_width(max(self.width, float(title_width)))
+        self.update()
+        scene = self.scene()
+        if scene is not None:
+            scene.mark_modified()
+
+    def _set_width(self, width: float) -> None:
+        """Resize the body and keep output sockets and wires aligned."""
+        if width == self.width:
+            return
+        self.prepareGeometryChange()
+        self.width = width
+        for port in self.output_ports:
+            port.setX(width)
+            for connection in port.connections:
+                connection.update_path()
+        self.update()
+
+    def mouseDoubleClickEvent(self, event: QGraphicsSceneMouseEvent) -> None:
+        """Ask for a new name when the node header is double-clicked."""
+        header = QRectF(0.0, 0.0, self.width, NODE_HEADER_HEIGHT)
+        if header.contains(event.pos()):
+            scene = self.scene()
+            parent = scene.views()[0] if scene is not None and scene.views() else None
+            name, accepted = QInputDialog.getText(
+                parent,
+                "Rename Node",
+                "Name:",
+                text=self.title,
+            )
+            if accepted:
+                self.set_name(name)
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
+
     def boundingRect(self) -> QRectF:
         """Return the painted node bounds."""
         margin = PORT_RADIUS + 2.0
@@ -538,11 +583,10 @@ class OutputNodeItem(BaseNodeItem):
         longest_line = max(
             text_metrics.horizontalAdvance(line) for line in text.splitlines()
         )
-        required_width = max(260.0, float(longest_line + 48))
-        if required_width != self.width:
-            self.prepareGeometryChange()
-            self.width = required_width
-            self.result_text.setTextWidth(self.width - 35.0)
+        title_width = QFontMetrics(node_title_font()).horizontalAdvance(self.title) + 24
+        required_width = max(260.0, float(longest_line + 48), float(title_width))
+        self._set_width(required_width)
+        self.result_text.setTextWidth(self.width - 35.0)
         required_height = max(132.0, 82.0 + self.result_text.boundingRect().height())
         if required_height != self.height:
             self.prepareGeometryChange()

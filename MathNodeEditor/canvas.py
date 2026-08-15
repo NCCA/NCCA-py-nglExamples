@@ -404,6 +404,7 @@ class MathNodeScene(QGraphicsScene):
             position = node.pos()
             entry: dict[str, object] = {
                 "id": node_id,
+                "name": node.title,
                 "x": position.x(),
                 "y": position.y(),
             }
@@ -517,6 +518,7 @@ class MathNodeScene(QGraphicsScene):
                     id_map[entry["id"]] = node.node_id
                 else:
                     raise GraphError(f"Unknown node kind {kind!r}")
+                node.set_name(entry.get("name", node.title))
             for connection in data["connections"]:
                 source_port = self._output_port_for_node_id(
                     id_map[connection["source"]]

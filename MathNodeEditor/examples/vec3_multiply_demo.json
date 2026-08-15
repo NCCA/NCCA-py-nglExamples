@@ -3,6 +3,7 @@
   "nodes": [
     {
       "id": "node-1",
+      "name": "First Vector",
       "x": -520.0,
       "y": -130.0,
       "kind": "value",
@@ -15,6 +16,7 @@
     },
     {
       "id": "node-2",
+      "name": "Second Vector",
       "x": -520.0,
       "y": 100.0,
       "kind": "value",
@@ -27,6 +29,7 @@
     },
     {
       "id": "node-3",
+      "name": "Component Product",
       "x": -140.0,
       "y": 0.0,
       "kind": "operation",
@@ -34,6 +37,7 @@
     },
     {
       "id": "node-4",
+      "name": "Product Result",
       "x": 220.0,
       "y": 0.0,
       "kind": "output"

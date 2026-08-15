@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
     QGroupBox,
+    QInputDialog,
     QMessageBox,
     QPushButton,
 )
@@ -300,6 +301,56 @@ def test_long_quaternion_operation_title_fits_inside_node(
     )
 
     assert operation_node.width >= required_width
+    window.close()
+
+
+def test_double_clicking_node_header_renames_node(
+    application: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    node = window.canvas.add_value_node(node_editor.MathType.VEC3)
+    window.canvas.mark_clean()
+    window.show()
+    window.view.centerOn(node)
+    monkeypatch.setattr(
+        QInputDialog,
+        "getText",
+        lambda *args, **kwargs: ("Camera Position", True),
+    )
+    application.processEvents()
+    header_position = window.view.mapFromScene(
+        node.mapToScene(QPointF(node.width / 2.0, node_editor.NODE_HEADER_HEIGHT / 2.0))
+    )
+
+    QTest.mouseDClick(
+        window.view.viewport(),
+        Qt.MouseButton.LeftButton,
+        pos=header_position,
+    )
+    application.processEvents()
+
+    assert node.title == "Camera Position"
+    assert window.canvas.modified is True
+    window.close()
+
+
+def test_long_node_name_expands_node_and_moves_output_port(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    node = window.canvas.add_operation_node(node_editor.Operation.MULTIPLY)
+    node.set_name("Projection Matrix @ View Model Matrix")
+
+    required_width = (
+        QFontMetrics(node_editor.node_title_font()).horizontalAdvance(node.title) + 24
+    )
+
+    assert node.width >= required_width
+    assert node.output_port is not None
+    assert node.output_port.pos().x() == node.width
     window.close()
 
 
@@ -634,6 +685,26 @@ def test_to_dict_and_from_dict_round_trip_the_example_graph(
     assert window.canvas.output_texts() == original_output
     assert len(window.canvas.nodes) == 4
     assert len(window.canvas.connections) == 3
+    window.close()
+
+
+def test_node_name_round_trips_through_graph_document(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    node = window.canvas.add_value_node(node_editor.MathType.VEC3)
+    node.set_name("Camera Position")
+
+    document = window.canvas.to_dict()
+    saved_node = next(
+        entry for entry in document["nodes"] if entry["id"] == node.node_id
+    )
+    window.canvas.from_dict(document)
+    restored_node = next(iter(window.canvas.nodes.values()))
+
+    assert saved_node.get("name") == "Camera Position"
+    assert restored_node.title == "Camera Position"
     window.close()
 
 

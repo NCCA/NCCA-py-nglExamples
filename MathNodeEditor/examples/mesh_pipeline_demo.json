@@ -3,6 +3,7 @@
   "nodes": [
     {
       "id": "node-1",
+      "name": "Cube Geometry",
       "x": -700.0,
       "y": -120.0,
       "kind": "obj_loader",
@@ -314,6 +315,7 @@
     },
     {
       "id": "node-6",
+      "name": "Y Rotation",
       "x": -460.0,
       "y": 160.0,
       "kind": "generator",
@@ -326,6 +328,7 @@
     },
     {
       "id": "node-7",
+      "name": "Rotated Vertices",
       "x": -160.0,
       "y": -140.0,
       "kind": "operation",
@@ -333,6 +336,7 @@
     },
     {
       "id": "node-8",
+      "name": "Rotation 3x3",
       "x": -460.0,
       "y": 340.0,
       "kind": "operation",
@@ -340,6 +344,7 @@
     },
     {
       "id": "node-9",
+      "name": "Inverse Rotation",
       "x": -260.0,
       "y": 340.0,
       "kind": "operation",
@@ -347,6 +352,7 @@
     },
     {
       "id": "node-10",
+      "name": "Normal Matrix",
       "x": -60.0,
       "y": 340.0,
       "kind": "operation",
@@ -354,6 +360,7 @@
     },
     {
       "id": "node-11",
+      "name": "Rotated Normals",
       "x": 140.0,
       "y": 220.0,
       "kind": "operation",
@@ -361,6 +368,7 @@
     },
     {
       "id": "node-12",
+      "name": "Surface Colour",
       "x": 140.0,
       "y": -320.0,
       "kind": "value",
@@ -374,6 +382,7 @@
     },
     {
       "id": "node-13",
+      "name": "Rotating Cube",
       "x": 460.0,
       "y": -140.0,
       "kind": "mesh_viewer",

@@ -3,6 +3,7 @@
   "nodes": [
     {
       "id": "node-1",
+      "name": "Cube Geometry",
       "x": -900.0,
       "y": -60.0,
       "kind": "obj_loader",
@@ -314,6 +315,7 @@
     },
     {
       "id": "node-8",
+      "name": "Model Transform",
       "x": -580.0,
       "y": 340.0,
       "kind": "generator",
@@ -338,6 +340,7 @@
     },
     {
       "id": "node-9",
+      "name": "Model Vertices",
       "x": -260.0,
       "y": -60.0,
       "kind": "operation",
@@ -345,6 +348,7 @@
     },
     {
       "id": "node-10",
+      "name": "Model 3x3",
       "x": -580.0,
       "y": 620.0,
       "kind": "operation",
@@ -352,6 +356,7 @@
     },
     {
       "id": "node-11",
+      "name": "Inverse Model",
       "x": -380.0,
       "y": 620.0,
       "kind": "operation",
@@ -359,6 +364,7 @@
     },
     {
       "id": "node-12",
+      "name": "Normal Matrix",
       "x": -180.0,
       "y": 620.0,
       "kind": "operation",
@@ -366,6 +372,7 @@
     },
     {
       "id": "node-13",
+      "name": "Model Normals",
       "x": 20.0,
       "y": 500.0,
       "kind": "operation",
@@ -373,6 +380,7 @@
     },
     {
       "id": "node-14",
+      "name": "Surface Colour",
       "x": 20.0,
       "y": -220.0,
       "kind": "value",
@@ -386,6 +394,7 @@
     },
     {
       "id": "node-15",
+      "name": "Modelled Cube",
       "x": 320.0,
       "y": -60.0,
       "kind": "mesh_viewer",

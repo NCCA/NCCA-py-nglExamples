@@ -42,6 +42,52 @@ def test_bundled_examples_use_the_current_schema() -> None:
         assert document["schema_version"] == graph_document.SCHEMA_VERSION
 
 
+def test_bundled_examples_name_every_node() -> None:
+    examples_dir = Path(__file__).parent.parent / "examples"
+    expected_names = {
+        "mesh_pipeline_demo.json": [
+            "Cube Geometry",
+            "Y Rotation",
+            "Rotated Vertices",
+            "Rotation 3x3",
+            "Inverse Rotation",
+            "Normal Matrix",
+            "Rotated Normals",
+            "Surface Colour",
+            "Rotating Cube",
+        ],
+        "mvp_demo.json": [
+            "Model Transform",
+            "View Matrix",
+            "Projection Matrix",
+            "View @ Model",
+            "Projection @ View Model",
+            "MVP Result",
+        ],
+        "mvp_mesh_demo.json": [
+            "Cube Geometry",
+            "Model Transform",
+            "Model Vertices",
+            "Model 3x3",
+            "Inverse Model",
+            "Normal Matrix",
+            "Model Normals",
+            "Surface Colour",
+            "Modelled Cube",
+        ],
+        "vec3_multiply_demo.json": [
+            "First Vector",
+            "Second Vector",
+            "Component Product",
+            "Product Result",
+        ],
+    }
+
+    for filename, names in expected_names.items():
+        document = json.loads((examples_dir / filename).read_text())
+        assert [node.get("name") for node in document["nodes"]] == names
+
+
 @pytest.mark.parametrize("version", [None, True, 1.0, "1", 2])
 def test_document_rejects_a_non_integer_or_unknown_schema_version(
     version: object,
@@ -72,6 +118,30 @@ def test_document_rejects_duplicate_node_ids() -> None:
     }
 
     with pytest.raises(graph_document.GraphError, match="Duplicate node id 'node-1'"):
+        graph_document.validate_document(document)
+
+
+@pytest.mark.parametrize("name", ["", "   ", 42])
+def test_document_rejects_invalid_node_name(name: object) -> None:
+    graph_document = _graph_document_module()
+    document = {
+        "schema_version": 1,
+        "nodes": [
+            {
+                "id": "node-1",
+                "name": name,
+                "x": 0.0,
+                "y": 0.0,
+                "kind": "output",
+            }
+        ],
+        "connections": [],
+    }
+
+    with pytest.raises(
+        graph_document.GraphError,
+        match="Node 'node-1' name must be non-empty text",
+    ):
         graph_document.validate_document(document)
 
 

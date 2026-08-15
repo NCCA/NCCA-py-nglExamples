@@ -126,6 +126,10 @@ def _operation(entry: Mapping[str, object], node_id: str) -> Operation:
 
 def _validate_node(entry: Mapping[str, object], node_id: str) -> None:
     """Validate every field read while rebuilding one graphics node."""
+    if "name" in entry and (
+        not isinstance(entry["name"], str) or not entry["name"].strip()
+    ):
+        raise GraphError(f"Node {node_id!r} name must be non-empty text")
     _number(_required(entry, "x", node_id), f"Node {node_id!r} x")
     _number(_required(entry, "y", node_id), f"Node {node_id!r} y")
     kind = entry["kind"]
