@@ -6,6 +6,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from math_graph import GENERATOR_OPERATIONS, MathType, Operation
+from node_visuals import catalogue_node_style, node_icon
 from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
@@ -167,6 +168,7 @@ class NodeCreationMenu(QMenu):
         self.addSection(title)
         for label, factory in entries:
             action = self.addAction(label)
+            action.setIcon(node_icon(catalogue_node_style(label)))
             action.triggered.connect(
                 lambda _checked=False, create_node=factory: create_node(
                     self.canvas, self.scene_position
@@ -210,7 +212,7 @@ class NodePalette(QWidget):
         super().__init__(parent)
         self.canvas = canvas
         self.view = view
-        self.setFixedWidth(220)
+        self.setFixedWidth(240)
         self.setStyleSheet(
             "QWidget { background: #171d28; color: #e8edf5; }"
             "QGroupBox { border: 1px solid #344056; border-radius: 5px; margin-top: 9px; padding-top: 8px; font-weight: bold; }"
@@ -254,6 +256,7 @@ class NodePalette(QWidget):
         group_layout.setSpacing(4)
         for label, factory in entries:
             button = QPushButton(label)
+            button.setIcon(node_icon(catalogue_node_style(label)))
             button.clicked.connect(
                 lambda _checked=False, create_node=factory: create_node(
                     self.canvas, None
