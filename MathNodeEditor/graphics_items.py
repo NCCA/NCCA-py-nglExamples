@@ -24,6 +24,14 @@ from mesh_view import (
     MeshPreviewWidget,
     MeshRenderState,
 )
+from node_visuals import (
+    MESH_VIEWER_STYLE,
+    OBJ_LOADER_STYLE,
+    OUTPUT_NODE_STYLE,
+    NodeVisualStyle,
+    operation_node_style,
+    value_node_style,
+)
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import (
     QBrush,
@@ -60,6 +68,7 @@ if TYPE_CHECKING:
     from math_graph import MeshViewerInputs
 
 NODE_HEADER_HEIGHT = 32.0
+NODE_TITLE_LEFT = 42.0
 PORT_RADIUS = 6.0
 NUMERIC_DECIMALS = 7
 NUMERIC_EDITOR_WIDTH = 92
@@ -264,14 +273,22 @@ class BaseNodeItem(QGraphicsObject):
         height: float,
         input_names: tuple[str, ...],
         output_colour: QColor | None,
+        visual_style: NodeVisualStyle,
     ) -> None:
         """Create a movable graphics node."""
         super().__init__()
         self.node_id = node_id
         self.title = title
-        self.width = width
+        title_width = (
+            QFontMetrics(node_title_font()).horizontalAdvance(title)
+            + NODE_TITLE_LEFT
+            + 12.0
+        )
+        self.width = max(width, title_width)
         self.height = height
         self.input_names = input_names
+        self.icon_symbol = visual_style.icon_symbol
+        self.header_colour = visual_style.header_colour
         self.input_ports: list[PortItem] = []
         self.output_ports: list[PortItem] = []
         self.setFlags(
@@ -288,7 +305,7 @@ class BaseNodeItem(QGraphicsObject):
             self.input_ports.append(port)
         if output_colour is not None:
             port = PortItem(self, None, output_colour)
-            port.setPos(width, NODE_HEADER_HEIGHT + 28.0)
+            port.setPos(self.width, NODE_HEADER_HEIGHT + 28.0)
             self.output_ports.append(port)
 
     @property
@@ -312,7 +329,11 @@ class BaseNodeItem(QGraphicsObject):
         if not clean_name or clean_name == self.title:
             return
         self.title = clean_name
-        title_width = QFontMetrics(node_title_font()).horizontalAdvance(self.title) + 24
+        title_width = (
+            QFontMetrics(node_title_font()).horizontalAdvance(self.title)
+            + NODE_TITLE_LEFT
+            + 12.0
+        )
         self._set_width(max(self.width, float(title_width)))
         self.update()
         scene = self.scene()
@@ -375,17 +396,38 @@ class BaseNodeItem(QGraphicsObject):
         painter.setPen(QPen(border_colour, 2.0))
         painter.drawRoundedRect(body, 8.0, 8.0)
 
-        painter.setBrush(QBrush(QColor("#303c52")))
+        painter.setBrush(QBrush(self.header_colour))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(
             QRectF(1.0, 1.0, self.width - 2.0, NODE_HEADER_HEIGHT), 7.0, 7.0
         )
         painter.drawRect(QRectF(1.0, NODE_HEADER_HEIGHT - 7.0, self.width - 2.0, 8.0))
 
-        painter.setPen(QPen(QColor("#f0f3f8")))
+        icon_background = QColor("#10141d")
+        icon_background.setAlpha(95)
+        painter.setBrush(QBrush(icon_background))
+        painter.drawRoundedRect(QRectF(7.0, 6.0, 22.0, 20.0), 4.0, 4.0)
+
+        icon_font = QFont()
+        icon_font.setBold(True)
+        icon_font.setPointSize(7 if len(self.icon_symbol) > 2 else 9)
+        painter.setFont(icon_font)
+        painter.setPen(QPen(QColor("#ffffff")))
+        painter.drawText(
+            QRectF(7.0, 5.0, 22.0, 21.0),
+            Qt.AlignmentFlag.AlignCenter,
+            self.icon_symbol,
+        )
+
+        painter.setPen(QPen(QColor("#ffffff")))
         painter.setFont(node_title_font())
         painter.drawText(
-            QRectF(12.0, 0.0, self.width - 24.0, NODE_HEADER_HEIGHT),
+            QRectF(
+                NODE_TITLE_LEFT,
+                0.0,
+                self.width - NODE_TITLE_LEFT - 10.0,
+                NODE_HEADER_HEIGHT,
+            ),
             Qt.AlignmentFlag.AlignVCenter,
             self.title,
         )
@@ -436,7 +478,15 @@ class ValueNodeItem(BaseNodeItem):
             if math_type is MathType.QUATERNION
             else math_type.value
         )
-        super().__init__(node_id, title, width, height, (), TYPE_COLOURS[math_type])
+        super().__init__(
+            node_id,
+            title,
+            width,
+            height,
+            (),
+            TYPE_COLOURS[math_type],
+            value_node_style(math_type),
+        )
         self.math_type = math_type
         self.on_change = on_change
         self.spin_boxes: list[QDoubleSpinBox] = []
@@ -462,7 +512,7 @@ class ValueNodeItem(BaseNodeItem):
         self.proxy.setPos(12.0, NODE_HEADER_HEIGHT + 9.0)
         self.proxy.setZValue(2.0)
         if self.output_port is not None:
-            self.output_port.setPos(width, NODE_HEADER_HEIGHT + 20.0)
+            self.output_port.setPos(self.width, NODE_HEADER_HEIGHT + 20.0)
 
     def _values_changed(self, _value: float) -> None:
         """Send the edited components back to the graph model."""
@@ -511,7 +561,13 @@ class GeneratorNodeItem(BaseNodeItem):
         height = NODE_HEADER_HEIGHT + row_count * self.ROW_HEIGHT + 20.0
         output_type = GENERATOR_OUTPUT_TYPE[operation]
         super().__init__(
-            node_id, operation.value, width, height, (), TYPE_COLOURS[output_type]
+            node_id,
+            operation.value,
+            width,
+            height,
+            (),
+            TYPE_COLOURS[output_type],
+            operation_node_style(operation),
         )
         self.operation = operation
         self.parameter_names = parameter_names
@@ -563,7 +619,7 @@ class GeneratorNodeItem(BaseNodeItem):
         self.proxy.setPos(12.0, NODE_HEADER_HEIGHT + 9.0)
         self.proxy.setZValue(2.0)
         if self.output_port is not None:
-            self.output_port.setPos(width, NODE_HEADER_HEIGHT + 20.0)
+            self.output_port.setPos(self.width, NODE_HEADER_HEIGHT + 20.0)
 
     def _row_changed(self, row_index: int) -> None:
         """Send one parameter's edited components back to the graph model."""
@@ -587,7 +643,13 @@ class OperationNodeItem(BaseNodeItem):
         title_width = QFontMetrics(node_title_font()).horizontalAdvance(operation.value)
         width = max(180.0, float(title_width + 24))
         super().__init__(
-            node_id, operation.value, width, height, input_names, GENERIC_PORT_COLOUR
+            node_id,
+            operation.value,
+            width,
+            height,
+            input_names,
+            GENERIC_PORT_COLOUR,
+            operation_node_style(operation),
         )
         self.operation = operation
         if self.output_port is not None:
@@ -599,7 +661,15 @@ class OutputNodeItem(BaseNodeItem):
 
     def __init__(self, node_id: str) -> None:
         """Create a result node with one input socket."""
-        super().__init__(node_id, "Output", 260.0, 132.0, ("Value",), None)
+        super().__init__(
+            node_id,
+            "Output",
+            260.0,
+            132.0,
+            ("Value",),
+            None,
+            OUTPUT_NODE_STYLE,
+        )
         self.result_text = QGraphicsTextItem("Waiting for input", self)
         self.result_text.setDefaultTextColor(QColor("#e8edf5"))
         self.result_text.setFont(QFont("Monaco", 10))
@@ -648,7 +718,15 @@ class ObjLoaderNodeItem(BaseNodeItem):
     ) -> None:
         """Create the load button and the four labelled output sockets."""
         height = NODE_HEADER_HEIGHT + len(MESH_ARRAY_LABELS) * 26.0 + 76.0
-        super().__init__(node_id, "Obj Loader", self.WIDTH, height, (), None)
+        super().__init__(
+            node_id,
+            "Obj Loader",
+            self.WIDTH,
+            height,
+            (),
+            None,
+            OBJ_LOADER_STYLE,
+        )
         self.array_node_ids = array_node_ids
         self.on_load_clicked = on_load_clicked
 
@@ -731,7 +809,13 @@ class MeshViewerNodeItem(BaseNodeItem):
         preview_top = controls_top + 48.0
         height = preview_top + self.PREVIEW_HEIGHT + 44.0
         super().__init__(
-            node_id, "Mesh Viewer", self.WIDTH, height, MESH_VIEWER_INPUT_NAMES, None
+            node_id,
+            "Mesh Viewer",
+            self.WIDTH,
+            height,
+            MESH_VIEWER_INPUT_NAMES,
+            None,
+            MESH_VIEWER_STYLE,
         )
         self.on_config_changed = on_config_changed
         self.render_state = MeshRenderState()

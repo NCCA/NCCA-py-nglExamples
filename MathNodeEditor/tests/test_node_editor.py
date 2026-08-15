@@ -486,6 +486,76 @@ def test_palette_and_menu_expose_the_same_catalogue_labels(
     window.close()
 
 
+def test_value_nodes_have_type_specific_icons_and_header_colours(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+
+    nodes = [
+        window.canvas.add_value_node(math_type) for math_type in node_editor.MathType
+    ]
+
+    assert all(node.icon_symbol for node in nodes)
+    assert len({node.icon_symbol for node in nodes}) == len(node_editor.MathType)
+    assert len({node.header_colour.name() for node in nodes}) == len(
+        node_editor.MathType
+    )
+    window.close()
+
+
+def test_every_operation_has_an_icon_and_domain_colour() -> None:
+    node_editor = _node_editor_module()
+
+    styles = {
+        operation: node_editor.operation_node_style(operation)
+        for operation in node_editor.Operation
+    }
+
+    assert all(style.icon_symbol for style in styles.values())
+    assert (
+        styles[node_editor.Operation.ADD].header_colour
+        == styles[node_editor.Operation.DOT].header_colour
+    )
+    assert (
+        styles[node_editor.Operation.LOOK_AT].header_colour
+        != styles[node_editor.Operation.ADD].header_colour
+    )
+    assert (
+        styles[node_editor.Operation.QUATERNION_PRODUCT].header_colour
+        != styles[node_editor.Operation.LOOK_AT].header_colour
+    )
+    assert (
+        styles[node_editor.Operation.TRANSFORM_VERTICES].header_colour
+        != styles[node_editor.Operation.QUATERNION_PRODUCT].header_colour
+    )
+
+
+def test_palette_and_menu_show_an_icon_for_every_catalogue_entry(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+
+    catalogue_labels = {
+        label
+        for _title, entries in node_editor.NODE_CATALOGUE
+        for label, _factory in entries
+    }
+    palette_buttons = {
+        button.text(): button
+        for button in window.palette.findChildren(QPushButton)
+        if button.text() in catalogue_labels
+    }
+    menu_actions = {
+        action.text(): action for action in window.view.node_menu.creation_actions
+    }
+
+    assert all(not button.icon().isNull() for button in palette_buttons.values())
+    assert all(not action.icon().isNull() for action in menu_actions.values())
+    window.close()
+
+
 def test_operation_groupings_cover_every_operation() -> None:
     node_editor = _node_editor_module()
     grouped_operations = (

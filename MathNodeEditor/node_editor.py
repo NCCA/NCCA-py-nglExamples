@@ -33,6 +33,13 @@ from math_graph import (
     Operation,
     format_value,
 )
+from node_visuals import (
+    NodeVisualStyle,
+    catalogue_node_style,
+    node_icon,
+    operation_node_style,
+    value_node_style,
+)
 from palette import (
     MAT4_OPERATIONS,
     MATH_OPERATIONS,
@@ -83,6 +90,7 @@ __all__ = [
     "MeshViewerNodeItem",
     "NodeCreationMenu",
     "NodePalette",
+    "NodeVisualStyle",
     "ObjLoaderNodeItem",
     "Operation",
     "OperationNodeItem",
@@ -90,8 +98,12 @@ __all__ = [
     "PortItem",
     "ValueNodeItem",
     "default_components",
+    "catalogue_node_style",
     "format_value",
+    "node_icon",
     "node_title_font",
+    "operation_node_style",
+    "value_node_style",
 ]
 
 WINDOW_TITLE = "PyNGL Maths Node Editor"
@@ -139,7 +151,7 @@ class MathNodeWindow(QMainWindow):
         self.palette_scroll = QScrollArea(self)
         self.palette_scroll.setWidget(self.palette)
         self.palette_scroll.setWidgetResizable(True)
-        self.palette_scroll.setFixedWidth(240)
+        self.palette_scroll.setFixedWidth(260)
         self.palette_scroll.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
