@@ -6,10 +6,12 @@ from collections.abc import Mapping, Sequence
 from math import isfinite
 
 from math_graph import (
+    DEFAULT_TRANSFORM_ROTATION_ORDER,
     GENERATOR_OPERATIONS,
     MESH_VIEWER_INPUT_NAMES,
     OPERATION_ARITY,
     OPERATION_PARAMETER_TYPES,
+    TRANSFORM_ROTATION_ORDERS,
     TYPE_SHAPES,
     GraphError,
     MathType,
@@ -163,6 +165,17 @@ def _validate_node(entry: Mapping[str, object], node_id: str) -> None:
             zip(parameters, parameter_types, strict=True)
         ):
             _components(parameter, math_type, f"Parameter {index}")
+        if operation is Operation.TRANSFORM:
+            rotation_order = entry.get(
+                "rotation_order", DEFAULT_TRANSFORM_ROTATION_ORDER
+            )
+            if (
+                not isinstance(rotation_order, str)
+                or rotation_order not in TRANSFORM_ROTATION_ORDERS
+            ):
+                raise GraphError(f"Unknown Transform rotation order {rotation_order!r}")
+        elif "rotation_order" in entry:
+            raise GraphError(f"{operation.value} does not use a rotation order")
     elif kind == "obj_loader":
         array_ids = _sequence(
             _required(entry, "array_ids", node_id), "Obj Loader array ids"

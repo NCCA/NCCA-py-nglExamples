@@ -197,6 +197,56 @@ def test_generator_node_starts_with_teaching_friendly_defaults(
     window.close()
 
 
+def test_transform_generator_exposes_every_rotation_order(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+
+    node = window.canvas.add_generator_node(node_editor.Operation.TRANSFORM)
+
+    combo = node.rotation_order_combo
+    assert combo is not None
+    assert [combo.itemText(index) for index in range(combo.count())] == [
+        "xyz",
+        "yzx",
+        "zxy",
+        "xzy",
+        "yxz",
+        "zyx",
+    ]
+    assert combo.currentText() == "xyz"
+    window.close()
+
+
+def test_changing_transform_rotation_order_updates_downstream_output(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    transform_node = window.canvas.add_generator_node(
+        node_editor.Operation.TRANSFORM,
+        parameters=(
+            (0.0, 0.0, 0.0),
+            (30.0, 45.0, 60.0),
+            (1.0, 1.0, 1.0),
+        ),
+    )
+    output_node = window.canvas.add_output_node()
+    assert transform_node.output_port is not None
+    window.canvas.connect_ports(transform_node.output_port, output_node.input_ports[0])
+    application.processEvents()
+    before = window.canvas.output_texts()[0]
+
+    assert transform_node.rotation_order_combo is not None
+    transform_node.rotation_order_combo.setCurrentText("zyx")
+    application.processEvents()
+
+    assert window.canvas.graph.generator_rotation_order(transform_node.node_id) == "zyx"
+    assert window.canvas.output_texts()[0] != before
+    window.close()
+
+
 def test_editing_a_generator_spin_box_updates_downstream_output(
     application: QApplication,
 ) -> None:
@@ -781,6 +831,30 @@ def test_generator_node_round_trips_through_to_dict_and_from_dict(
     values = [box.value() for row in after_node.spin_box_rows for box in row]
     assert values == pytest.approx([0.0, 3.0, 9.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0])
     assert window.canvas.output_texts() == before
+    window.close()
+
+
+def test_transform_rotation_order_round_trips_through_the_document(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    transform_node = window.canvas.add_generator_node(node_editor.Operation.TRANSFORM)
+    assert transform_node.rotation_order_combo is not None
+    transform_node.rotation_order_combo.setCurrentText("zyx")
+
+    document = window.canvas.to_dict()
+    saved_node = next(
+        entry for entry in document["nodes"] if entry["id"] == transform_node.node_id
+    )
+    window.canvas.from_dict(document)
+
+    loaded_node = next(iter(window.canvas.nodes.values()))
+    assert isinstance(loaded_node, node_editor.GeneratorNodeItem)
+    assert saved_node["rotation_order"] == "zyx"
+    assert loaded_node.rotation_order_combo is not None
+    assert loaded_node.rotation_order_combo.currentText() == "zyx"
+    assert window.canvas.graph.generator_rotation_order(loaded_node.node_id) == "zyx"
     window.close()
 
 

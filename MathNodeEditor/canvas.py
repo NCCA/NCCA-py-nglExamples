@@ -174,6 +174,7 @@ class MathNodeScene(QGraphicsScene):
         operation: Operation,
         position: QPointF | None = None,
         parameters: tuple[tuple[float, ...], ...] | None = None,
+        rotation_order: str | None = None,
     ) -> GeneratorNodeItem:
         """Add a parameter node (Look At, Perspective, ...) to the canvas."""
         node_parameters = (
@@ -181,7 +182,9 @@ class MathNodeScene(QGraphicsScene):
             if parameters is not None
             else default_generator_parameters(operation)
         )
-        node_id = self.graph.add_generator(operation, node_parameters)
+        node_id = self.graph.add_generator(
+            operation, node_parameters, rotation_order=rotation_order
+        )
         node = GeneratorNodeItem(
             node_id,
             operation,
@@ -190,6 +193,15 @@ class MathNodeScene(QGraphicsScene):
             values,
             generator_node_id=node_id: self._generator_changed(
                 generator_node_id, parameter_index, values
+            ),
+            rotation_order=(
+                self.graph.generator_rotation_order(node_id)
+                if operation is Operation.TRANSFORM
+                else None
+            ),
+            on_rotation_order_change=lambda order,
+            generator_node_id=node_id: self._generator_rotation_order_changed(
+                generator_node_id, order
             ),
         )
         self.addItem(node)
@@ -298,6 +310,13 @@ class MathNodeScene(QGraphicsScene):
     ) -> None:
         """Update a graph generator parameter after a spin box changes."""
         self.graph.set_generator_parameter(node_id, parameter_index, components)
+        self.update_outputs()
+
+    def _generator_rotation_order_changed(
+        self, node_id: str, rotation_order: str
+    ) -> None:
+        """Update a Transform generator after its rotation order changes."""
+        self.graph.set_generator_rotation_order(node_id, rotation_order)
         self.update_outputs()
 
     def _item_for_node_id(self, graph_node_id: str) -> BaseNodeItem:
@@ -422,6 +441,10 @@ class MathNodeScene(QGraphicsScene):
                     list(components)
                     for components in self.graph.generator_parameters(node_id)
                 ]
+                if node.operation is Operation.TRANSFORM:
+                    entry["rotation_order"] = self.graph.generator_rotation_order(
+                        node_id
+                    )
             elif isinstance(node, ObjLoaderNodeItem):
                 entry["kind"] = "obj_loader"
                 entry["array_ids"] = list(node.array_node_ids)
@@ -484,6 +507,7 @@ class MathNodeScene(QGraphicsScene):
                         Operation[entry["operation"]],
                         position,
                         tuple(tuple(p) for p in entry["parameters"]),
+                        rotation_order=entry.get("rotation_order"),
                     )
                     id_map[entry["id"]] = node.node_id
                 elif kind == "output":
