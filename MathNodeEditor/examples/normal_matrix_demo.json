@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "nodes": [
+    {
+      "id": "node-1",
+      "name": "Object Normal",
+      "x": -900.0,
+      "y": -260.0,
+      "kind": "value",
+      "math_type": "VEC3",
+      "components": [1.0, 1.0, 0.0]
+    },
+    {
+      "id": "node-2",
+      "name": "Unit Object Normal",
+      "x": -560.0,
+      "y": -260.0,
+      "kind": "operation",
+      "operation": "NORMALISE"
+    },
+    {
+      "id": "node-3",
+      "name": "Non-uniform Scale",
+      "x": -900.0,
+      "y": 80.0,
+      "kind": "generator",
+      "operation": "MAT4_SCALE",
+      "parameters": [[2.0], [1.0], [0.5]]
+    },
+    {
+      "id": "node-4",
+      "name": "Linear Model Matrix",
+      "x": -560.0,
+      "y": 100.0,
+      "kind": "operation",
+      "operation": "MAT4_TO_MAT3"
+    },
+    {
+      "id": "node-5",
+      "name": "Naive Normal Transform",
+      "x": -160.0,
+      "y": -180.0,
+      "kind": "operation",
+      "operation": "MATRIX_MULTIPLY"
+    },
+    {
+      "id": "node-6",
+      "name": "Unit Naive Normal",
+      "x": 220.0,
+      "y": -180.0,
+      "kind": "operation",
+      "operation": "NORMALISE"
+    },
+    {
+      "id": "node-7",
+      "name": "Inverse Linear Matrix",
+      "x": -200.0,
+      "y": 180.0,
+      "kind": "operation",
+      "operation": "INVERSE"
+    },
+    {
+      "id": "node-8",
+      "name": "Normal Matrix",
+      "x": 160.0,
+      "y": 180.0,
+      "kind": "operation",
+      "operation": "TRANSPOSE"
+    },
+    {
+      "id": "node-9",
+      "name": "Correct Normal Transform",
+      "x": 520.0,
+      "y": 120.0,
+      "kind": "operation",
+      "operation": "MATRIX_MULTIPLY"
+    },
+    {
+      "id": "node-10",
+      "name": "Unit Correct Normal",
+      "x": 880.0,
+      "y": 120.0,
+      "kind": "operation",
+      "operation": "NORMALISE"
+    },
+    {
+      "id": "node-11",
+      "name": "Naive Normal Result",
+      "x": 580.0,
+      "y": -260.0,
+      "kind": "output"
+    },
+    {
+      "id": "node-12",
+      "name": "Correct Normal Result",
+      "x": 1220.0,
+      "y": 120.0,
+      "kind": "output"
+    }
+  ],
+  "connections": [
+    {"source": "node-1", "target": "node-2", "input": 0},
+    {"source": "node-3", "target": "node-4", "input": 0},
+    {"source": "node-2", "target": "node-5", "input": 0},
+    {"source": "node-4", "target": "node-5", "input": 1},
+    {"source": "node-5", "target": "node-6", "input": 0},
+    {"source": "node-4", "target": "node-7", "input": 0},
+    {"source": "node-7", "target": "node-8", "input": 0},
+    {"source": "node-2", "target": "node-9", "input": 0},
+    {"source": "node-8", "target": "node-9", "input": 1},
+    {"source": "node-9", "target": "node-10", "input": 0},
+    {"source": "node-6", "target": "node-11", "input": 0},
+    {"source": "node-10", "target": "node-12", "input": 0}
+  ]
+}

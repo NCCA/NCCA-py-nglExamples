@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "nodes": [
+    {
+      "id": "node-1",
+      "name": "Original 2D Point",
+      "x": -760.0,
+      "y": -160.0,
+      "kind": "value",
+      "math_type": "VEC2",
+      "components": [2.0, 1.0]
+    },
+    {
+      "id": "node-2",
+      "name": "90 Degree Rotation",
+      "x": -760.0,
+      "y": 100.0,
+      "kind": "value",
+      "math_type": "MAT2",
+      "components": [0.0, 1.0, -1.0, 0.0]
+    },
+    {
+      "id": "node-3",
+      "name": "Rotated Point",
+      "x": -390.0,
+      "y": -80.0,
+      "kind": "operation",
+      "operation": "MATRIX_MULTIPLY"
+    },
+    {
+      "id": "node-4",
+      "name": "Rotation Transpose",
+      "x": -390.0,
+      "y": 180.0,
+      "kind": "operation",
+      "operation": "TRANSPOSE"
+    },
+    {
+      "id": "node-5",
+      "name": "Recovered Point",
+      "x": -20.0,
+      "y": 100.0,
+      "kind": "operation",
+      "operation": "MATRIX_MULTIPLY"
+    },
+    {
+      "id": "node-6",
+      "name": "Rotated Point Result",
+      "x": -20.0,
+      "y": -180.0,
+      "kind": "output"
+    },
+    {
+      "id": "node-7",
+      "name": "Recovered Point Result",
+      "x": 340.0,
+      "y": 100.0,
+      "kind": "output"
+    }
+  ],
+  "connections": [
+    {"source": "node-1", "target": "node-3", "input": 0},
+    {"source": "node-2", "target": "node-3", "input": 1},
+    {"source": "node-2", "target": "node-4", "input": 0},
+    {"source": "node-3", "target": "node-5", "input": 0},
+    {"source": "node-4", "target": "node-5", "input": 1},
+    {"source": "node-3", "target": "node-6", "input": 0},
+    {"source": "node-5", "target": "node-7", "input": 0}
+  ]
+}

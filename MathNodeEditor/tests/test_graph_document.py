@@ -9,6 +9,145 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+EXPECTED_EXAMPLE_NODE_NAMES = {
+    "homogeneous_coordinates_demo.json": [
+        "Translation Matrix",
+        "Homogeneous Point (w=1)",
+        "Homogeneous Direction (w=0)",
+        "Transform Point",
+        "Transform Direction",
+        "Translated Point Result",
+        "Unchanged Direction Result",
+    ],
+    "lambert_diffuse_demo.json": [
+        "Object Normal",
+        "Light Direction",
+        "Unit Normal",
+        "Unit Light Direction",
+        "N dot L",
+        "Diffuse Intensity Result",
+    ],
+    "mat2_rotation_demo.json": [
+        "Original 2D Point",
+        "90 Degree Rotation",
+        "Rotated Point",
+        "Rotation Transpose",
+        "Recovered Point",
+        "Rotated Point Result",
+        "Recovered Point Result",
+    ],
+    "mesh_pipeline_demo.json": [
+        "Cube Geometry",
+        "Y Rotation",
+        "Rotated Vertices",
+        "Rotation 3x3",
+        "Inverse Rotation",
+        "Normal Matrix",
+        "Rotated Normals",
+        "Surface Colour",
+        "Rotating Cube",
+    ],
+    "mvp_demo.json": [
+        "Model Transform",
+        "View Matrix",
+        "Projection Matrix",
+        "View @ Model",
+        "Projection @ View Model",
+        "MVP Result",
+    ],
+    "mvp_mesh_demo.json": [
+        "Cube Geometry",
+        "Model Transform",
+        "Model Vertices",
+        "Model 3x3",
+        "Inverse Model",
+        "Normal Matrix",
+        "Model Normals",
+        "Surface Colour",
+        "Modelled Cube",
+    ],
+    "normal_matrix_demo.json": [
+        "Object Normal",
+        "Unit Object Normal",
+        "Non-uniform Scale",
+        "Linear Model Matrix",
+        "Naive Normal Transform",
+        "Unit Naive Normal",
+        "Inverse Linear Matrix",
+        "Normal Matrix",
+        "Correct Normal Transform",
+        "Unit Correct Normal",
+        "Naive Normal Result",
+        "Correct Normal Result",
+    ],
+    "projection_comparison_demo.json": [
+        "Perspective Projection",
+        "Orthographic Projection",
+        "Asymmetric Frustum",
+        "Perspective Matrix Result",
+        "Orthographic Matrix Result",
+        "Frustum Matrix Result",
+    ],
+    "quaternion_rotation_demo.json": [
+        "Y Axis 90 Degrees",
+        "X Direction",
+        "Rotate Vector",
+        "Rotation Quaternion Result",
+        "Rotated Vector Result",
+    ],
+    "quaternion_slerp_demo.json": [
+        "Start Orientation",
+        "End Orientation",
+        "Blend Factor",
+        "Halfway Orientation",
+        "X Direction",
+        "Rotate by Halfway Orientation",
+        "Halfway Quaternion Result",
+        "Halfway Direction Result",
+    ],
+    "transform_order_demo.json": [
+        "Input Point",
+        "Scale Matrix",
+        "Translation Matrix",
+        "Scale @ Translate",
+        "Translate @ Scale",
+        "Apply Scale @ Translate",
+        "Apply Translate @ Scale",
+        "Scale @ Translate Result",
+        "Translate @ Scale Result",
+    ],
+    "triangle_normal_demo.json": [
+        "Point A",
+        "Point B",
+        "Point C",
+        "Edge AB",
+        "Edge AC",
+        "AB Cross AC",
+        "Unit Face Normal",
+        "Cross Product Result",
+        "Unit Normal Result",
+    ],
+    "vec3_multiply_demo.json": [
+        "First Vector",
+        "Second Vector",
+        "Component Product",
+        "Product Result",
+    ],
+    "vector_arithmetic_demo.json": [
+        "Object Position",
+        "Frame Movement",
+        "Moved Position",
+        "Moved Position Result",
+        "Target Position",
+        "Target - Position",
+        "Displacement Result",
+        "Squared Distance",
+        "Squared Distance Result",
+        "Unit Direction",
+        "Unit Direction Result",
+    ],
+}
+
 
 def _graph_document_module():
     """Load the graph document module from the demo directory."""
@@ -42,50 +181,38 @@ def test_bundled_examples_use_the_current_schema() -> None:
         assert document["schema_version"] == graph_document.SCHEMA_VERSION
 
 
+def test_bundled_example_catalogue_is_complete() -> None:
+    examples_dir = Path(__file__).parent.parent / "examples"
+
+    assert {path.name for path in examples_dir.glob("*.json")} == set(
+        EXPECTED_EXAMPLE_NODE_NAMES
+    )
+
+
+def test_bundled_examples_are_valid_documents() -> None:
+    graph_document = _graph_document_module()
+    examples_dir = Path(__file__).parent.parent / "examples"
+
+    for example_path in examples_dir.glob("*.json"):
+        graph_document.validate_document(json.loads(example_path.read_text()))
+
+
 def test_bundled_examples_name_every_node() -> None:
     examples_dir = Path(__file__).parent.parent / "examples"
-    expected_names = {
-        "mesh_pipeline_demo.json": [
-            "Cube Geometry",
-            "Y Rotation",
-            "Rotated Vertices",
-            "Rotation 3x3",
-            "Inverse Rotation",
-            "Normal Matrix",
-            "Rotated Normals",
-            "Surface Colour",
-            "Rotating Cube",
-        ],
-        "mvp_demo.json": [
-            "Model Transform",
-            "View Matrix",
-            "Projection Matrix",
-            "View @ Model",
-            "Projection @ View Model",
-            "MVP Result",
-        ],
-        "mvp_mesh_demo.json": [
-            "Cube Geometry",
-            "Model Transform",
-            "Model Vertices",
-            "Model 3x3",
-            "Inverse Model",
-            "Normal Matrix",
-            "Model Normals",
-            "Surface Colour",
-            "Modelled Cube",
-        ],
-        "vec3_multiply_demo.json": [
-            "First Vector",
-            "Second Vector",
-            "Component Product",
-            "Product Result",
-        ],
-    }
 
-    for filename, names in expected_names.items():
+    for filename, names in EXPECTED_EXAMPLE_NODE_NAMES.items():
         document = json.loads((examples_dir / filename).read_text())
         assert [node.get("name") for node in document["nodes"]] == names
+
+
+def test_examples_readme_links_every_graph() -> None:
+    examples_dir = Path(__file__).parent.parent / "examples"
+    readme_path = examples_dir / "README.md"
+
+    assert readme_path.exists()
+    readme = readme_path.read_text()
+    for filename in EXPECTED_EXAMPLE_NODE_NAMES:
+        assert f"]({filename})" in readme
 
 
 @pytest.mark.parametrize("version", [None, True, 1.0, "1", 2])

@@ -20,13 +20,11 @@ Drag from an output socket to an input socket to connect it. Double-click a node
 
 Select a node or wire and press `Delete`/`Backspace` to remove it, or right-click it for the same option. The `File` menu's `New` (`Ctrl+N`), `Open...` (`Ctrl+O`), `Save` (`Ctrl+S`) and `Save As...` (`Ctrl+Shift+S`) read and write the graph as JSON — `Save` writes straight back to whichever file is open, prompting for one the first time. Version 1 files are checked completely before the current canvas is replaced, and saves use a temporary file so a failed write can't truncate the previous graph. Older files without a version number still load. `New`, `Open...` and closing the window all ask to save first if the graph has unsaved changes. The window remembers its size and the last file you had open between runs.
 
-`examples/vec3_multiply_demo.json` is the bundled starting graph described above — two `Vec3` values multiplied component-wise into an `Output` node.
+## Examples
 
-`examples/mesh_pipeline_demo.json` is a saved graph showing the mesh nodes in use: `Obj Loader` (reading `examples/cube.obj`) → `Mat4 Rotate Y` → `Transform Vertices`, plus the manual `Mat4 to Mat3` → `Inverse` → `Transpose` → `Transform Normals` pipeline, feeding a `Mesh Viewer` in `Diffuse` shading. Open it with `File` → `Open...`.
+There are fourteen saved graphs covering basic vector arithmetic, `Vec2 @ Mat2`, homogeneous coordinates, triangle normals, Lambert diffuse, transform order, normal matrices, camera projections, quaternions and mesh transforms. The [examples catalogue](examples/README.md) explains what each graph demonstrates and suggests a value to change.
 
-`examples/mvp_demo.json` builds a typical Model/View/Projection matrix: a `Transform` node for Model, `Look At` for View, `Perspective` for Projection — each carrying its own numbers directly, no Value nodes required — combined with two `Matrix Multiply` nodes as `MVP = Projection @ (View @ Model)` — the same order used throughout this repo's OpenGL demos (e.g. `ObjViewer.py`'s `mvp = self.project @ self.view @ self.mouse_global_tx`) — and shown on an `Output` node.
-
-`examples/mvp_mesh_demo.json` puts the Model half of that to work on a displayed mesh instead of a plain `Output` node: `Obj Loader` (`examples/cube.obj`) feeds a `Transform` node's Position/Rotation/Scale spin boxes through `Transform Vertices` and the manual normal-matrix pipeline, landing on a `Mesh Viewer`. There's no `Look At`/`Perspective` in this one — View and Projection are the `Mesh Viewer`'s own arcball camera, which is what you're driving when you drag inside its preview or the `Pop Out` window.
+Open any of them with `File` → `Open...`. `examples/vec3_multiply_demo.json` remains the starting graph when there is no previously opened file.
 
 ## Running it
 

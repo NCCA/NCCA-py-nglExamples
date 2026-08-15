@@ -4,6 +4,7 @@ import json
 import os
 import sys
 from importlib import import_module
+from itertools import combinations
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -1480,6 +1481,130 @@ def test_mvp_mesh_example_applies_the_model_transform_to_a_displayed_mesh(
     # so its rendered vertices should differ from the untouched loader output.
     unit_cube_vertex = max(vertices, key=lambda v: v.x**2 + v.y**2 + v.z**2)
     assert unit_cube_vertex.to_list() != pytest.approx([1.0, 1.0, 1.0])
+    window.close()
+
+
+@pytest.mark.parametrize(
+    ("filename", "expected_outputs"),
+    [
+        (
+            "vector_arithmetic_demo.json",
+            [
+                "Vec3(2.5, 1, -4)",
+                "Vec3(3, 4, 4)",
+                "41",
+                "Vec3(0.46852, 0.6247, 0.6247)",
+            ],
+        ),
+        (
+            "triangle_normal_demo.json",
+            ["Vec3(0, 6, 0)", "Vec3(0, 1, 0)"],
+        ),
+        ("lambert_diffuse_demo.json", ["0.80178"]),
+        (
+            "mat2_rotation_demo.json",
+            ["Vec2(-1, 2)", "Vec2(2, 1)"],
+        ),
+        (
+            "homogeneous_coordinates_demo.json",
+            ["Vec4(6, 0, 4, 1)", "Vec4(1, 2, 3, 0)"],
+        ),
+        (
+            "transform_order_demo.json",
+            ["Vec4(12, 0, 0, 1)", "Vec4(7, 0, 0, 1)"],
+        ),
+        (
+            "normal_matrix_demo.json",
+            [
+                "Vec3(0.89443, 0.44721, 0)",
+                "Vec3(0.44721, 0.89443, 0)",
+            ],
+        ),
+        (
+            "quaternion_rotation_demo.json",
+            [
+                "Quaternion(0.70711, 0, 0.70711, 0)",
+                "Vec3(0, 0, -1)",
+            ],
+        ),
+        (
+            "quaternion_slerp_demo.json",
+            [
+                "Quaternion(0.70711, 0, 0.70711, 0)",
+                "Vec3(0, 0, -1)",
+            ],
+        ),
+    ],
+)
+def test_teaching_examples_load_and_evaluate_expected_results(
+    application: QApplication,
+    filename: str,
+    expected_outputs: list[str],
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    example_path = Path(__file__).parent.parent / "examples" / filename
+
+    window.canvas.load_from_file(example_path)
+    application.processEvents()
+
+    assert window.canvas.output_texts() == expected_outputs
+    window.close()
+
+
+def test_projection_comparison_example_evaluates_three_mat4_values(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    example_path = (
+        Path(__file__).parent.parent / "examples" / "projection_comparison_demo.json"
+    )
+
+    window.canvas.load_from_file(example_path)
+    application.processEvents()
+
+    assert len(window.canvas.output_texts()) == 3
+    assert all(text.startswith("Mat4") for text in window.canvas.output_texts())
+    window.close()
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "vector_arithmetic_demo.json",
+        "triangle_normal_demo.json",
+        "lambert_diffuse_demo.json",
+        "mat2_rotation_demo.json",
+        "homogeneous_coordinates_demo.json",
+        "transform_order_demo.json",
+        "normal_matrix_demo.json",
+        "quaternion_rotation_demo.json",
+        "quaternion_slerp_demo.json",
+        "projection_comparison_demo.json",
+    ],
+)
+def test_teaching_example_nodes_do_not_overlap(
+    application: QApplication,
+    filename: str,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    example_path = Path(__file__).parent.parent / "examples" / filename
+
+    window.canvas.load_from_file(example_path)
+    application.processEvents()
+    visual_nodes = list(
+        {id(node): node for node in window.canvas.nodes.values()}.values()
+    )
+
+    overlaps = []
+    for left, right in combinations(visual_nodes, 2):
+        intersection = left.sceneBoundingRect().intersected(right.sceneBoundingRect())
+        if intersection.width() > 1.0 and intersection.height() > 1.0:
+            overlaps.append((left.title, right.title))
+
+    assert overlaps == []
     window.close()
 
 
