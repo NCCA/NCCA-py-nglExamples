@@ -344,6 +344,60 @@ def test_document_rejects_invalid_node_details(
         graph_document.validate_document(document)
 
 
+@pytest.mark.parametrize("rotation_order", [None, 42, "bad"])
+def test_document_rejects_an_unknown_transform_rotation_order(
+    rotation_order: object,
+) -> None:
+    graph_document = _graph_document_module()
+    document = {
+        "schema_version": 1,
+        "nodes": [
+            {
+                "id": "node-1",
+                "x": 0.0,
+                "y": 0.0,
+                "kind": "generator",
+                "operation": "TRANSFORM",
+                "parameters": [
+                    [0.0, 0.0, 0.0],
+                    [30.0, 45.0, 60.0],
+                    [1.0, 1.0, 1.0],
+                ],
+                "rotation_order": rotation_order,
+            }
+        ],
+        "connections": [],
+    }
+
+    with pytest.raises(graph_document.GraphError, match="rotation order"):
+        graph_document.validate_document(document)
+
+
+def test_document_rejects_rotation_order_on_another_generator() -> None:
+    graph_document = _graph_document_module()
+    document = {
+        "schema_version": 1,
+        "nodes": [
+            {
+                "id": "node-1",
+                "x": 0.0,
+                "y": 0.0,
+                "kind": "generator",
+                "operation": "PERSPECTIVE",
+                "parameters": [[45.0], [1.778], [0.1], [100.0]],
+                "rotation_order": "zyx",
+            }
+        ],
+        "connections": [],
+    }
+
+    with pytest.raises(
+        graph_document.GraphError,
+        match="Perspective does not use a rotation order",
+    ):
+        graph_document.validate_document(document)
+
+
 def test_document_rejects_an_unknown_connection_source() -> None:
     graph_document = _graph_document_module()
     document = {

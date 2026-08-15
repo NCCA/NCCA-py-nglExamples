@@ -6,11 +6,13 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from math_graph import (
+    DEFAULT_TRANSFORM_ROTATION_ORDER,
     GENERATOR_OUTPUT_TYPE,
     MESH_VIEWER_INPUT_NAMES,
     OPERATION_ARITY,
     OPERATION_INPUT_NAMES,
     OPERATION_PARAMETER_TYPES,
+    TRANSFORM_ROTATION_ORDERS,
     TYPE_SHAPES,
     MathType,
     Operation,
@@ -483,21 +485,30 @@ class GeneratorNodeItem(BaseNodeItem):
         operation: Operation,
         parameters: tuple[tuple[float, ...], ...],
         on_change: Callable[[int, tuple[float, ...]], None],
+        rotation_order: str | None = None,
+        on_rotation_order_change: Callable[[str], None] | None = None,
     ) -> None:
         """Create one labelled spin-box row per named parameter."""
         parameter_names = OPERATION_INPUT_NAMES[operation]
         parameter_types = OPERATION_PARAMETER_TYPES[operation]
+        has_rotation_order = operation is Operation.TRANSFORM
+        label_names = (
+            (*parameter_names, "Rotation Order")
+            if has_rotation_order
+            else parameter_names
+        )
         label_font = QFont()
         label_font.setPointSize(9)
         label_width = max(
-            QFontMetrics(label_font).horizontalAdvance(name) for name in parameter_names
+            QFontMetrics(label_font).horizontalAdvance(name) for name in label_names
         )
         max_columns = max(TYPE_SHAPES[math_type][1] for math_type in parameter_types)
         width = max(
             200.0,
             label_width + 16.0 + max_columns * (NUMERIC_EDITOR_WIDTH + 8.0) + 24.0,
         )
-        height = NODE_HEADER_HEIGHT + len(parameter_names) * self.ROW_HEIGHT + 20.0
+        row_count = len(parameter_names) + int(has_rotation_order)
+        height = NODE_HEADER_HEIGHT + row_count * self.ROW_HEIGHT + 20.0
         output_type = GENERATOR_OUTPUT_TYPE[operation]
         super().__init__(
             node_id, operation.value, width, height, (), TYPE_COLOURS[output_type]
@@ -505,12 +516,15 @@ class GeneratorNodeItem(BaseNodeItem):
         self.operation = operation
         self.parameter_names = parameter_names
         self.on_change = on_change
+        self.on_rotation_order_change = on_rotation_order_change
         self.spin_box_rows: list[list[QDoubleSpinBox]] = []
+        self.rotation_order_combo: QComboBox | None = None
 
         editor = QWidget()
         editor.setStyleSheet(
             "QWidget { background: transparent; color: #c2cad7; }"
             "QDoubleSpinBox { background: #151a24; color: #edf1f7; border: 1px solid #46536a; border-radius: 3px; padding: 2px; }"
+            "QComboBox { background: #151a24; color: #edf1f7; border: 1px solid #46536a; border-radius: 3px; padding: 2px; }"
         )
         layout = QGridLayout(editor)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -531,6 +545,19 @@ class GeneratorNodeItem(BaseNodeItem):
                 row_boxes.append(spin_box)
             self.spin_box_rows.append(row_boxes)
 
+        if has_rotation_order:
+            rotation_row = len(parameter_names)
+            layout.addWidget(QLabel("Rotation Order"), rotation_row, 0)
+            self.rotation_order_combo = QComboBox()
+            self.rotation_order_combo.addItems(TRANSFORM_ROTATION_ORDERS)
+            self.rotation_order_combo.setCurrentText(
+                rotation_order or DEFAULT_TRANSFORM_ROTATION_ORDER
+            )
+            self.rotation_order_combo.currentTextChanged.connect(
+                self._rotation_order_changed
+            )
+            layout.addWidget(self.rotation_order_combo, rotation_row, 1, 1, max_columns)
+
         self.proxy = QGraphicsProxyWidget(self)
         self.proxy.setWidget(editor)
         self.proxy.setPos(12.0, NODE_HEADER_HEIGHT + 9.0)
@@ -542,6 +569,11 @@ class GeneratorNodeItem(BaseNodeItem):
         """Send one parameter's edited components back to the graph model."""
         components = tuple(box.value() for box in self.spin_box_rows[row_index])
         self.on_change(row_index, components)
+
+    def _rotation_order_changed(self, rotation_order: str) -> None:
+        """Send the selected Transform rotation order back to the graph model."""
+        if self.on_rotation_order_change is not None:
+            self.on_rotation_order_change(rotation_order)
 
 
 class OperationNodeItem(BaseNodeItem):

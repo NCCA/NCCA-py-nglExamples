@@ -171,6 +171,9 @@ GENERATOR_OUTPUT_TYPE: dict[Operation, MathType] = {
 }
 """The MathType each generator operation's output socket should be coloured as."""
 
+TRANSFORM_ROTATION_ORDERS: tuple[str, ...] = tuple(Transform.rot_order)
+DEFAULT_TRANSFORM_ROTATION_ORDER = "xyz"
+
 
 Corner: TypeAlias = tuple[int, "int | None", "int | None"]
 """One triangle corner: (vertex_index, uv_index, normal_index)."""
@@ -252,6 +255,12 @@ def _validate_components(math_type: MathType, components: tuple[float, ...]) -> 
     expected_count = rows * columns
     if len(components) != expected_count:
         raise GraphError(f"{math_type.value} needs {expected_count} components")
+
+
+def _validate_transform_rotation_order(rotation_order: str) -> None:
+    """Reject a rotation order which PyNGL's Transform does not understand."""
+    if rotation_order not in TRANSFORM_ROTATION_ORDERS:
+        raise ValueError(f"Unknown Transform rotation order {rotation_order!r}")
 
 
 def _format_number(value: float) -> str:
@@ -417,7 +426,12 @@ def _mat4_rotate_z(angle: MathValue) -> MathValue:
     return Mat4.rotate_z(angle)
 
 
-def _transform(position: MathValue, rotation: MathValue, scale: MathValue) -> MathValue:
+def _transform(
+    position: MathValue,
+    rotation: MathValue,
+    scale: MathValue,
+    rotation_order: str = DEFAULT_TRANSFORM_ROTATION_ORDER,
+) -> MathValue:
     """Build a Model Mat4 from PyNGL's Transform (Position/Rotation/Scale)."""
     if not all(isinstance(value, Vec3) for value in (position, rotation, scale)):
         raise TypeError("Transform needs three Vec3 inputs")
@@ -425,6 +439,7 @@ def _transform(position: MathValue, rotation: MathValue, scale: MathValue) -> Ma
     transform.set_position(position)
     transform.set_rotation(rotation)
     transform.set_scale(scale)
+    transform.set_order(rotation_order)
     return transform.matrix()
 
 
@@ -525,10 +540,11 @@ _OPERATION_HANDLERS: dict[Operation, Callable[..., MathValue]] = {
 def apply_operation(
     operation: Operation,
     *inputs: MathValue,
+    **settings: str,
 ) -> MathValue:
     """Apply an operation and translate PyNGL errors for the graph UI."""
     try:
-        return _OPERATION_HANDLERS[operation](*inputs)
+        return _OPERATION_HANDLERS[operation](*inputs, **settings)
     except GraphError:
         raise
     except (AttributeError, TypeError, ValueError, ZeroDivisionError) as error:
@@ -666,6 +682,7 @@ class GeneratorNode:
 
     operation: Operation
     parameters: list[tuple[float, ...]]
+    rotation_order: str | None = None
 
 
 @dataclass(slots=True)
@@ -751,7 +768,11 @@ class MathGraph:
         return self._add_node(OperationNode(operation))
 
     def add_generator(
-        self, operation: Operation, parameters: tuple[tuple[float, ...], ...]
+        self,
+        operation: Operation,
+        parameters: tuple[tuple[float, ...], ...],
+        *,
+        rotation_order: str | None = None,
     ) -> str:
         """Add a parameter node (Look At, Perspective, ...) to the graph."""
         if operation not in GENERATOR_OPERATIONS:
@@ -766,7 +787,16 @@ class MathGraph:
             )
         for parameter_type, components in zip(parameter_types, parameters, strict=True):
             _validate_components(parameter_type, components)
-        return self._add_node(GeneratorNode(operation, [tuple(p) for p in parameters]))
+        if operation is Operation.TRANSFORM and rotation_order is None:
+            rotation_order = DEFAULT_TRANSFORM_ROTATION_ORDER
+        if operation is Operation.TRANSFORM:
+            assert rotation_order is not None
+            _validate_transform_rotation_order(rotation_order)
+        elif rotation_order is not None:
+            raise ValueError(f"{operation.value} does not use a rotation order")
+        return self._add_node(
+            GeneratorNode(operation, [tuple(p) for p in parameters], rotation_order)
+        )
 
     def set_generator_parameter(
         self, node_id: str, parameter_index: int, components: tuple[float, ...]
@@ -778,6 +808,17 @@ class MathGraph:
         parameter_type = OPERATION_PARAMETER_TYPES[node.operation][parameter_index]
         _validate_components(parameter_type, components)
         node.parameters[parameter_index] = tuple(components)
+
+    def set_generator_rotation_order(self, node_id: str, rotation_order: str) -> None:
+        """Set the rotation order stored by a Transform generator."""
+        node = self._nodes[node_id]
+        if (
+            not isinstance(node, GeneratorNode)
+            or node.operation is not Operation.TRANSFORM
+        ):
+            raise ValueError("Only Transform generators store a rotation order")
+        _validate_transform_rotation_order(rotation_order)
+        node.rotation_order = rotation_order
 
     def set_value(self, node_id: str, components: tuple[float, ...]) -> None:
         """Replace the components stored by a value node."""
@@ -800,6 +841,17 @@ class MathGraph:
         if not isinstance(node, GeneratorNode):
             raise ValueError("Only generator nodes store editable parameters")
         return tuple(node.parameters)
+
+    def generator_rotation_order(self, node_id: str) -> str:
+        """Return the rotation order stored by a Transform generator."""
+        node = self._nodes[node_id]
+        if (
+            not isinstance(node, GeneratorNode)
+            or node.operation is not Operation.TRANSFORM
+        ):
+            raise ValueError("Only Transform generators store a rotation order")
+        assert node.rotation_order is not None
+        return node.rotation_order
 
     def add_output(self) -> str:
         """Add an output node to the graph."""
@@ -898,6 +950,12 @@ class MathGraph:
                         parameter_types, node.parameters, strict=True
                     )
                 )
+                if node.operation is Operation.TRANSFORM:
+                    return apply_operation(
+                        node.operation,
+                        *values,
+                        rotation_order=self.generator_rotation_order(node_id),
+                    )
                 return apply_operation(node.operation, *values)
             if isinstance(node, OutputNode):
                 if 0 not in node.inputs:

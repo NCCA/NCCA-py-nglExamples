@@ -205,6 +205,80 @@ def test_transform_node_builds_a_model_matrix_from_position_rotation_scale() -> 
     assert result.to_list() == pytest.approx(expected.matrix().to_list())
 
 
+def test_transform_node_honours_the_selected_rotation_order() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    operation = graph.add_generator(
+        graph_module.Operation.TRANSFORM,
+        ((1.0, 2.0, 3.0), (30.0, 45.0, 60.0), (2.0, 3.0, 4.0)),
+        rotation_order="zyx",
+    )
+
+    result = graph.evaluate(operation)
+
+    expected = Transform()
+    expected.set_position(Vec3(1.0, 2.0, 3.0))
+    expected.set_rotation(Vec3(30.0, 45.0, 60.0))
+    expected.set_scale(Vec3(2.0, 3.0, 4.0))
+    expected.set_order("zyx")
+    assert isinstance(result, Mat4)
+    assert result.to_list() == pytest.approx(expected.matrix().to_list())
+
+
+def test_setting_transform_rotation_order_updates_the_result() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    operation = graph.add_generator(
+        graph_module.Operation.TRANSFORM,
+        ((0.0, 0.0, 0.0), (30.0, 45.0, 60.0), (1.0, 1.0, 1.0)),
+    )
+
+    graph.set_generator_rotation_order(operation, "zyx")
+
+    result = graph.evaluate(operation)
+    expected = Transform()
+    expected.set_rotation(Vec3(30.0, 45.0, 60.0))
+    expected.set_order("zyx")
+    assert graph.generator_rotation_order(operation) == "zyx"
+    assert result.to_list() == pytest.approx(expected.matrix().to_list())
+
+
+@pytest.mark.parametrize("entry_point", ["add", "set"])
+def test_transform_node_rejects_an_unknown_rotation_order(entry_point: str) -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    parameters = (
+        (0.0, 0.0, 0.0),
+        (30.0, 45.0, 60.0),
+        (1.0, 1.0, 1.0),
+    )
+
+    with pytest.raises(ValueError, match="Unknown Transform rotation order 'bad'"):
+        if entry_point == "add":
+            graph.add_generator(
+                graph_module.Operation.TRANSFORM,
+                parameters,
+                rotation_order="bad",
+            )
+        else:
+            operation = graph.add_generator(
+                graph_module.Operation.TRANSFORM, parameters
+            )
+            graph.set_generator_rotation_order(operation, "bad")
+
+
+def test_non_transform_generator_rejects_a_rotation_order() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+
+    with pytest.raises(ValueError, match="Perspective does not use a rotation order"):
+        graph.add_generator(
+            graph_module.Operation.PERSPECTIVE,
+            ((45.0,), (1.778,), (0.1,), (100.0,)),
+            rotation_order="zyx",
+        )
+
+
 def test_ortho_node_builds_an_orthographic_mat4() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
