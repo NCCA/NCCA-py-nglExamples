@@ -57,6 +57,9 @@ if TYPE_CHECKING:
 
 NODE_HEADER_HEIGHT = 32.0
 PORT_RADIUS = 6.0
+NUMERIC_DECIMALS = 7
+NUMERIC_EDITOR_WIDTH = 92
+NUMERIC_LIMIT = 1.0e30
 
 TYPE_COLOURS: dict[MathType, QColor] = {
     MathType.FLOAT: QColor("#d7dce5"),
@@ -85,6 +88,17 @@ def node_title_font() -> QFont:
     title_font.setPointSize(10)
     title_font.setBold(True)
     return title_font
+
+
+def numeric_spin_box(value: float) -> QDoubleSpinBox:
+    """Build a numeric editor without throwing away useful float precision."""
+    spin_box = QDoubleSpinBox()
+    spin_box.setRange(-NUMERIC_LIMIT, NUMERIC_LIMIT)
+    spin_box.setDecimals(NUMERIC_DECIMALS)
+    spin_box.setSingleStep(0.1)
+    spin_box.setValue(value)
+    spin_box.setFixedWidth(NUMERIC_EDITOR_WIDTH)
+    return spin_box
 
 
 def default_components(math_type: MathType) -> tuple[float, ...]:
@@ -368,7 +382,7 @@ class ValueNodeItem(BaseNodeItem):
     ) -> None:
         """Create the numeric editors for a PyNGL value."""
         rows, columns = TYPE_SHAPES[math_type]
-        width = max(190.0, columns * 76.0 + 24.0)
+        width = max(190.0, columns * (NUMERIC_EDITOR_WIDTH + 8.0) + 24.0)
         height = NODE_HEADER_HEIGHT + rows * 38.0 + 20.0
         title = (
             "Quaternion (s, x, y, z)"
@@ -389,12 +403,7 @@ class ValueNodeItem(BaseNodeItem):
         layout.setHorizontalSpacing(4)
         layout.setVerticalSpacing(4)
         for component_index, component in enumerate(components):
-            spin_box = QDoubleSpinBox()
-            spin_box.setRange(-1_000_000.0, 1_000_000.0)
-            spin_box.setDecimals(3)
-            spin_box.setSingleStep(0.1)
-            spin_box.setValue(component)
-            spin_box.setFixedWidth(68)
+            spin_box = numeric_spin_box(component)
             spin_box.valueChanged.connect(self._values_changed)
             layout.addWidget(
                 spin_box, component_index // columns, component_index % columns
@@ -439,7 +448,10 @@ class GeneratorNodeItem(BaseNodeItem):
             QFontMetrics(label_font).horizontalAdvance(name) for name in parameter_names
         )
         max_columns = max(TYPE_SHAPES[math_type][1] for math_type in parameter_types)
-        width = max(200.0, label_width + 16.0 + max_columns * 76.0 + 24.0)
+        width = max(
+            200.0,
+            label_width + 16.0 + max_columns * (NUMERIC_EDITOR_WIDTH + 8.0) + 24.0,
+        )
         height = NODE_HEADER_HEIGHT + len(parameter_names) * self.ROW_HEIGHT + 20.0
         output_type = GENERATOR_OUTPUT_TYPE[operation]
         super().__init__(
@@ -466,12 +478,7 @@ class GeneratorNodeItem(BaseNodeItem):
             layout.addWidget(label, row_index, 0)
             row_boxes: list[QDoubleSpinBox] = []
             for column_index, component in enumerate(components):
-                spin_box = QDoubleSpinBox()
-                spin_box.setRange(-1_000_000.0, 1_000_000.0)
-                spin_box.setDecimals(3)
-                spin_box.setSingleStep(0.1)
-                spin_box.setValue(component)
-                spin_box.setFixedWidth(68)
+                spin_box = numeric_spin_box(component)
                 spin_box.valueChanged.connect(
                     lambda _value, row=row_index: self._row_changed(row)
                 )
@@ -702,22 +709,32 @@ class MeshViewerNodeItem(BaseNodeItem):
         self.wireframe_check.toggled.connect(self._wireframe_toggled)
 
     def _shading_changed(self, mode: str) -> None:
-        """Switch shading mode and ask the canvas to re-evaluate this node."""
+        """Switch shading mode and refresh the existing mesh."""
         self.render_state.set_shading_mode(mode)
+        self._refresh_views()
         self.on_config_changed()
 
     def _wireframe_toggled(self, checked: bool) -> None:
-        """Toggle wireframe and ask the canvas to re-evaluate this node."""
+        """Toggle wireframe and refresh the existing mesh."""
         self.render_state.set_wireframe(checked)
+        self._refresh_views()
         self.on_config_changed()
 
     def _pop_out(self) -> None:
         """Open (or focus) the standalone arcball-camera viewer window."""
         if self._popup is None:
             self._popup = MeshPopupWindow(self.render_state, "Mesh Viewer")
+        if not self._popup.isVisible():
             self._popup.show()
         else:
             self._popup.requestActivate()
+
+    def close_popup(self) -> None:
+        """Close and release this node's standalone viewer, if it has one."""
+        if self._popup is None:
+            return
+        self._popup.close()
+        self._popup = None
 
     def _refresh_views(self) -> None:
         """Repaint the embedded preview and the popup window, if it's open."""

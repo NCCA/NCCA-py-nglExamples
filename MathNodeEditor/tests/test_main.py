@@ -7,7 +7,6 @@ from pathlib import Path
 from types import ModuleType
 
 import pytest
-from PySide6.QtWidgets import QMainWindow
 
 DEMO_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(DEMO_DIR))
@@ -23,11 +22,47 @@ def _main_module() -> ModuleType:
     return module
 
 
-def test_main_module_owns_the_application_window() -> None:
+def test_main_creates_and_shows_the_demo_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     main_module = _main_module()
+    calls: list[object] = []
 
-    assert issubclass(main_module.MainWindow, QMainWindow)
-    assert main_module.MainWindow.__module__ == main_module.__name__
+    class FakeApplication:
+        @staticmethod
+        def instance() -> "FakeApplication":
+            return FakeApplication()
+
+        def setOrganizationName(self, name: str) -> None:
+            calls.append(("organisation", name))
+
+        def setApplicationName(self, name: str) -> None:
+            calls.append(("application", name))
+
+        def exec(self) -> int:
+            calls.append("exec")
+            return 17
+
+    class FakeWindow:
+        def __init__(self, load_example: bool) -> None:
+            calls.append(("window", load_example))
+
+        def show(self) -> None:
+            calls.append("show")
+
+    monkeypatch.setattr(main_module, "QApplication", FakeApplication)
+    monkeypatch.setattr(main_module, "MathNodeWindow", FakeWindow)
+
+    result = main_module.main()
+
+    assert result == 17
+    assert calls == [
+        ("organisation", "NCCA"),
+        ("application", "MathNodeEditor"),
+        ("window", True),
+        "show",
+        "exec",
+    ]
 
 
 def test_main_module_owns_the_application_entry_point() -> None:
@@ -36,10 +71,10 @@ def test_main_module_owns_the_application_entry_point() -> None:
     assert main_module.main.__module__ == main_module.__name__
 
 
-def test_main_window_uses_the_demo_local_editor_module() -> None:
+def test_main_uses_the_demo_local_editor_module() -> None:
     main_module = _main_module()
 
-    assert main_module.MainWindow.__base__.__module__ == "node_editor"
+    assert main_module.MathNodeWindow.__module__ == "node_editor"
 
 
 def test_demo_is_not_a_python_package() -> None:

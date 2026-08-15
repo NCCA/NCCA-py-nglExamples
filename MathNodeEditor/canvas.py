@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from graph_document import SCHEMA_VERSION, validate_document
 from graphics_items import (
     BaseNodeItem,
     ConnectionItem,
@@ -42,7 +43,17 @@ from ncca.ngl import (
     Vec3,
 )
 from palette import NodeCreationMenu
-from PySide6.QtCore import QEvent, QLineF, QPoint, QPointF, QRectF, Qt, Signal
+from PySide6.QtCore import (
+    QEvent,
+    QIODevice,
+    QLineF,
+    QPoint,
+    QPointF,
+    QRectF,
+    QSaveFile,
+    Qt,
+    Signal,
+)
 from PySide6.QtGui import (
     QBrush,
     QColor,
@@ -98,12 +109,20 @@ class MathNodeScene(QGraphicsScene):
         self.modified = False
         self._loading = False
 
-    def mark_modified(self) -> None:
-        """Flag the graph as having unsaved changes, unless a file load is in progress."""
-        if self._loading or self.modified:
+    def set_modified(self, modified: bool) -> None:
+        """Set the document state and notify listeners when it changes."""
+        if (modified and self._loading) or self.modified == modified:
             return
-        self.modified = True
-        self.modifiedChanged.emit(True)
+        self.modified = modified
+        self.modifiedChanged.emit(modified)
+
+    def mark_modified(self) -> None:
+        """Flag the graph as having unsaved changes."""
+        self.set_modified(True)
+
+    def mark_clean(self) -> None:
+        """Flag the graph as matching the document on disk."""
+        self.set_modified(False)
 
     def _next_position(self) -> QPointF:
         """Return a slightly offset position for the next palette node."""
@@ -133,6 +152,7 @@ class MathNodeScene(QGraphicsScene):
         self.addItem(node)
         node.setPos(position if position is not None else self._next_position())
         self.nodes[node_id] = node
+        self.mark_modified()
         return node
 
     def add_operation_node(
@@ -146,6 +166,7 @@ class MathNodeScene(QGraphicsScene):
         self.addItem(node)
         node.setPos(position if position is not None else self._next_position())
         self.nodes[node_id] = node
+        self.mark_modified()
         return node
 
     def add_generator_node(
@@ -174,6 +195,7 @@ class MathNodeScene(QGraphicsScene):
         self.addItem(node)
         node.setPos(position if position is not None else self._next_position())
         self.nodes[node_id] = node
+        self.mark_modified()
         return node
 
     def add_output_node(self, position: QPointF | None = None) -> OutputNodeItem:
@@ -183,6 +205,7 @@ class MathNodeScene(QGraphicsScene):
         self.addItem(node)
         node.setPos(position if position is not None else self._next_position())
         self.nodes[node_id] = node
+        self.mark_modified()
         return node
 
     def add_obj_loader_node(self, position: QPointF | None = None) -> ObjLoaderNodeItem:
@@ -199,6 +222,7 @@ class MathNodeScene(QGraphicsScene):
         self.addItem(node)
         node.setPos(position if position is not None else self._next_position())
         self.nodes[node.node_id] = node
+        self.mark_modified()
         return node
 
     def _load_obj_into_node(self, item: ObjLoaderNodeItem) -> None:
@@ -238,12 +262,31 @@ class MathNodeScene(QGraphicsScene):
         """Add a mesh viewer sink node to the canvas."""
         node_id = self.graph.add_mesh_viewer()
         node = MeshViewerNodeItem(
-            node_id, self.update_outputs, shading_mode=shading_mode, wireframe=wireframe
+            node_id,
+            lambda viewer_id=node_id: self._mesh_viewer_config_changed(viewer_id),
+            shading_mode=shading_mode,
+            wireframe=wireframe,
         )
         self.addItem(node)
         node.setPos(position if position is not None else self._next_position())
         self.nodes[node_id] = node
+        self.mark_modified()
         return node
+
+    def _mesh_viewer_config_changed(self, node_id: str) -> None:
+        """Refresh display-only settings without rebuilding valid geometry."""
+        self.mark_modified()
+        node = self.nodes.get(node_id)
+        if not isinstance(node, MeshViewerNodeItem):
+            return
+        mesh_inputs = node.render_state.mesh_inputs
+        diffuse_needs_normals = node.render_state.shading_mode == SHADING_DIFFUSE and (
+            mesh_inputs is None
+            or mesh_inputs.normals is None
+            or not mesh_inputs.normals.values
+        )
+        if mesh_inputs is None or diffuse_needs_normals:
+            self.update_outputs()
 
     def _value_changed(self, node_id: str, components: tuple[float, ...]) -> None:
         """Update a graph value after a spin box changes."""
@@ -318,8 +361,8 @@ class MathNodeScene(QGraphicsScene):
 
     def _delete_node(self, node: BaseNodeItem) -> None:
         """Remove a node, detaching its wires and dropping it from the graph."""
-        if isinstance(node, MeshViewerNodeItem) and node._popup is not None:
-            node._popup.close()
+        if isinstance(node, MeshViewerNodeItem):
+            node.close_popup()
         ports = [*node.input_ports, *node.output_ports]
         for port in ports:
             for connection in list(port.connections):
@@ -338,6 +381,9 @@ class MathNodeScene(QGraphicsScene):
 
     def clear_graph(self) -> None:
         """Remove all visible items and start a fresh calculation graph."""
+        for node in self.nodes.values():
+            if isinstance(node, MeshViewerNodeItem):
+                node.close_popup()
         self.clear()
         self.graph = MathGraph()
         self.nodes.clear()
@@ -345,9 +391,7 @@ class MathNodeScene(QGraphicsScene):
         self._drag_source = None
         self._preview_connection = None
         self._insertion_index = 0
-        if self.modified:
-            self.modified = False
-            self.modifiedChanged.emit(False)
+        self.mark_clean()
 
     def load_example(self) -> None:
         """Load the bundled Vec3 component-multiply example graph."""
@@ -366,7 +410,7 @@ class MathNodeScene(QGraphicsScene):
             if isinstance(node, ValueNodeItem):
                 entry["kind"] = "value"
                 entry["math_type"] = node.math_type.name
-                entry["components"] = [spin_box.value() for spin_box in node.spin_boxes]
+                entry["components"] = list(self.graph.value_components(node_id))
             elif isinstance(node, OperationNodeItem):
                 entry["kind"] = "operation"
                 entry["operation"] = node.operation.name
@@ -374,7 +418,8 @@ class MathNodeScene(QGraphicsScene):
                 entry["kind"] = "generator"
                 entry["operation"] = node.operation.name
                 entry["parameters"] = [
-                    [box.value() for box in row] for row in node.spin_box_rows
+                    list(components)
+                    for components in self.graph.generator_parameters(node_id)
                 ]
             elif isinstance(node, ObjLoaderNodeItem):
                 entry["kind"] = "obj_loader"
@@ -405,10 +450,15 @@ class MathNodeScene(QGraphicsScene):
             }
             for connection in self.connections
         ]
-        return {"nodes": nodes, "connections": connections}
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "nodes": nodes,
+            "connections": connections,
+        }
 
     def from_dict(self, data: dict[str, object]) -> None:
         """Replace the current graph with one built from ``to_dict`` data."""
+        validate_document(data)
         self._loading = True
         try:
             self.clear_graph()
@@ -482,11 +532,21 @@ class MathNodeScene(QGraphicsScene):
 
     def save_to_file(self, path: str | Path) -> None:
         """Write the current graph to a JSON file."""
-        Path(path).write_text(json.dumps(self.to_dict(), indent=2))
+        destination = Path(path)
+        payload = (json.dumps(self.to_dict(), indent=2) + "\n").encode("utf-8")
+        save_file = QSaveFile(str(destination))
+        if not save_file.open(QIODevice.OpenModeFlag.WriteOnly):
+            raise OSError(save_file.errorString())
+        if save_file.write(payload) != len(payload):
+            error_message = save_file.errorString()
+            save_file.cancelWriting()
+            raise OSError(error_message)
+        if not save_file.commit():
+            raise OSError(save_file.errorString())
 
     def load_from_file(self, path: str | Path) -> None:
         """Replace the current graph with one loaded from a JSON file."""
-        self.from_dict(json.loads(Path(path).read_text()))
+        self.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
 
     def update_outputs(self) -> None:
         """Evaluate and refresh every output and mesh viewer node in the scene."""
@@ -506,9 +566,8 @@ class MathNodeScene(QGraphicsScene):
             elif isinstance(node, MeshViewerNodeItem):
                 try:
                     mesh_inputs = self.graph.evaluate_mesh_viewer(node_id)
-                    if (
-                        node.render_state.shading_mode == SHADING_DIFFUSE
-                        and mesh_inputs.normals is None
+                    if node.render_state.shading_mode == SHADING_DIFFUSE and (
+                        mesh_inputs.normals is None or not mesh_inputs.normals.values
                     ):
                         raise GraphError(
                             "Mesh Viewer needs input Normals for Diffuse shading"

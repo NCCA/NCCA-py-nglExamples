@@ -10,6 +10,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
+from ncca.ngl import Vec3
 from PySide6.QtCore import QPoint, QPointF, QSettings, Qt
 from PySide6.QtGui import QCloseEvent, QFont, QFontMetrics, QKeySequence, QWheelEvent
 from PySide6.QtTest import QTest
@@ -636,6 +637,51 @@ def test_to_dict_and_from_dict_round_trip_the_example_graph(
     window.close()
 
 
+def test_serialized_graph_includes_its_schema_version(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+
+    document = window.canvas.to_dict()
+
+    assert document["schema_version"] == 1
+    window.close()
+
+
+def test_from_dict_does_not_replace_the_graph_when_validation_fails(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    before = window.canvas.to_dict()
+    invalid_document = {
+        "nodes": [{"id": "node-1", "x": 0.0, "y": 0.0, "kind": "unknown"}],
+        "connections": [],
+    }
+
+    with pytest.raises(node_editor.GraphError, match="Unknown node kind"):
+        window.canvas.from_dict(invalid_document)
+
+    assert window.canvas.to_dict() == before
+    window.close()
+
+
+def test_from_dict_rejects_an_unsupported_schema_version(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    document = window.canvas.to_dict()
+    document["schema_version"] = 99
+
+    with pytest.raises(node_editor.GraphError, match="schema version 99"):
+        window.canvas.from_dict(document)
+
+    assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
+    window.close()
+
+
 def test_generator_node_round_trips_through_to_dict_and_from_dict(
     application: QApplication,
 ) -> None:
@@ -663,6 +709,69 @@ def test_generator_node_round_trips_through_to_dict_and_from_dict(
     values = [box.value() for row in after_node.spin_box_rows for box in row]
     assert values == pytest.approx([0.0, 3.0, 9.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0])
     assert window.canvas.output_texts() == before
+    window.close()
+
+
+def test_serialization_preserves_value_precision_beyond_the_spin_box_display(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    precise_value = 1.23456789
+    node = window.canvas.add_value_node(
+        node_editor.MathType.FLOAT, components=(precise_value,)
+    )
+
+    document = window.canvas.to_dict()
+    saved_node = next(
+        entry for entry in document["nodes"] if entry["id"] == node.node_id
+    )
+
+    assert saved_node["components"] == [precise_value]
+    window.close()
+
+
+def test_serialization_preserves_generator_parameter_precision(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    precise_value = 1.23456789
+    node = window.canvas.add_generator_node(
+        node_editor.Operation.MAT4_TRANSLATE,
+        parameters=((precise_value,), (2.0,), (3.0,)),
+    )
+
+    document = window.canvas.to_dict()
+    saved_node = next(
+        entry for entry in document["nodes"] if entry["id"] == node.node_id
+    )
+
+    assert saved_node["parameters"] == [[precise_value], [2.0], [3.0]]
+    window.close()
+
+
+@pytest.mark.parametrize("node_kind", ["value", "generator"])
+def test_numeric_editors_support_precise_large_values(
+    application: QApplication, node_kind: str
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    if node_kind == "value":
+        node = window.canvas.add_value_node(
+            node_editor.MathType.FLOAT, components=(1.23456789,)
+        )
+        spin_box = node.spin_boxes[0]
+    else:
+        node = window.canvas.add_generator_node(
+            node_editor.Operation.MAT4_TRANSLATE,
+            parameters=((1.23456789,), (2.0,), (3.0,)),
+        )
+        spin_box = node.spin_box_rows[0][0]
+
+    assert spin_box.value() == pytest.approx(1.23456789, abs=1e-7)
+    spin_box.setValue(1.0e12)
+    assert spin_box.value() == pytest.approx(1.0e12)
     window.close()
 
 
@@ -700,6 +809,42 @@ def test_save_to_file_and_load_from_file_round_trip(
     application.processEvents()
 
     assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
+    window.close()
+
+
+def test_failed_atomic_save_preserves_the_existing_file(
+    application: QApplication,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    node_editor = _node_editor_module()
+    canvas_module = import_module("canvas")
+    window = node_editor.MathNodeWindow(load_example=True)
+    file_path = tmp_path / "graph.json"
+    file_path.write_text("original document")
+
+    class RejectingSaveFile:
+        def __init__(self, path: str) -> None:
+            self.path = path
+
+        def open(self, _mode: object) -> bool:
+            return True
+
+        def write(self, payload: bytes) -> int:
+            return len(payload)
+
+        def commit(self) -> bool:
+            return False
+
+        def errorString(self) -> str:
+            return "simulated commit failure"
+
+    monkeypatch.setattr(canvas_module, "QSaveFile", RejectingSaveFile, raising=False)
+
+    with pytest.raises(OSError, match="simulated commit failure"):
+        window.canvas.save_to_file(file_path)
+
+    assert file_path.read_text() == "original document"
     window.close()
 
 
@@ -838,6 +983,31 @@ def test_open_action_restores_the_previous_graph_after_a_schema_error(
     assert len(warnings) == 1
     assert window.canvas.output_texts() == ["Vec3(4, 10, 18)"]
     assert window.current_file == good_file
+    window.close()
+
+
+def test_failed_open_preserves_a_dirty_document(
+    application: QApplication,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=False, settings=_isolated_settings(tmp_path)
+    )
+    window.canvas.add_value_node(node_editor.MathType.VEC3)
+    current_file = tmp_path / "current.json"
+    window.current_file = current_file
+    broken_file = tmp_path / "broken.json"
+    broken_file.write_text("not valid json")
+    monkeypatch.setattr(QMessageBox, "warning", lambda *args, **kwargs: None)
+
+    opened = window._open_path(broken_file)
+
+    assert opened is False
+    assert len(window.canvas.nodes) == 1
+    assert window.canvas.modified is True
+    assert window.current_file == current_file
     window.close()
 
 
@@ -1062,6 +1232,124 @@ def test_mesh_pipeline_example_loads_without_errors(application: QApplication) -
     window.close()
 
 
+def test_diffuse_mesh_viewer_rejects_an_empty_normal_array(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    graph_module = import_module("math_graph")
+    window = node_editor.MathNodeWindow(load_example=False)
+    loader = window.canvas.add_obj_loader_node()
+    vertices_id, faces_id, _uvs_id, normals_id = loader.array_node_ids
+    window.canvas.graph.set_literal(
+        vertices_id,
+        graph_module.VertexArray(
+            (
+                Vec3(0.0, 0.0, 0.0),
+                Vec3(1.0, 0.0, 0.0),
+                Vec3(0.0, 1.0, 0.0),
+            )
+        ),
+    )
+    window.canvas.graph.set_literal(
+        faces_id,
+        graph_module.FaceArray((((0, None, None), (1, None, None), (2, None, None)),)),
+    )
+    window.canvas.graph.set_literal(normals_id, graph_module.NormalArray(()))
+    viewer = window.canvas.add_mesh_viewer_node(shading_mode="Diffuse")
+    window.canvas.connect_ports(loader.output_ports[0], viewer.input_ports[0])
+    window.canvas.connect_ports(loader.output_ports[1], viewer.input_ports[1])
+    window.canvas.connect_ports(loader.output_ports[3], viewer.input_ports[3])
+
+    assert "needs input Normals" in viewer.status_text_item.toPlainText()
+    window.close()
+
+
+def test_mesh_display_controls_do_not_rebuild_geometry(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    example_path = Path(__file__).parent.parent / "examples" / "mesh_pipeline_demo.json"
+    window.canvas.load_from_file(example_path)
+    viewer = next(
+        node
+        for node in window.canvas.nodes.values()
+        if isinstance(node, node_editor.MeshViewerNodeItem)
+    )
+    geometry_version = viewer.render_state.version
+
+    viewer.wireframe_check.toggle()
+    viewer.shading_combo.setCurrentText("Diffuse")
+    application.processEvents()
+
+    assert viewer.render_state.version == geometry_version
+    window.close()
+
+
+def test_closed_mesh_popup_can_be_opened_again(
+    application: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    node_editor = _node_editor_module()
+    graphics_items = import_module("graphics_items")
+
+    class Popup:
+        def __init__(self, *_args: object) -> None:
+            self.visible = False
+            self.show_calls = 0
+            self.activation_calls = 0
+
+        def show(self) -> None:
+            self.visible = True
+            self.show_calls += 1
+
+        def close(self) -> None:
+            self.visible = False
+
+        def isVisible(self) -> bool:
+            return self.visible
+
+        def requestActivate(self) -> None:
+            self.activation_calls += 1
+
+        def update(self) -> None:
+            pass
+
+    monkeypatch.setattr(graphics_items, "MeshPopupWindow", Popup)
+    window = node_editor.MathNodeWindow(load_example=False)
+    viewer = window.canvas.add_mesh_viewer_node()
+
+    viewer._pop_out()
+    popup = viewer._popup
+    assert popup is not None
+    popup.close()
+    viewer._pop_out()
+
+    assert popup.show_calls == 2
+    window.close()
+
+
+def test_clearing_the_graph_closes_mesh_popups(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    viewer = window.canvas.add_mesh_viewer_node()
+
+    class Popup:
+        def __init__(self) -> None:
+            self.close_calls = 0
+
+        def close(self) -> None:
+            self.close_calls += 1
+
+    popup = Popup()
+    viewer._popup = popup
+
+    window.canvas.clear_graph()
+
+    assert popup.close_calls == 1
+    window.close()
+
+
 def test_default_example_file_loads_the_vec3_multiply_result(
     application: QApplication,
 ) -> None:
@@ -1201,6 +1489,20 @@ def test_frame_all_fits_every_node_within_the_viewport(
     window.close()
 
 
+def test_startup_frames_every_loaded_node(application: QApplication) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    window.resize(900, 600)
+    window.show()
+    application.processEvents()
+
+    visible_rect = window.view.mapToScene(window.view.viewport().rect()).boundingRect()
+
+    for node in window.canvas.nodes.values():
+        assert visible_rect.contains(node.sceneBoundingRect())
+    window.close()
+
+
 def test_frame_all_does_nothing_on_an_empty_graph(
     application: QApplication,
 ) -> None:
@@ -1253,6 +1555,35 @@ def test_adding_a_node_marks_the_scene_modified(application: QApplication) -> No
     window = node_editor.MathNodeWindow(load_example=False)
 
     window.canvas.add_value_node(node_editor.MathType.VEC3)
+
+    assert window.canvas.modified is True
+    window.close()
+
+
+@pytest.mark.parametrize(
+    "node_kind",
+    ["value", "operation", "generator", "output", "obj_loader", "mesh_viewer"],
+)
+def test_adding_a_node_at_the_scene_origin_marks_the_scene_modified(
+    application: QApplication,
+    node_kind: str,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    origin = QPointF(0.0, 0.0)
+
+    if node_kind == "value":
+        window.canvas.add_value_node(node_editor.MathType.VEC3, origin)
+    elif node_kind == "operation":
+        window.canvas.add_operation_node(node_editor.Operation.ADD, origin)
+    elif node_kind == "generator":
+        window.canvas.add_generator_node(node_editor.Operation.PERSPECTIVE, origin)
+    elif node_kind == "output":
+        window.canvas.add_output_node(origin)
+    elif node_kind == "obj_loader":
+        window.canvas.add_obj_loader_node(origin)
+    else:
+        window.canvas.add_mesh_viewer_node(origin)
 
     assert window.canvas.modified is True
     window.close()
@@ -1321,6 +1652,31 @@ def test_modified_changed_signal_fires_once_on_transition(
     window.canvas.add_value_node(node_editor.MathType.VEC3)
 
     assert seen == [True]
+    window.close()
+
+
+def test_saving_emits_the_clean_document_state(
+    application: QApplication,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(
+        load_example=False, settings=_isolated_settings(tmp_path)
+    )
+    window.canvas.add_value_node(node_editor.MathType.VEC3)
+    seen: list[bool] = []
+    window.canvas.modifiedChanged.connect(seen.append)
+    file_path = tmp_path / "graph.json"
+    monkeypatch.setattr(
+        QFileDialog,
+        "getSaveFileName",
+        lambda *args, **kwargs: (str(file_path), ""),
+    )
+
+    window.action_save.trigger()
+
+    assert seen == [False]
     window.close()
 
 

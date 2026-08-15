@@ -669,6 +669,67 @@ def test_obj_from_arrays_omits_uv_and_normal_when_not_supplied() -> None:
     assert merged.faces[0].normal == []
 
 
+@pytest.mark.parametrize(
+    ("vertices", "faces", "uvs", "normals", "message"),
+    [
+        (
+            (),
+            (((0, None, None), (0, None, None), (0, None, None)),),
+            None,
+            None,
+            "at least one vertex",
+        ),
+        ((Vec3(0.0, 0.0, 0.0),), (), None, None, "at least one triangle"),
+        (
+            (Vec3(0.0, 0.0, 0.0),),
+            (((1, None, None), (0, None, None), (0, None, None)),),
+            None,
+            None,
+            "vertex index 1",
+        ),
+        (
+            (Vec3(0.0, 0.0, 0.0),),
+            (((0, None, None), (0, None, None), (0, None, None)),),
+            (Vec2(0.0, 0.0),),
+            None,
+            "needs a UV index",
+        ),
+        (
+            (Vec3(0.0, 0.0, 0.0),),
+            (((0, None, 0), (0, None, 0), (0, None, 0)),),
+            None,
+            (),
+            "normal index 0",
+        ),
+    ],
+)
+def test_obj_from_arrays_rejects_invalid_mesh_data(
+    vertices: tuple[Vec3, ...],
+    faces: tuple[tuple[tuple[int, int | None, int | None], ...], ...],
+    uvs: tuple[Vec2, ...] | None,
+    normals: tuple[Vec3, ...] | None,
+    message: str,
+) -> None:
+    graph_module = _math_graph_module()
+
+    with pytest.raises(graph_module.GraphError, match=message):
+        graph_module.obj_from_arrays(
+            graph_module.VertexArray(vertices),
+            graph_module.FaceArray(faces),
+            graph_module.UVArray(uvs) if uvs is not None else None,
+            graph_module.NormalArray(normals) if normals is not None else None,
+        )
+
+
+def test_obj_from_arrays_reports_a_malformed_corner_as_a_graph_error() -> None:
+    graph_module = _math_graph_module()
+    vertices = graph_module.VertexArray((Vec3(0.0, 0.0, 0.0),))
+    faces = graph_module.FaceArray((((0, None), (0, None, None), (0, None, None)),))
+
+    with pytest.raises(graph_module.GraphError, match="corner 0 needs three indices"):
+        graph_module.obj_from_arrays(vertices, faces, None, None)
+
+
 def test_mesh_viewer_needs_vertices_and_faces() -> None:
     graph_module = _math_graph_module()
     graph = graph_module.MathGraph()
@@ -722,6 +783,21 @@ def test_mesh_viewer_leaves_unwired_optional_inputs_as_none() -> None:
     assert result.uvs is None
     assert result.normals is None
     assert result.colour is None
+
+
+def test_mesh_viewer_evaluation_rejects_invalid_topology() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    vertices = graph.add_literal(graph_module.VertexArray((Vec3(0.0, 0.0, 0.0),)))
+    faces = graph.add_literal(
+        graph_module.FaceArray((((0, None, None), (1, None, None), (0, None, None)),))
+    )
+    viewer = graph.add_mesh_viewer()
+    graph.connect(vertices, viewer, 0)
+    graph.connect(faces, viewer, 1)
+
+    with pytest.raises(graph_module.GraphError, match="vertex index 1"):
+        graph.evaluate_mesh_viewer(viewer)
 
 
 def test_literal_node_value_can_be_replaced() -> None:

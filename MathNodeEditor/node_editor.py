@@ -44,7 +44,7 @@ from palette import (
     NodeCreationMenu,
     NodePalette,
 )
-from PySide6.QtCore import QSettings, Qt
+from PySide6.QtCore import QSettings, Qt, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -158,7 +158,7 @@ class MathNodeWindow(QMainWindow):
         self.canvas.modifiedChanged.connect(lambda _modified: self._update_title())
         if load_example:
             self._load_startup_graph()
-            self.view.centerOn(0.0, 0.0)
+            QTimer.singleShot(0, self.view.frame_all)
         self._update_title()
 
     def _build_file_menu(self) -> None:
@@ -249,6 +249,7 @@ class MathNodeWindow(QMainWindow):
     def _open_path(self, path: Path) -> bool:
         """Load a graph file, reporting failure instead of raising. Return success."""
         snapshot = self.canvas.to_dict()
+        was_modified = self.canvas.modified
         try:
             self.canvas.load_from_file(path)
         except _LOAD_ERRORS as error:
@@ -259,6 +260,8 @@ class MathNodeWindow(QMainWindow):
             # clean (non-dirty) title bar, ready for Ctrl+S to overwrite the
             # good file on disk with it.
             self.canvas.from_dict(snapshot)
+            if was_modified:
+                self.canvas.mark_modified()
             QMessageBox.warning(self, "Open Graph", f"Could not open graph: {error}")
             return False
         self.current_file = path
@@ -291,7 +294,7 @@ class MathNodeWindow(QMainWindow):
             return False
         self.current_file = path
         self.settings.setValue("recentFile", str(path))
-        self.canvas.modified = False
+        self.canvas.mark_clean()
         self._update_title()
         return True
 

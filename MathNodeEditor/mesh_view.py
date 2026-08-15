@@ -41,6 +41,26 @@ class MeshRenderState:
 
     def set_mesh(self, mesh_inputs: MeshViewerInputs | None) -> None:
         """Replace the mesh data and mark every view's VAO as stale."""
+        previous_geometry = (
+            None
+            if self.mesh_inputs is None
+            else (
+                self.mesh_inputs.vertices,
+                self.mesh_inputs.faces,
+                self.mesh_inputs.uvs,
+                self.mesh_inputs.normals,
+            )
+        )
+        next_geometry = (
+            None
+            if mesh_inputs is None
+            else (
+                mesh_inputs.vertices,
+                mesh_inputs.faces,
+                mesh_inputs.uvs,
+                mesh_inputs.normals,
+            )
+        )
         self.mesh_inputs = mesh_inputs
         if mesh_inputs is not None and mesh_inputs.colour is not None:
             self.colour = (
@@ -51,17 +71,16 @@ class MeshRenderState:
             )
         else:
             self.colour = DEFAULT_COLOUR
-        self.version += 1
+        if next_geometry != previous_geometry:
+            self.version += 1
 
     def set_shading_mode(self, shading_mode: str) -> None:
-        """Change the shading mode and mark every view's next paint dirty."""
+        """Change the shading mode without invalidating mesh geometry."""
         self.shading_mode = shading_mode
-        self.version += 1
 
     def set_wireframe(self, wireframe: bool) -> None:
         """Toggle wireframe polygon mode."""
         self.wireframe = wireframe
-        self.version += 1
 
 
 class MeshRenderMixin:
@@ -92,14 +111,15 @@ class MeshRenderMixin:
         """Rebuild this view's own Obj/VAO if the shared mesh data changed."""
         if self._built_version == self.state.version:
             return
-        self._built_version = self.state.version
         self._obj = None
         inputs = self.state.mesh_inputs
         if inputs is None or not inputs.vertices.values or not inputs.faces.triangles:
+            self._built_version = self.state.version
             return
         obj = obj_from_arrays(inputs.vertices, inputs.faces, inputs.uvs, inputs.normals)
         obj.create_vao()
         self._obj = obj
+        self._built_version = self.state.version
 
     def _draw_mesh(self) -> None:
         """Render the current mesh with the node's shading/wireframe settings."""

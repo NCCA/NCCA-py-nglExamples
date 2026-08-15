@@ -568,6 +568,7 @@ def obj_from_arrays(
     normals: NormalArray | None,
 ) -> Obj:
     """Merge Obj Loader-style arrays back into a plain, VAO-less Obj mesh."""
+    validate_mesh_arrays(vertices, faces, uvs, normals)
     mesh = Obj()
     mesh.vertex = [Vec3(v.x, v.y, v.z) for v in vertices.values]
     mesh.normals = [Vec3(n.x, n.y, n.z) for n in normals.values] if normals else []
@@ -584,6 +585,66 @@ def obj_from_arrays(
         built_faces.append(face)
     mesh.faces = built_faces
     return mesh
+
+
+def _validate_mesh_index(
+    index: int | None,
+    count: int,
+    label: str,
+    face_index: int,
+    corner_index: int,
+) -> None:
+    """Check one optional per-corner index against its source array."""
+    location = f"Face {face_index} corner {corner_index}"
+    if index is None:
+        if count:
+            raise GraphError(f"{location} needs a {label} index")
+        return
+    if not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < count:
+        raise GraphError(
+            f"{location} has {label} index {index!r}, but only {count} values exist"
+        )
+
+
+def validate_mesh_arrays(
+    vertices: VertexArray,
+    faces: FaceArray,
+    uvs: UVArray | None,
+    normals: NormalArray | None,
+) -> None:
+    """Validate mesh topology before it reaches an OpenGL allocation."""
+    vertex_count = len(vertices.values)
+    if not vertex_count:
+        raise GraphError("Mesh Viewer needs at least one vertex")
+    if not faces.triangles:
+        raise GraphError("Mesh Viewer needs at least one triangle")
+
+    uv_count = len(uvs.values) if uvs is not None else 0
+    normal_count = len(normals.values) if normals is not None else 0
+    for face_index, triangle in enumerate(faces.triangles):
+        if len(triangle) != 3:
+            raise GraphError(f"Face {face_index} needs exactly three corners")
+        for corner_index, corner in enumerate(triangle):
+            if len(corner) != 3:
+                raise GraphError(
+                    f"Face {face_index} corner {corner_index} needs three indices"
+                )
+            vertex_index, uv_index, normal_index = corner
+            if (
+                not isinstance(vertex_index, int)
+                or isinstance(vertex_index, bool)
+                or not 0 <= vertex_index < vertex_count
+            ):
+                raise GraphError(
+                    f"Face {face_index} corner {corner_index} has vertex index "
+                    f"{vertex_index!r}, but only {vertex_count} vertices exist"
+                )
+            if uvs is not None:
+                _validate_mesh_index(uv_index, uv_count, "UV", face_index, corner_index)
+            if normals is not None:
+                _validate_mesh_index(
+                    normal_index, normal_count, "normal", face_index, corner_index
+                )
 
 
 @dataclass(slots=True)
@@ -726,6 +787,20 @@ class MathGraph:
         _validate_components(node.math_type, components)
         node.components = tuple(components)
 
+    def value_components(self, node_id: str) -> tuple[float, ...]:
+        """Return the exact components stored by a value node."""
+        node = self._nodes[node_id]
+        if not isinstance(node, ValueNode):
+            raise ValueError("Only value nodes store editable components")
+        return node.components
+
+    def generator_parameters(self, node_id: str) -> tuple[tuple[float, ...], ...]:
+        """Return an immutable snapshot of a generator node's parameters."""
+        node = self._nodes[node_id]
+        if not isinstance(node, GeneratorNode):
+            raise ValueError("Only generator nodes store editable parameters")
+        return tuple(node.parameters)
+
     def add_output(self) -> str:
         """Add an output node to the graph."""
         return self._add_node(OutputNode())
@@ -800,6 +875,7 @@ class MathGraph:
         if colour is not None and not isinstance(colour, Vec4):
             raise GraphError("Mesh Viewer Colour needs a Vec4 input")
 
+        validate_mesh_arrays(vertices, faces, uvs, normals)
         return MeshViewerInputs(vertices, faces, uvs, normals, colour)
 
     def _evaluate(self, node_id: str, active_nodes: set[str]) -> MathValue:
