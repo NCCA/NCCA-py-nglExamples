@@ -1,35 +1,37 @@
-# BvhViewer (PyNGL)
+# BVHViewer
 
-A PyNGL / PySide6 port of the C++ NGL [BvhViewer](../) in this repo, which plays
-back `.bvh` motion-capture files as a skeleton of spheres and cylinders. Same
-sample files, same camera, same controls.
+This is a PyNGL / PySide6 port of the C++ NGL BVH viewer. It plays `.bvh`
+motion-capture files as a skeleton of spheres and cylinders, with a GUI much
+closer to the animation tools I normally use in Maya or Houdini.
 
-To run it:
+Run it from the root of the demos repository:
 
 ```bash
-cd pyngl
-uv run main.py
+uv run BVHViewer/main.py
 ```
 
-By default it loads `../bvh/Male1_B10_WalkTurnLeft45.bvh`; pass `--bvh path/to/file.bvh`
-for any of the others in [`../bvh`](../bvh).
+The File menu loads another BVH clip. You can also select the initial file from
+the command line:
 
-Left mouse rotates, right mouse pans, wheel zooms.
+```bash
+uv run BVHViewer/main.py --bvh BVHViewer/bvh/test.bvh
+```
+
+The bottom panel shows the current frame, clip range and frame rate. Drag the
+orange timeline handle to scrub, type a frame into the frame field, or use the
+transport buttons to jump, step and play. Manual frame changes pause playback.
 
 | Key | Does |
 | --- | --- |
-| R | replay from frame 0 |
-| P | pause / continue |
-| ← / → | step one frame back / forward (works while paused) |
-| Space | clear the character from the scene |
+| Space | play / pause |
+| Home / End | first / last frame |
+| ← / → | previous / next frame |
 | T | toggle trace mode (stop clearing the framebuffer, for a motion-trail look) |
 | W / S | wireframe / filled |
 | F | fullscreen |
-| Esc | quit |
 
-The window title also shows the filename, frame number and play state. The
-on-screen controls use the Arial font shipped in this repository, in the same
-way as the other PyNGL demos.
+Left mouse rotates, right mouse pans and the wheel zooms. The status bar shows
+the loaded filename, current frame and play state.
 
 ## How it works
 
@@ -38,8 +40,11 @@ way as the other PyNGL demos.
   headlessly testable.
 - `bvh_scene.py` -- the drawing: walks the joint tree each frame, building a
   sphere at every joint and a cylinder for every bone.
-- `main.py` -- the window, camera and playback timer.
-- `tests/test_bvh.py` -- pytest, run with `uv run pytest tests/`.
+- `timeline.py` -- the scrubber, frame field and transport controls.
+- `main.py` -- the application window, file menu, playback timer and OpenGL
+  viewport.
+- `tests/` -- pytest, run with `uv run pytest BVHViewer/tests` from the root of
+  the repository.
 
 ## Differences from the C++
 

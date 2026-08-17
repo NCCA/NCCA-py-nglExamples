@@ -8,7 +8,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import main as bvh_viewer  # noqa: E402
 
 
-def test_hud_uses_the_font_shipped_with_the_demos():
-    expected = Path(__file__).parents[2] / "font" / "Arial.ttf"
-    assert bvh_viewer.HUD_FONT == expected
-    assert bvh_viewer.HUD_FONT.is_file()
+def test_default_clip_is_shipped_with_the_viewer() -> None:
+    assert bvh_viewer.DEFAULT_BVH.parent == Path(__file__).parent.parent / "bvh"
+    assert bvh_viewer.DEFAULT_BVH.is_file()

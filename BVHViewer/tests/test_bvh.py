@@ -175,6 +175,20 @@ def test_advance_loops_back_to_zero_after_the_last_frame():
     assert bvh.current_frame == 0
 
 
+@pytest.mark.parametrize(
+    ("requested_frame", "expected_frame"),
+    [(-10, 0), (0, 0), (1, 1), (200, 1)],
+)
+def test_seek_clamps_the_requested_frame_to_the_clip_range(
+    requested_frame: int, expected_frame: int
+) -> None:
+    bvh = Bvh.from_text(_MINIMAL)
+
+    bvh.seek(requested_frame)
+
+    assert bvh.current_frame == expected_frame
+
+
 # --------------------------------------------------------- rotation_from_y
 
 

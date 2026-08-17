@@ -43,6 +43,10 @@ class BvhScene:
         """Add a character to the scene."""
         self.characters.append(character)
 
+    def set_character(self, character: Bvh) -> None:
+        """Replace the scene contents with one character."""
+        self.characters = [character]
+
     def clear_characters(self) -> None:
         """Remove every character from the scene."""
         self.characters.clear()
@@ -62,6 +66,17 @@ class BvhScene:
         for character in self.characters:
             character.step_backward()
 
+    def seek(self, frame: int) -> None:
+        """Move every character to a frame in its own clip range.
+
+        Parameters
+        ----------
+            frame : int
+                requested timeline frame
+        """
+        for character in self.characters:
+            character.seek(frame)
+
     def toggle_pause(self) -> None:
         """Toggle whether `advance()` moves the animation on."""
         self.paused = not self.paused
@@ -78,6 +93,12 @@ class BvhScene:
         if not self.characters:
             return 0
         return self.characters[0].current_frame
+
+    def frame_count(self) -> int:
+        """The first character's frame count, or zero for an empty scene."""
+        if not self.characters:
+            return 0
+        return self.characters[0].num_frames
 
     # -------------------------------------------------------------- setup
     def initialize_gl(self) -> None:

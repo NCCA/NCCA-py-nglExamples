@@ -240,6 +240,16 @@ class Bvh:
         """Jump back to the first frame."""
         self.current_frame = 0
 
+    def seek(self, frame: int) -> None:
+        """Move to a frame, clamping requests outside the clip range.
+
+        Parameters
+        ----------
+            frame : int
+                frame number requested by the timeline
+        """
+        self.current_frame = max(0, min(int(frame), self.num_frames - 1))
+
     def step_forward(self) -> None:
         """Move one frame forward, stopping at the last frame."""
         if self.current_frame < self.num_frames - 1:

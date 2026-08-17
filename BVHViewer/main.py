@@ -1,22 +1,7 @@
 #!/usr/bin/env -S uv run --script
-"""BvhViewer: play back a .bvh motion-capture file (PyNGL / PySide6).
+"""A PyNGL BVH viewer with a desktop animation timeline."""
 
-A port of the C++ NGL BvhViewer demo -- see ../README.md for what changed
-and why. Loads one skeleton and plays its animation on a loop.
-
-Controls:
-    left mouse    rotate
-    right mouse   pan
-    wheel         zoom
-    R             replay from frame 0
-    P             pause / continue
-    Left / Right  step backward / forward one frame (works while paused)
-    Space         clear the character from the scene
-    T             toggle trace mode (stop clearing the framebuffer, for a motion-trail look)
-    W / S         wireframe / filled
-    F             fullscreen
-    Escape        quit
-"""
+from __future__ import annotations
 
 import argparse
 import sys
@@ -24,24 +9,75 @@ import traceback
 from pathlib import Path
 
 import OpenGL.GL as gl
-from bvh import Bvh
+from bvh import Bvh, BvhParseError
 from bvh_scene import BvhScene
 from ncca.ngl import Mat4, Vec3, logger, look_at, perspective
-from ncca.ngl.opengl import PySideEventHandlingMixin, Text
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QSurfaceFormat
+from ncca.ngl.opengl import PySideEventHandlingMixin
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer
+from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QMainWindow,
+    QMessageBox,
+    QVBoxLayout,
+    QWidget,
+)
+from timeline import TimelineWidget
 
 DEMO_DIR = Path(__file__).resolve().parent
 DEFAULT_BVH = DEMO_DIR / "bvh" / "Male1_B10_WalkTurnLeft45.bvh"
-HUD_FONT = DEMO_DIR.parent / "font" / "Arial.ttf"
+
+_APP_STYLE = """
+QMainWindow, QWidget {
+    background: #34373b;
+    color: #dedede;
+}
+QMenuBar, QMenu, QStatusBar {
+    background: #292c30;
+    color: #dedede;
+}
+QMenuBar::item:selected, QMenu::item:selected {
+    background: #4c5964;
+}
+#timelinePanel {
+    background: #292c30;
+    border-top: 1px solid #17191b;
+}
+QPushButton {
+    background: #41454a;
+    border: 1px solid #1e2023;
+    border-radius: 2px;
+}
+QPushButton:hover { background: #51565c; }
+QPushButton:pressed, QPushButton:checked { background: #697985; }
+QSpinBox {
+    background: #202225;
+    border: 1px solid #53585e;
+    padding: 2px 5px;
+    selection-background-color: #d48a35;
+}
+QSlider::groove:horizontal {
+    height: 5px;
+    background: #17191b;
+    border-radius: 2px;
+}
+QSlider::sub-page:horizontal { background: #cf7b2a; }
+QSlider::handle:horizontal {
+    width: 11px;
+    margin: -5px 0;
+    background: #e6a14e;
+    border: 1px solid #111;
+    border-radius: 2px;
+}
+"""
 
 
-class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
-    """The BvhViewer window: camera, playback controls and the scene."""
+class BvhViewport(PySideEventHandlingMixin, QOpenGLWindow):
+    """The OpenGL viewport used by the main application window."""
 
-    def __init__(self, bvh_path: Path = DEFAULT_BVH, parent: object = None) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self.setup_event_handling(
             rotation_sensitivity=0.5,
@@ -49,35 +85,25 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             zoom_sensitivity=0.1,
             initial_position=Vec3(0, 0, 0),
         )
-        self._bvh_path = bvh_path
-        self.view: Mat4 = Mat4()
-        self.project: Mat4 = Mat4()
-        self.window_width: int = 1024
-        self.window_height: int = 720
-        self.scene: BvhScene = BvhScene()
-        self._trace: bool = False
-        self.setTitle("BvhViewer (PyNGL)")
+        self.view = Mat4()
+        self.project = Mat4()
+        self.window_width = 1024
+        self.window_height = 640
+        self.scene = BvhScene()
+        self.trace = False
 
     def initializeGL(self) -> None:
         self.makeCurrent()
-        gl.glClearColor(0.4, 0.4, 0.4, 1.0)
+        gl.glClearColor(0.18, 0.19, 0.20, 1.0)
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_MULTISAMPLE)
         self.view = look_at(Vec3(0, 25, 100), Vec3(0, 0, 0), Vec3(0, 1, 0))
-
         self.scene.initialize_gl()
-        character = Bvh(self._bvh_path)
-        self.scene.add_character(character)
-
-        Text.add_font("Arial", str(HUD_FONT), 14)
-
-        self.startTimer(max(1, int(character.frame_time * 1000)))
-        self._update_title()
 
     def paintGL(self) -> None:
         self.makeCurrent()
         gl.glViewport(0, 0, self.window_width, self.window_height)
-        if not self._trace:
+        if not self.trace:
             gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
         rot_x = Mat4().rotate_x(self.spin_x_face)
@@ -86,73 +112,267 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         mouse_global_tx[3, 0] = self.model_position.x
         mouse_global_tx[3, 1] = self.model_position.y
         mouse_global_tx[3, 2] = self.model_position.z
-
         self.scene.draw(self.view, self.project, mouse_global_tx)
-        self._draw_hud()
 
-    def _draw_hud(self) -> None:
-        Text.render_text("Arial", 10, 20, f"characters: {len(self.scene.characters)}")
-        Text.render_text(
-            "Arial",
-            10,
-            40,
-            f"frame: {self.scene.current_frame_number()} {'(paused)' if self.scene.paused else ''}",
+    def resizeGL(self, width: int, height: int) -> None:
+        self.window_width = int(width * self.devicePixelRatio())
+        self.window_height = int(height * self.devicePixelRatio())
+        self.project = perspective(45.0, float(width) / max(height, 1), 0.05, 1500.0)
+
+
+class MainWindow(QMainWindow):
+    """The BVH viewport, menus and animation transport in one application."""
+
+    def __init__(self, bvh_path: Path = DEFAULT_BVH) -> None:
+        super().__init__()
+        self._bvh_path: Path | None = None
+        self.setWindowTitle("BVHViewer")
+        self.setMinimumSize(720, 480)
+        self.resize(1100, 760)
+        self.setStyleSheet(_APP_STYLE)
+
+        self.viewport = BvhViewport()
+        viewport_container = QWidget.createWindowContainer(self.viewport, self)
+        viewport_container.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        viewport_container.setFocus()
+
+        self.timeline = TimelineWidget(self)
+        central = QWidget(self)
+        layout = QVBoxLayout(central)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(viewport_container, 1)
+        layout.addWidget(self.timeline)
+        self.setCentralWidget(central)
+
+        self._playback_timer = QTimer(self)
+        self._playback_timer.timeout.connect(self._advance)
+
+        self._create_actions()
+        self._create_menus()
+        self._connect_timeline()
+        self.statusBar().showMessage("No BVH file loaded")
+        self.load_bvh(bvh_path, show_error=False)
+
+    def _create_actions(self) -> None:
+        self.open_action = QAction("&Open BVH...", self)
+        self.open_action.setShortcut(QKeySequence.StandardKey.Open)
+        self.open_action.setStatusTip("Load a BVH motion-capture file")
+        self.open_action.triggered.connect(self.open_bvh_dialog)
+
+        self.quit_action = QAction("&Quit", self)
+        self.quit_action.setShortcut(QKeySequence.StandardKey.Quit)
+        self.quit_action.triggered.connect(self.close)
+
+        self.play_action = QAction("Play / Pause", self)
+        self.play_action.setShortcut(QKeySequence(Qt.Key.Key_Space))
+        self.play_action.triggered.connect(self.toggle_playback)
+
+        self.first_action = QAction("First Frame", self)
+        self.first_action.setShortcut(QKeySequence(Qt.Key.Key_Home))
+        self.first_action.triggered.connect(self.go_to_first_frame)
+
+        self.previous_action = QAction("Previous Frame", self)
+        self.previous_action.setShortcut(QKeySequence(Qt.Key.Key_Left))
+        self.previous_action.triggered.connect(self.step_backward)
+
+        self.next_action = QAction("Next Frame", self)
+        self.next_action.setShortcut(QKeySequence(Qt.Key.Key_Right))
+        self.next_action.triggered.connect(self.step_forward)
+
+        self.last_action = QAction("Last Frame", self)
+        self.last_action.setShortcut(QKeySequence(Qt.Key.Key_End))
+        self.last_action.triggered.connect(self.go_to_last_frame)
+
+        self.trace_action = QAction("Trace Motion", self)
+        self.trace_action.setCheckable(True)
+        self.trace_action.setShortcut(QKeySequence(Qt.Key.Key_T))
+        self.trace_action.toggled.connect(self._set_trace)
+
+        self.fullscreen_action = QAction("Full Screen", self)
+        self.fullscreen_action.setCheckable(True)
+        self.fullscreen_action.setShortcut(QKeySequence(Qt.Key.Key_F))
+        self.fullscreen_action.toggled.connect(self._set_fullscreen)
+
+    def _create_menus(self) -> None:
+        self.menuBar().setNativeMenuBar(False)
+        self.file_menu = self.menuBar().addMenu("&File")
+        self.file_menu.addAction(self.open_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.quit_action)
+
+        playback_menu = self.menuBar().addMenu("&Playback")
+        playback_menu.addAction(self.play_action)
+        playback_menu.addSeparator()
+        playback_menu.addActions(
+            [
+                self.first_action,
+                self.previous_action,
+                self.next_action,
+                self.last_action,
+            ]
         )
-        Text.render_text(
-            "Arial",
-            10,
-            60,
-            "r replay | p pause | arrows step | space clear | t trace | w/s wire/fill",
+
+        view_menu = self.menuBar().addMenu("&View")
+        view_menu.addAction(self.trace_action)
+        view_menu.addAction(self.fullscreen_action)
+
+    def _connect_timeline(self) -> None:
+        self.timeline.frame_requested.connect(self.seek_frame)
+        self.timeline.first_requested.connect(self.go_to_first_frame)
+        self.timeline.previous_requested.connect(self.step_backward)
+        self.timeline.play_toggled.connect(self.toggle_playback)
+        self.timeline.next_requested.connect(self.step_forward)
+        self.timeline.last_requested.connect(self.go_to_last_frame)
+
+    def current_path(self) -> Path | None:
+        """Return the loaded BVH path."""
+        return self._bvh_path
+
+    def open_bvh_dialog(self) -> None:
+        """Ask for a BVH file and load it into the viewport."""
+        directory = self._bvh_path.parent if self._bvh_path else DEMO_DIR / "bvh"
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open BVH File",
+            str(directory),
+            "BVH motion capture (*.bvh);;All files (*)",
+        )
+        if filename:
+            self.load_bvh(Path(filename))
+
+    def load_bvh(self, path: str | Path, show_error: bool = True) -> bool:
+        """Load a BVH file and configure the timeline for its clip.
+
+        Parameters
+        ----------
+            path : str or Path
+                BVH file to load
+            show_error : bool
+                show a dialog if the file cannot be loaded
+
+        Returns
+        -------
+            bool
+                true when the new file was loaded
+        """
+        resolved = Path(path).expanduser().resolve()
+        try:
+            character = Bvh(resolved)
+        except (OSError, ValueError, BvhParseError) as error:
+            if show_error:
+                QMessageBox.critical(
+                    self,
+                    "Unable to open BVH file",
+                    f"Could not load {resolved.name}.\n\n{error}",
+                )
+            return False
+
+        self.viewport.scene.set_character(character)
+        self._bvh_path = resolved
+        self._playback_timer.setInterval(max(1, round(character.frame_time * 1000)))
+        self.timeline.set_clip(character.num_frames, character.frame_time)
+        self.set_playing(True)
+        self.setWindowTitle(f"BVHViewer — {resolved.name}")
+        self._sync_frame_display()
+        self.viewport.update()
+        return True
+
+    def set_playing(self, playing: bool) -> None:
+        """Start or stop clip playback.
+
+        Parameters
+        ----------
+            playing : bool
+                true to run the playback timer
+        """
+        if not self.viewport.scene.characters:
+            playing = False
+        self.viewport.scene.paused = not playing
+        if playing:
+            self._playback_timer.start()
+        else:
+            self._playback_timer.stop()
+        self.timeline.set_playing(playing)
+
+    def toggle_playback(self) -> None:
+        """Toggle between playing and paused."""
+        self.set_playing(self.viewport.scene.paused)
+        self._sync_frame_display()
+
+    def seek_frame(self, frame: int) -> None:
+        """Pause and display the requested timeline frame.
+
+        Parameters
+        ----------
+            frame : int
+                frame requested by the scrubber
+        """
+        self.set_playing(False)
+        self.viewport.scene.seek(frame)
+        self._sync_frame_display()
+        self.viewport.update()
+
+    def go_to_first_frame(self) -> None:
+        """Pause and jump to the start of the clip."""
+        self.seek_frame(0)
+
+    def go_to_last_frame(self) -> None:
+        """Pause and jump to the end of the clip."""
+        self.seek_frame(max(0, self.viewport.scene.frame_count() - 1))
+
+    def step_forward(self) -> None:
+        """Pause and move forward by one frame."""
+        self.set_playing(False)
+        self.viewport.scene.step_forward()
+        self._sync_frame_display()
+        self.viewport.update()
+
+    def step_backward(self) -> None:
+        """Pause and move backwards by one frame."""
+        self.set_playing(False)
+        self.viewport.scene.step_backward()
+        self._sync_frame_display()
+        self.viewport.update()
+
+    def _advance(self) -> None:
+        self.viewport.scene.advance()
+        self._sync_frame_display()
+        self.viewport.update()
+
+    def _sync_frame_display(self) -> None:
+        frame = self.viewport.scene.current_frame_number()
+        last_frame = max(0, self.viewport.scene.frame_count() - 1)
+        self.timeline.set_frame(frame)
+        filename = self._bvh_path.name if self._bvh_path else "No clip"
+        state = "Playing" if not self.viewport.scene.paused else "Paused"
+        self.statusBar().showMessage(
+            f"{filename}    Frame {frame} / {last_frame}    {state}"
         )
 
-    def resizeGL(self, w: int, h: int) -> None:
-        self.window_width = int(w * self.devicePixelRatio())
-        self.window_height = int(h * self.devicePixelRatio())
-        self.project = perspective(45.0, float(w) / max(h, 1), 0.05, 1500.0)
-        Text.set_screen_size(w, h)
+    def _set_trace(self, enabled: bool) -> None:
+        self.viewport.trace = enabled
+        self.viewport.update()
 
-    def timerEvent(self, event) -> None:
-        self.scene.advance()
-        self._update_title()
-        self.update()
-
-    def _update_title(self) -> None:
-        state = "paused" if self.scene.paused else "playing"
-        self.setTitle(
-            f"BvhViewer (PyNGL) - {self._bvh_path.name} - frame {self.scene.current_frame_number()} - {state}"
-        )
-
-    def keyPressEvent(self, event) -> None:
-        key = event.key()
-        if key == Qt.Key_R:
-            self.scene.replay()
-        elif key == Qt.Key_P:
-            self.scene.toggle_pause()
-        elif key == Qt.Key_Right:
-            self.scene.step_forward()
-        elif key == Qt.Key_Left:
-            self.scene.step_backward()
-        elif key == Qt.Key_Space:
-            self.scene.clear_characters()
-        elif key == Qt.Key_T:
-            self._trace = not self._trace
-        elif key == Qt.Key_F:
+    def _set_fullscreen(self, enabled: bool) -> None:
+        if enabled:
             self.showFullScreen()
         else:
-            super().keyPressEvent(event)
-            return
-        self._update_title()
-        self.update()
+            self.showNormal()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self._playback_timer.stop()
+        super().closeEvent(event)
 
 
 class DebugApplication(QApplication):
     """QApplication that re-raises exceptions swallowed by the Qt event loop."""
 
-    def __init__(self, argv):
+    def __init__(self, argv: list[str]) -> None:
         super().__init__(argv)
         logger.info("Running in full debug mode")
 
-    def notify(self, receiver, event):
+    def notify(self, receiver: QObject, event: QEvent) -> bool:
         try:
             return super().notify(receiver, event)
         except Exception:
@@ -160,7 +380,17 @@ class DebugApplication(QApplication):
             raise
 
 
-if __name__ == "__main__":
+def _configure_surface_format() -> None:
+    surface_format = QSurfaceFormat()
+    surface_format.setSamples(4)
+    surface_format.setMajorVersion(4)
+    surface_format.setMinorVersion(1)
+    surface_format.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
+    surface_format.setDepthBufferSize(24)
+    QSurfaceFormat.setDefaultFormat(surface_format)
+
+
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--bvh",
@@ -182,26 +412,41 @@ if __name__ == "__main__":
         action="store_true",
         help="run with DebugApplication (tracebacks from Qt event handlers)",
     )
-    args = parser.parse_args()
+    return parser.parse_args(argv)
 
-    format: QSurfaceFormat = QSurfaceFormat()
-    format.setSamples(4)
-    format.setMajorVersion(4)
-    format.setMinorVersion(1)
-    format.setProfile(QSurfaceFormat.CoreProfile)
-    format.setDepthBufferSize(24)
-    QSurfaceFormat.setDefaultFormat(format)
 
-    if args.debug:
-        app = DebugApplication(sys.argv)
-    else:
-        app = QApplication(sys.argv)
+def main(argv: list[str] | None = None) -> int:
+    """Create and run the BVH viewer application.
+
+    Parameters
+    ----------
+        argv : list[str] or None
+            command-line arguments without the executable name
+
+    Returns
+    -------
+        int
+            Qt application exit status
+    """
+    args = _parse_args(argv)
+    _configure_surface_format()
+    app_type = DebugApplication if args.debug else QApplication
+    app = app_type(sys.argv if argv is None else [sys.argv[0], *argv])
+    app.setApplicationName("BVHViewer")
 
     window = MainWindow(args.bvh)
-    window.resize(1024, 720)
     window.show()
 
     if args.smoketest is not None:
-        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
 
-    sys.exit(app.exec())
+        def finish_smoketest() -> None:
+            print("SMOKETEST OK")
+            app.quit()
+
+        QTimer.singleShot(args.smoketest, finish_smoketest)
+
+    return app.exec()
+
+
+if __name__ == "__main__":
+    sys.exit(main())
