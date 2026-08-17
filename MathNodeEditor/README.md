@@ -24,8 +24,7 @@ Select a node or wire and press `Delete`/`Backspace` to remove it, or right-clic
 
 There are fourteen saved graphs covering basic vector arithmetic, `Vec2 @ Mat2`, homogeneous coordinates, triangle normals, Lambert diffuse, transform order, normal matrices, camera projections, quaternions and mesh transforms. The [examples catalogue](examples/README.md) explains what each graph demonstrates and suggests a value to change.
 
-Open any of them with `File` → `Open...`. `examples/vec3_multiply_demo.json` remains the starting graph when there is no previously opened file.
-
+Open any of them with `File` -> `Open...`. 
 ## Running it
 
 ```bash
