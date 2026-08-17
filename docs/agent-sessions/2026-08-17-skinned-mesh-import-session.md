@@ -107,3 +107,56 @@ Visual verification: ran the demo live and screenshotted it at multiple
 points across the full 140-frame animation (0, 45, 56, 84, 106, 139) to
 confirm the pose stays coherent throughout, not just at the frame or two
 a quick smoke test would happen to catch.
+
+## Follow-up: File > Open, tested against other meshes
+
+Jon asked for a File > Open dialog so other rigged meshes could be tried,
+not just the bundled guard model. Added `SkinViewport.load_model()` (tears
+down the old VAO/textures, loads the new `SkinnedMesh`, rebuilds) and a
+File menu (`Cmd/Ctrl+O`) in `main.py`. Testing it against the other
+rigged assets sitting in `NGL9Demos/AssetImportDemos/Models/` (bobWalk.dae,
+horse-3ds.3ds, JaiquaFromXSI.dae, TurbochiFromXSI.dae) surfaced four more
+real bugs, all fixed:
+
+- **`impasse.errors.AssimpError` subclasses `BaseException`, not
+  `Exception`.** The dialog's `except Exception` silently failed to catch
+  a genuinely-broken file (`bobWalk.dae` — assimp itself can't import it,
+  unrelated to this demo) and crashed instead of showing the intended
+  error dialog. Needed `except (Exception, AssimpError)` explicitly.
+- **A mesh with a missing texture file crashed instead of loading.**
+  `JaiquaFromXSI.dae` references `jaiqua_red21a_fix.jpg`, which was never
+  shipped alongside it in NGL9Demos. `ncca.ngl.opengl.Texture`/`Image`
+  raises `AttributeError: 'Image' object has no attribute '_width'` for a
+  missing file rather than something catchable/clean. `_load_textures`
+  now catches any texture-load failure per-submesh and substitutes a 1x1
+  white fallback texture, logging a warning, rather than losing the whole
+  mesh load.
+- **Camera framing was hardcoded to MD5's Z-up convention.** Loading
+  `JaiquaFromXSI.dae` (Y-up, like most non-MD5 formats) rendered sideways.
+  Tried a "tallest bbox axis = up" heuristic first — it's wrong: the
+  guard model's own arm-out lamp pose makes X (85 units, arm span) taller
+  than Z (67, actual height), so bbox shape isn't a reliable signal.
+  Switched to keying off the file extension instead: Z-up only for
+  `.md5mesh` specifically (a fixed, known property of that format),
+  Y-up for everything else.
+- **`impasse.helper.get_bounding_box` computes a *static* scene-graph
+  bbox, not the actually-rendered (bone-skinned) one.** For MD5 the mesh
+  node and skeleton root happen to be coincident so this went unnoticed;
+  for the XSI-exported DAE they're not, and the static bbox put the
+  camera looking at empty space (right up-axis, wrong position/distance
+  entirely — only legs on screen, badly cropped). Replaced with
+  `SkinnedMesh.skinned_positions()`/`bounding_box()`, which runs the same
+  LBS blend as the vertex shader in numpy and takes min/max over the
+  actual result.
+
+Also, while re-screenshotting for the README with a working "other mesh"
+to compare against: the guard model's own textures turned out to be
+V-flipped the whole time (muddy/wrong-looking but not obviously upside
+down, since the mesh shape and skinning were already correct — easy to
+miss). `ncca.ngl.opengl.Texture` uploads pixels top-row-first without
+flipping for OpenGL's bottom-left origin; `mesh.py` now flips V itself
+(`1.0 - v`) when building the UV buffer.
+
+Commands re-run after all of the above: `pytest` (8 passed), `ruff check`
+and `ruff format --check` (clean), plus live visual checks of both the
+guard model and `JaiquaFromXSI.dae` loaded via the new Open dialog.

@@ -16,9 +16,10 @@ import traceback
 from pathlib import Path
 
 import OpenGL.GL as gl
+from impasse.errors import AssimpError
 from mesh import MAX_BONES_PER_VERTEX, SkinnedMesh
 from MultiBufferIndexVAO import MultiBufferIndexVAO
-from ncca.ngl import Mat4, Vec3, Vec4, look_at, perspective
+from ncca.ngl import Mat4, Vec3, Vec4, logger, look_at, perspective
 from ncca.ngl.opengl import (
     PySideEventHandlingMixin,
     ShaderLib,
@@ -27,9 +28,16 @@ from ncca.ngl.opengl import (
     VertexData,
 )
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QSurfaceFormat
+from PySide6.QtGui import QAction, QKeySequence, QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QMainWindow,
+    QMessageBox,
+    QVBoxLayout,
+    QWidget,
+)
 from timeline import TimelineWidget
 
 DEMO_DIR = Path(__file__).resolve().parent
@@ -37,6 +45,13 @@ DEFAULT_MODEL = DEMO_DIR / "models" / "guard" / "boblampclean.md5mesh"
 
 SKIN_SHADER = "Skin"
 VAO_NAME = "SkinnedMeshVAO"
+# Matches shaders/SkinVertex.glsl's `const int MAX_BONES`. A mesh with more
+# bones than this still loads and draws -- the extra bones are just left
+# unanimated, since there's no gBones[] uniform slot to put them in.
+MAX_BONES = 128
+MESH_FILE_FILTER = (
+    "Rigged meshes (*.md5mesh *.dae *.fbx *.gltf *.glb *.x *.bvh *.obj);;All files (*)"
+)
 
 _APP_STYLE = """
 QMainWindow, QWidget { background: #34373b; color: #dedede; }
@@ -69,6 +84,7 @@ class SkinViewport(PySideEventHandlingMixin, QOpenGLWindow):
         self.current_frame = 0
         self.bone_transforms: list[Mat4] = []
         self._texture_ids: dict[str, int] = {}
+        self._fallback_texture_id: int | None = None
 
     # ------------------------------------------------------------- OpenGL
 
@@ -134,22 +150,90 @@ class SkinViewport(PySideEventHandlingMixin, QOpenGLWindow):
             path = submesh.texture_path
             if path is None or path in self._texture_ids:
                 continue
-            texture = Texture(path)
-            self._texture_ids[path] = texture.set_texture_gl()
+            try:
+                texture_id = Texture(path).set_texture_gl()
+                if texture_id == 0:
+                    raise RuntimeError("empty image")
+            except Exception as error:
+                # Test assets pulled in from elsewhere sometimes reference a
+                # texture that was never shipped alongside them -- keep the
+                # mesh visible (flat white) rather than losing the whole load.
+                logger.warning(
+                    f"Could not load texture {path!r} ({error}); using a flat fallback"
+                )
+                texture_id = self._fallback_texture()
+            self._texture_ids[path] = texture_id
+
+    def _fallback_texture(self) -> int:
+        if self._fallback_texture_id is None:
+            self._fallback_texture_id = gl.glGenTextures(1)
+            gl.glBindTexture(gl.GL_TEXTURE_2D, self._fallback_texture_id)
+            gl.glTexImage2D(
+                gl.GL_TEXTURE_2D,
+                0,
+                gl.GL_RGB,
+                1,
+                1,
+                0,
+                gl.GL_RGB,
+                gl.GL_UNSIGNED_BYTE,
+                bytes([255, 255, 255]),
+            )
+        return self._fallback_texture_id
+
+    def load_model(self, model_path: Path) -> None:
+        """Replace the current mesh with the one at ``model_path``.
+
+        Raises whatever ``SkinnedMesh`` raises (bad file, no animation
+        track, ...) without touching the currently-loaded mesh -- the
+        caller is expected to catch that and report it.
+        """
+        new_mesh = SkinnedMesh(str(model_path))
+        if len(new_mesh.bone_names) > MAX_BONES:
+            logger.warning(
+                f"{model_path.name} has {len(new_mesh.bone_names)} bones, "
+                f"more than the shader's MAX_BONES ({MAX_BONES}) -- the "
+                "extras will be unanimated"
+            )
+
+        self.makeCurrent()
+        if hasattr(self, "vao"):
+            self.vao.remove_vao()
+        if self._texture_ids:
+            gl.glDeleteTextures(list(set(self._texture_ids.values())))
+        self._texture_ids = {}
+        self._fallback_texture_id = None
+
+        self.model_path = model_path
+        self.mesh = new_mesh
+        self._build_vao()
+        self._load_textures()
+        self._frame_camera()
+        self.set_frame(0)
 
     def _frame_camera(self) -> None:
-        # This model's animation data is Z-up (MD5/idTech convention), so
-        # frame it front-on along -Y with Z as up, rather than NGL's usual
-        # Y-up camera setup.
         bbox_min, bbox_max = self.mesh.bounding_box()
         centre = Vec3(
             (bbox_min[0] + bbox_max[0]) * 0.5,
             (bbox_min[1] + bbox_max[1]) * 0.5,
             (bbox_min[2] + bbox_max[2]) * 0.5,
         )
-        height = bbox_max[2] - bbox_min[2]
-        eye = Vec3(centre.x, bbox_min[1] - height * 1.5, centre.z)
-        self.view = look_at(eye, centre, Vec3(0.0, 0.0, 1.0))
+        # MD5 (idTech) is always Z-up; every other format this demo can
+        # load ends up Y-up in its post-import world space. There's no
+        # reliable way to tell up from bounding-box shape alone -- a
+        # character posed with an arm held out (like this demo's own
+        # guard model) can be wider than it is tall -- so this keys off
+        # the one format whose up axis is a fixed, known property rather
+        # than guessing per-asset.
+        if self.model_path.suffix.lower() == ".md5mesh":
+            height = bbox_max[2] - bbox_min[2]
+            eye = Vec3(centre.x, bbox_min[1] - height * 1.5, centre.z)
+            up = Vec3(0.0, 0.0, 1.0)
+        else:
+            height = bbox_max[1] - bbox_min[1]
+            eye = Vec3(centre.x, centre.y, bbox_max[2] + height * 1.5)
+            up = Vec3(0.0, 1.0, 0.0)
+        self.view = look_at(eye, centre, up)
         self.eye = eye
 
     def set_frame(self, frame: int) -> None:
@@ -199,7 +283,7 @@ class SkinViewport(PySideEventHandlingMixin, QOpenGLWindow):
         ShaderLib.set_uniform("material.specular", 0.4, 0.4, 0.4, 1.0)
         ShaderLib.set_uniform("material.shininess", 32.0)
 
-        for index, transform in enumerate(self.bone_transforms):
+        for index, transform in enumerate(self.bone_transforms[:MAX_BONES]):
             ShaderLib.set_uniform(f"gBones[{index}]", transform)
 
         gl.glActiveTexture(gl.GL_TEXTURE0)
@@ -247,12 +331,58 @@ class MainWindow(QMainWindow):
         self.timeline.next_requested.connect(self._step_forward)
         self.timeline.last_requested.connect(self._go_to_last_frame)
 
+        self._create_menu()
+        self._sync_timeline_to_mesh()
+        self._set_playing(True)
+        self._update_title()
+
+    def _create_menu(self) -> None:
+        self.menuBar().setNativeMenuBar(False)
+        file_menu = self.menuBar().addMenu("&File")
+
+        open_action = QAction("&Open Mesh...", self)
+        open_action.setShortcut(QKeySequence.StandardKey.Open)
+        open_action.triggered.connect(self._open_file_dialog)
+        file_menu.addAction(open_action)
+
+        quit_action = QAction("&Quit", self)
+        quit_action.setShortcut(QKeySequence.StandardKey.Quit)
+        quit_action.triggered.connect(self.close)
+        file_menu.addAction(quit_action)
+
+    def _open_file_dialog(self) -> None:
+        start_dir = str(self.viewport.model_path.parent)
+        filename, _ = QFileDialog.getOpenFileName(
+            self, "Open Rigged Mesh", start_dir, MESH_FILE_FILTER
+        )
+        if not filename:
+            return
+        self._set_playing(False)
+        try:
+            self.viewport.load_model(Path(filename))
+        # impasse.errors.AssimpError subclasses BaseException, not Exception,
+        # so a plain `except Exception` misses the exact case this exists
+        # for -- a file assimp can't import.
+        except (Exception, AssimpError) as error:
+            QMessageBox.critical(
+                self,
+                "Unable to load mesh",
+                f"Could not load {Path(filename).name}.\n\n{error}",
+            )
+            return
+        self._sync_timeline_to_mesh()
+        self._set_playing(True)
+        self._update_title()
+
+    def _update_title(self) -> None:
+        self.setWindowTitle(f"SkinnedMeshImport — {self.viewport.model_path.name}")
+
+    def _sync_timeline_to_mesh(self) -> None:
         mesh = self.viewport.mesh
         frame_count = int(round(mesh.duration())) + 1
         frame_time = 1.0 / mesh.ticks_per_second()
         self.timeline.set_clip(frame_count, frame_time)
         self._set_playback_fps(self.timeline.playback_fps())
-        self._set_playing(True)
 
     def _set_playing(self, playing: bool) -> None:
         self._playing = playing

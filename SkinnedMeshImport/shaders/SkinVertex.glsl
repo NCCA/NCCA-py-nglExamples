@@ -9,7 +9,7 @@ layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec4 inBoneIDs;
 layout(location = 4) in vec4 inBoneWeights;
 
-const int MAX_BONES = 64;
+const int MAX_BONES = 128;
 uniform mat4 MVP;
 uniform mat4 M;
 uniform mat4 MV;

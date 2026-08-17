@@ -15,7 +15,6 @@ from pathlib import Path
 import cffi
 import impasse
 import numpy as np
-from impasse import helper
 from impasse.constants import ProcessingStep
 from impasse.structs_base import ffi as _impasse_ffi
 from ncca.ngl import Mat4, Quaternion, Vec3
@@ -234,7 +233,11 @@ class SkinnedMesh:
                 )
                 if uv_channel is not None:
                     uv = uv_channel[i]
-                    texcoords.append((float(uv[0]), float(uv[1])))
+                    # ncca.ngl.opengl.Texture uploads pixels in the order
+                    # PIL decodes them (row 0 = top of the image) without
+                    # flipping for OpenGL's bottom-left texture origin, so
+                    # V needs flipping here rather than in the library.
+                    texcoords.append((float(uv[0]), 1.0 - float(uv[1])))
                 else:
                     texcoords.append((0.0, 0.0))
                 bone_ids.append(mesh_bone_ids[i])
@@ -266,9 +269,37 @@ class SkinnedMesh:
 
     # ---------------------------------------------------------- animation
 
-    def bounding_box(self) -> tuple[list[float], list[float]]:
-        """Return the (min, max) corners of the scene's world-space bounding box."""
-        return helper.get_bounding_box(self._scene)
+    def skinned_positions(self, time_seconds: float = 0.0) -> np.ndarray:
+        """Return every vertex position after GPU-equivalent LBS skinning.
+
+        Deliberately not ``impasse.helper.get_bounding_box`` (which walks
+        the *static* scene-graph node transforms): that only lines up with
+        the actually-rendered, bone-skinned vertex positions when the mesh
+        node and the skeleton root happen to be coincident in the scene
+        graph, which is true for MD5 (mesh and skeleton share one frame)
+        but not guaranteed for an arbitrary rig -- e.g. it's off by tens of
+        units for the Softimage XSI-exported test asset this was found
+        against.
+        """
+        transforms = self.bone_transforms(time_seconds)
+        bone_matrices = np.stack([t.to_numpy() for t in transforms], axis=0)
+        ids = self.bone_ids.astype(np.int64)
+        influences = bone_matrices[ids]  # (vertex, influence, 4, 4)
+        blended = (influences * self.bone_weights[:, :, None, None]).sum(axis=1)
+        homogeneous = np.concatenate(
+            [self.positions, np.ones((len(self.positions), 1), dtype=np.float32)],
+            axis=1,
+        )
+        # row-vector convention: v_row @ M
+        skinned = np.einsum("ni,nij->nj", homogeneous, blended)
+        return skinned[:, :3]
+
+    def bounding_box(
+        self, time_seconds: float = 0.0
+    ) -> tuple[list[float], list[float]]:
+        """Return the (min, max) corners of the skinned mesh's bounding box."""
+        positions = self.skinned_positions(time_seconds)
+        return positions.min(axis=0).tolist(), positions.max(axis=0).tolist()
 
     def duration(self) -> float:
         """Duration of the (only) animation, in ticks."""
