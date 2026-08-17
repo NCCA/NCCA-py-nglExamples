@@ -3,10 +3,14 @@
 import sys
 from pathlib import Path
 
+import numpy as np
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import bvh_scene  # noqa: E402
 from bvh import Bvh  # noqa: E402
 from bvh_scene import BvhScene  # noqa: E402
+from ncca.ngl import Mat4  # noqa: E402
 
 _CLIP = """\
 HIERARCHY
@@ -58,3 +62,40 @@ def test_advance_in_range_loops_at_the_selected_end_frame() -> None:
     scene.advance_in_range(1, 2)
 
     assert scene.current_frame_number() == 1
+
+
+def test_joint_position_traces_store_each_frame_as_float32() -> None:
+    character = Bvh.from_text(_CLIP)
+
+    traces = bvh_scene.joint_position_traces(character)
+
+    assert traces.dtype == np.float32
+    np.testing.assert_allclose(
+        traces,
+        [[[0.0, 0.0, 0.0], [0.1, 0.0, 0.0], [0.2, 0.0, 0.0]]],
+    )
+
+
+def test_joint_trace_colours_are_unique() -> None:
+    colours = bvh_scene.joint_trace_colours(20)
+
+    assert colours.shape == (20, 4)
+    assert len(np.unique(colours, axis=0)) == 20
+
+
+def test_trace_mode_draws_ground_joint_position_lines_and_character(
+    monkeypatch,
+) -> None:
+    scene = BvhScene()
+    drawn: list[str] = []
+    monkeypatch.setattr(
+        scene, "_draw_trace_lines", lambda: drawn.append("traces"), raising=False
+    )
+    monkeypatch.setattr(
+        scene, "_draw_characters", lambda: drawn.append("character"), raising=False
+    )
+    monkeypatch.setattr(scene, "_draw_ground", lambda: drawn.append("ground"))
+
+    scene.draw(Mat4(), Mat4(), Mat4(), trace=True)
+
+    assert drawn == ["ground", "traces", "character"]

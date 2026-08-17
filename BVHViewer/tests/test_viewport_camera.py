@@ -29,15 +29,17 @@ def test_viewport_uses_first_person_camera_matrices_for_drawing(
     application: QApplication, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     viewport = bvh_viewer.BvhViewport()
-    drawn_matrices: tuple[Mat4, Mat4, Mat4] | None = None
+    drawn_scene: tuple[Mat4, Mat4, Mat4, bool] | None = None
 
     monkeypatch.setattr(viewport, "makeCurrent", lambda: None)
     monkeypatch.setattr(bvh_viewer.gl, "glViewport", lambda *args: None)
     monkeypatch.setattr(bvh_viewer.gl, "glClear", lambda *args: None)
 
-    def record_draw(view: Mat4, project: Mat4, model: Mat4) -> None:
-        nonlocal drawn_matrices
-        drawn_matrices = view, project, model
+    def record_draw(
+        view: Mat4, project: Mat4, model: Mat4, trace: bool = False
+    ) -> None:
+        nonlocal drawn_scene
+        drawn_scene = view, project, model, trace
 
     monkeypatch.setattr(viewport.scene, "draw", record_draw)
 
@@ -45,14 +47,15 @@ def test_viewport_uses_first_person_camera_matrices_for_drawing(
     viewport.paintGL()
 
     assert isinstance(viewport.camera, FirstPersonCamera)
-    assert drawn_matrices is not None
-    view, project, model = drawn_matrices
+    assert drawn_scene is not None
+    view, project, model, trace = drawn_scene
     assert np.allclose(view.to_numpy(), viewport.camera.view.to_numpy())
     assert np.allclose(project.to_numpy(), viewport.camera.projection.to_numpy())
     assert np.allclose(model.to_numpy(), Mat4().to_numpy())
     assert viewport.camera.aspect == pytest.approx(2.0)
     assert viewport.camera.near == pytest.approx(0.05)
     assert viewport.camera.far == pytest.approx(1500.0)
+    assert trace is False
 
 
 def test_left_mouse_drag_changes_the_camera_direction(
