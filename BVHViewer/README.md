@@ -27,9 +27,9 @@ Left mouse rotates, right mouse pans, wheel zooms.
 | F | fullscreen |
 | Esc | quit |
 
-The window title doubles as the HUD (filename, frame number, play state), so
-it's readable even on a machine with none of the handful of system fonts this
-tries for the optional on-screen overlay text.
+The window title also shows the filename, frame number and play state. The
+on-screen controls use the Arial font shipped in this repository, in the same
+way as the other PyNGL demos.
 
 ## How it works
 

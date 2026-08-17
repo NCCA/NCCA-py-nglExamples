@@ -2,9 +2,7 @@
 """BvhViewer: play back a .bvh motion-capture file (PyNGL / PySide6).
 
 A port of the C++ NGL BvhViewer demo -- see ../README.md for what changed
-and why. Loads one skeleton and plays its animation on a loop; the window
-title doubles as the on-screen HUD (frame number, playback state, filename)
-so it works even where no system font is found for the optional overlay text.
+and why. Loads one skeleton and plays its animation on a loop.
 
 Controls:
     left mouse    rotate
@@ -35,42 +33,29 @@ from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 
-_REPO_ROOT = Path(__file__).resolve().parent
-_DEFAULT_BVH = _REPO_ROOT / "bvh" / "Male1_B10_WalkTurnLeft45.bvh"
-
-# A handful of common system font locations to try for the optional on-screen
-# HUD text. None of these ship with PyNGL or this repo, so if none of them
-# exist the HUD text is simply skipped -- the window title still shows the
-# same information.
-_SYSTEM_FONT_CANDIDATES = [
-    "/System/Library/Fonts/Supplemental/Arial.ttf",
-    "/Library/Fonts/Arial.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-]
-
-
-def _find_system_font() -> str | None:
-    for candidate in _SYSTEM_FONT_CANDIDATES:
-        if Path(candidate).is_file():
-            return candidate
-    return None
+DEMO_DIR = Path(__file__).resolve().parent
+DEFAULT_BVH = DEMO_DIR / "bvh" / "Male1_B10_WalkTurnLeft45.bvh"
+HUD_FONT = DEMO_DIR.parent / "font" / "Arial.ttf"
 
 
 class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
     """The BvhViewer window: camera, playback controls and the scene."""
 
-    def __init__(self, bvh_path: Path) -> None:
+    def __init__(self, bvh_path: Path = DEFAULT_BVH, parent: object = None) -> None:
         super().__init__()
-        self.setup_event_handling(initial_position=Vec3(0, 0, 0))
+        self.setup_event_handling(
+            rotation_sensitivity=0.5,
+            translation_sensitivity=0.01,
+            zoom_sensitivity=0.1,
+            initial_position=Vec3(0, 0, 0),
+        )
         self._bvh_path = bvh_path
-        self.window_width = 1024
-        self.window_height = 720
-        self.view = look_at(Vec3(0, 25, 100), Vec3(0, 0, 0), Vec3(0, 1, 0))
-        self.project = perspective(45.0, 1024.0 / 720.0, 0.05, 1500.0)
-        self.mouse_global_tx = Mat4()
-        self.scene = BvhScene()
-        self._trace = False
-        self._hud_font: str | None = None
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
+        self.window_width: int = 1024
+        self.window_height: int = 720
+        self.scene: BvhScene = BvhScene()
+        self._trace: bool = False
         self.setTitle("BvhViewer (PyNGL)")
 
     def initializeGL(self) -> None:
@@ -78,17 +63,13 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glClearColor(0.4, 0.4, 0.4, 1.0)
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_MULTISAMPLE)
+        self.view = look_at(Vec3(0, 25, 100), Vec3(0, 0, 0), Vec3(0, 1, 0))
 
         self.scene.initialize_gl()
         character = Bvh(self._bvh_path)
         self.scene.add_character(character)
 
-        font_path = _find_system_font()
-        if font_path is not None:
-            Text.add_font("hud", font_path, 14)
-            self._hud_font = "hud"
-        else:
-            logger.info("no system font found; on-screen HUD text is disabled")
+        Text.add_font("Arial", str(HUD_FONT), 14)
 
         self.startTimer(max(1, int(character.frame_time * 1000)))
         self._update_title()
@@ -99,30 +80,26 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         if not self._trace:
             gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        rot_x = Mat4.rotate_x(self.spin_x_face)
-        rot_y = Mat4.rotate_y(self.spin_y_face)
-        self.mouse_global_tx = rot_y @ rot_x
-        self.mouse_global_tx[3, 0] = self.model_position.x
-        self.mouse_global_tx[3, 1] = self.model_position.y
-        self.mouse_global_tx[3, 2] = self.model_position.z
+        rot_x = Mat4().rotate_x(self.spin_x_face)
+        rot_y = Mat4().rotate_y(self.spin_y_face)
+        mouse_global_tx = rot_y @ rot_x
+        mouse_global_tx[3, 0] = self.model_position.x
+        mouse_global_tx[3, 1] = self.model_position.y
+        mouse_global_tx[3, 2] = self.model_position.z
 
-        self.scene.draw(self.view, self.project, self.mouse_global_tx)
+        self.scene.draw(self.view, self.project, mouse_global_tx)
         self._draw_hud()
 
     def _draw_hud(self) -> None:
-        if self._hud_font is None:
-            return
+        Text.render_text("Arial", 10, 20, f"characters: {len(self.scene.characters)}")
         Text.render_text(
-            self._hud_font, 10, 20, f"characters: {len(self.scene.characters)}"
-        )
-        Text.render_text(
-            self._hud_font,
+            "Arial",
             10,
             40,
             f"frame: {self.scene.current_frame_number()} {'(paused)' if self.scene.paused else ''}",
         )
         Text.render_text(
-            self._hud_font,
+            "Arial",
             10,
             60,
             "r replay | p pause | arrows step | space clear | t trace | w/s wire/fill",
@@ -132,8 +109,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
         self.project = perspective(45.0, float(w) / max(h, 1), 0.05, 1500.0)
-        if self._hud_font is not None:
-            Text.set_screen_size(self.window_width, self.window_height)
+        Text.set_screen_size(w, h)
 
     def timerEvent(self, event) -> None:
         self.scene.advance()
@@ -170,7 +146,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
 
 class DebugApplication(QApplication):
-    """QApplication that prints tracebacks from Qt event handlers instead of swallowing them."""
+    """QApplication that re-raises exceptions swallowed by the Qt event loop."""
 
     def __init__(self, argv):
         super().__init__(argv)
@@ -189,7 +165,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--bvh",
         type=Path,
-        default=_DEFAULT_BVH,
+        default=DEFAULT_BVH,
         help="path to the .bvh file to play (default: %(default)s)",
     )
     parser.add_argument(
@@ -208,7 +184,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    format = QSurfaceFormat()
+    format: QSurfaceFormat = QSurfaceFormat()
     format.setSamples(4)
     format.setMajorVersion(4)
     format.setMinorVersion(1)
@@ -216,7 +192,10 @@ if __name__ == "__main__":
     format.setDepthBufferSize(24)
     QSurfaceFormat.setDefaultFormat(format)
 
-    app = DebugApplication(sys.argv) if args.debug else QApplication(sys.argv)
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
 
     window = MainWindow(args.bvh)
     window.resize(1024, 720)

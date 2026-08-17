@@ -16,8 +16,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from bvh import Bvh, BvhParseError, rotation_from_y  # noqa: E402
 from ncca.ngl import Mat3, Vec3  # noqa: E402
 
-REPO_ROOT = Path(__file__).parent.parent.parent
-TEST_BVH = REPO_ROOT / "bvh" / "test.bvh"
+DEMO_DIR = Path(__file__).parent.parent
+TEST_BVH = DEMO_DIR / "bvh" / "test.bvh"
 
 _MINIMAL = """\
 HIERARCHY
@@ -128,7 +128,7 @@ def test_too_few_motion_lines_raises():
 
 def test_missing_file_raises_file_not_found():
     with pytest.raises(FileNotFoundError):
-        Bvh(REPO_ROOT / "bvh" / "does_not_exist.bvh")
+        Bvh(DEMO_DIR / "bvh" / "does_not_exist.bvh")
 
 
 def test_loads_the_repo_hand_written_fixture():
