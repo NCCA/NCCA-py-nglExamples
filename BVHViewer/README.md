@@ -10,6 +10,13 @@ Run it from the root of the demos repository:
 uv run BVHViewer/main.py
 ```
 
+There is also a WebGPU version. It has the same timeline, menus, camera controls
+and Four Views layout, but renders the ground, traces and skeleton with WebGPU:
+
+```bash
+uv run BVHViewer/main_webgpu.py
+```
+
 The File menu loads another BVH clip. You can also select the initial file from
 the command line:
 
@@ -60,6 +67,9 @@ mode keeps the floor and animated skeleton visible under the joint paths.
   fields and transport controls.
 - `main.py` -- the application window, first-person and orthographic cameras,
   file menu, playback timer and OpenGL viewport.
+- `main_webgpu.py` -- the WebGPU viewport and application entry point.
+- `bvh_scene_webgpu.py` and `webgpu_renderer.py` -- build the WebGPU line and
+  instance data, then draw the skeleton with the shader in `bvh_webgpu.wgsl`.
 - `tests/` -- pytest, run with `uv run pytest BVHViewer/tests` from the root of
   the repository.
 

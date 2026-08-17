@@ -484,7 +484,11 @@ class BvhViewport(QOpenGLWindow):
 class MainWindow(QMainWindow):
     """The BVH viewport, menus and animation transport in one application."""
 
-    def __init__(self, bvh_path: Path = DEFAULT_BVH) -> None:
+    def __init__(
+        self,
+        bvh_path: Path = DEFAULT_BVH,
+        viewport: BvhViewport | QWidget | None = None,
+    ) -> None:
         super().__init__()
         self._bvh_path: Path | None = None
         self.setWindowTitle("BVHViewer")
@@ -492,17 +496,20 @@ class MainWindow(QMainWindow):
         self.resize(1100, 760)
         self.setStyleSheet(_APP_STYLE)
 
-        self.viewport = BvhViewport()
-        viewport_container = QWidget.createWindowContainer(self.viewport, self)
-        viewport_container.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        viewport_container.setFocus()
+        self.viewport = viewport if viewport is not None else BvhViewport()
+        if isinstance(self.viewport, QWidget):
+            viewport_widget = self.viewport
+        else:
+            viewport_widget = QWidget.createWindowContainer(self.viewport, self)
+        viewport_widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        viewport_widget.setFocus()
 
         self.timeline = TimelineWidget(self)
         central = QWidget(self)
         layout = QVBoxLayout(central)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        layout.addWidget(viewport_container, 1)
+        layout.addWidget(viewport_widget, 1)
         layout.addWidget(self.timeline)
         self.setCentralWidget(central)
 
