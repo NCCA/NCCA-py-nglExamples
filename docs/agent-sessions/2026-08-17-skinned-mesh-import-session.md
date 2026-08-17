@@ -160,3 +160,44 @@ flipping for OpenGL's bottom-left origin; `mesh.py` now flips V itself
 Commands re-run after all of the above: `pytest` (8 passed), `ruff check`
 and `ruff format --check` (clean), plus live visual checks of both the
 guard model and `JaiquaFromXSI.dae` loaded via the new Open dialog.
+
+## Follow-up: FirstPersonCamera and four-view, matching BVHViewer
+
+Jon asked for the same `FirstPersonCamera` + TOP/PERSPECTIVE/FRONT/SIDE
+four-view split as `BVHViewer/main.py`'s `BvhViewport`. Ported the
+mechanism wholesale: `OrthoView` dataclass (independent pan/zoom per
+pane), `_four_view_rectangles`/`_pane_rectangles`/`_pane_index_at` for the
+2x2 `glScissor`-clipped split and click-to-maximize, and the WASD/mouse
+input routing (rotate only in the perspective pane; MMB/RMB pan + wheel
+scale in ortho panes). Dropped the old `PySideEventHandlingMixin`
+arcball rotate/pan/zoom and its `W`/`S` wireframe toggle entirely (`W` is
+now a movement key, and BVHViewer doesn't have a wireframe toggle either).
+
+One thing BVHViewer's BVH-only world didn't have to deal with:
+`FirstPersonCamera`'s yaw/pitch parameterisation hardcodes Y as vertical
+(`front.y = sin(pitch)`) regardless of the `up` vector passed to its
+constructor -- so pointing it at a Z-up MD5 mesh with `world_up=(0,0,1)`
+would still pitch through the wrong axis (Y, the mesh's *depth*, not Z).
+Rather than teach the camera two conventions, a Z-up mesh now gets a
+single constant `rotate_x(-90)` model matrix (`self.model_matrix`,
+applied uniformly in `_draw_mesh`) that presents it to the camera --
+and to the bounding box used for framing, and to lighting -- already
+rotated into Y-up. Every downstream calculation (camera eye/target, the
+three `OrthoView`s, WASD speed) is then written once, in BVHViewer's own
+Y-up formulas, scaled to this mesh's bounding box instead of BVHViewer's
+fixed human-scale numbers, instead of needing a second Z-up branch.
+
+Also re-hit, and re-applied, the two `FirstPersonCamera` gotchas already
+on file from BVHViewer work: `set_projection()` returns a `Mat4` but
+never stores it (`self.camera._projection` has to be reassigned by hand
+on every resize/zoom), and the constructor ignores the `look` argument
+for orientation entirely (yaw/pitch start at fixed defaults) -- fixed
+here with a small `_look_at()` helper that derives yaw/pitch from the
+eye→target direction and calls the "private" `_update_camera_vectors()`,
+the same pattern BVHViewer's own tests use.
+
+Verified live: single-view perspective, four-view (all four panes
+correctly framed and labelled), and click-to-maximize (clicking the SIDE
+pane's screen position correctly set `_maximized_pane = 3` and filled the
+window with just that view). `pytest`/`ruff check`/`ruff format --check`
+all still clean -- this was a `main.py`-only change, `mesh.py` untouched.

@@ -5,22 +5,26 @@
 A PyNGL port of the `AssetImportDemos/SkeletalAnimation` demo from [NGL9Demos](https://github.com/NCCA/NGL9Demos), which itself follows [ogldev's assimp skinning tutorial](http://ogldev.atspace.co.uk/www/tutorial38/tutorial38.html). Where the original uses NGL's C++ assimp bindings, this loads the same rigged "boblampclean" guard model with [impasse](https://pypi.org/project/impasse/), the Python assimp wrapper, and does the bone-matrix skinning on the GPU. The other `SkeletalAnimation` demo in this repo is unrelated — that one is a procedural LBS-vs-DQS comparison with no mesh assets; this one is about importing a real rig.
 
 - `mesh.py` — loads the scene via impasse, merges all sub-meshes into one indexed vertex buffer, and walks the node/animation hierarchy each frame to build the per-bone skinning matrices
-- `main.py` — OpenGL, `PySide6.QtOpenGL.QOpenGLWindow` inside a `QMainWindow`, with an animation transport underneath (borrowed from `BVHViewer/timeline.py`)
+- `main.py` — OpenGL, `PySide6.QtOpenGL.QOpenGLWindow` inside a `QMainWindow`, with an animation transport underneath (borrowed from `BVHViewer/timeline.py`) and a `FirstPersonCamera` / four-view split borrowed from `BVHViewer/main.py`'s `BvhViewport`
 - `shaders/SkinVertex.glsl` — linear blend skinning in the vertex shader, four bones per vertex
 - `models/guard/` — the boblampclean mesh, animation and textures, copied from NGL9Demos
 
 ## Controls
 
-| Key / control            | Action                                        |
-| :------------------------ | :---------------------------------------------- |
-| LMB / RMB / wheel        | rotate / pan / zoom                           |
-| `W` / `S`                  | wireframe / solid fill                        |
-| `Space`                     | reset camera                                  |
-| `Esc`                       | quit                                          |
-| `Cmd`/`Ctrl` + `O`, or File > Open | load a different rigged mesh                |
-| Timeline transport       | play/pause, step, scrub, playback rate/range  |
+| Key / control                        | Action                                       |
+| :------------------------------------ | :-------------------------------------------- |
+| `W`/`A`/`S`/`D`                       | fly the camera forward/left/back/right       |
+| LMB-drag                              | look around                                  |
+| wheel                                 | zoom (perspective pane) / scale (ortho pane) |
+| MMB/RMB-drag in an ortho pane         | pan that pane                                |
+| `4`, or View > Four Views             | toggle the TOP/PERSPECTIVE/FRONT/SIDE split  |
+| click a pane in four-view             | maximize it; click again to restore          |
+| `Cmd`/`Ctrl` + `O`, or File > Open    | load a different rigged mesh                 |
+| Timeline transport                    | play/pause, step, scrub, playback rate/range |
 
-File > Open isn't limited to MD5 — it'll hand anything you pick to impasse, so any rigged format assimp supports (COLLADA, FBX, glTF, ...) is worth trying. Two things it copes with rather than crashing on: a file assimp can't import at all (`impasse.errors.AssimpError`, which — unusually — subclasses `BaseException` rather than `Exception`, so it needs its own `except` clause), and a mesh whose material references a texture file that was never shipped alongside it (falls back to flat white per missing texture, logged as a warning, rather than losing the whole mesh — PyNGL's `Texture`/`Image` raises a confusing `AttributeError` for a missing file rather than a clean one). The camera also picks Z-up framing only for `.md5mesh` specifically (a fixed property of that format) and Y-up for everything else, rather than guessing from the mesh's bounding-box shape — a character posed with a limb held out (like this demo's own guard, holding its lamp arm out) can be wider than it is tall, so shape isn't a reliable signal.
+The camera setup mirrors `BVHViewer` exactly: a `FirstPersonCamera` for the perspective pane, three independent `OrthoView` panes (their own pan/zoom state) for TOP/FRONT/SIDE, `glScissor`-clipped rendering into a 2x2 split, and click-to-maximize. One wrinkle specific to this demo: `FirstPersonCamera`'s yaw/pitch always treats **Y** as vertical regardless of the `up` vector passed to its constructor, but MD5 (idTech) meshes are Z-up in their post-import world space (every other format this demo loads ends up Y-up) — keyed off the `.md5mesh` extension specifically, a fixed property of that format, rather than guessed from the bounding box (a character posed with a limb held out, like this demo's own guard holding its lamp arm out, can be wider than it is tall). Rather than teach the camera two conventions, a Z-up mesh gets one constant `rotate_x(-90)` model matrix applied uniformly in `_draw_mesh`, presenting it to the camera (and to lighting) already in Y-up space.
+
+File > Open isn't limited to MD5 — it'll hand anything you pick to impasse, so any rigged format assimp supports (COLLADA, FBX, glTF, ...) is worth trying. Two things it copes with rather than crashing on: a file assimp can't import at all (`impasse.errors.AssimpError`, which — unusually — subclasses `BaseException` rather than `Exception`, so it needs its own `except` clause), and a mesh whose material references a texture file that was never shipped alongside it (falls back to flat white per missing texture, logged as a warning, rather than losing the whole mesh — PyNGL's `Texture`/`Image` raises a confusing `AttributeError` for a missing file rather than a clean one).
 
 ## impasse has two struct bugs
 

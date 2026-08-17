@@ -11,24 +11,32 @@ impasse's bundled ``aiBone`` struct definition that this demo works around.
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 import traceback
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import OpenGL.GL as gl
 from impasse.errors import AssimpError
 from mesh import MAX_BONES_PER_VERTEX, SkinnedMesh
 from MultiBufferIndexVAO import MultiBufferIndexVAO
-from ncca.ngl import Mat4, Vec3, Vec4, logger, look_at, perspective
+from ncca.ngl import FirstPersonCamera, Mat4, Vec3, Vec4, logger, look_at, ortho
 from ncca.ngl.opengl import (
-    PySideEventHandlingMixin,
     ShaderLib,
+    Text,
     Texture,
     VAOFactory,
     VertexData,
 )
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QAction, QKeySequence, QSurfaceFormat
+from PySide6.QtCore import QElapsedTimer, Qt, QTimer
+from PySide6.QtGui import (
+    QAction,
+    QKeySequence,
+    QMouseEvent,
+    QSurfaceFormat,
+    QWheelEvent,
+)
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import (
     QApplication,
@@ -45,6 +53,7 @@ DEFAULT_MODEL = DEMO_DIR / "models" / "guard" / "boblampclean.md5mesh"
 
 SKIN_SHADER = "Skin"
 VAO_NAME = "SkinnedMeshVAO"
+FONT_NAME = "SkinnedMeshImport"
 # Matches shaders/SkinVertex.glsl's `const int MAX_BONES`. A mesh with more
 # bones than this still loads and draws -- the extra bones are just left
 # unanimated, since there's no gBones[] uniform slot to put them in.
@@ -53,23 +62,62 @@ MESH_FILE_FILTER = (
     "Rigged meshes (*.md5mesh *.dae *.fbx *.gltf *.glb *.x *.bvh *.obj);;All files (*)"
 )
 
+TOP_VIEW = 0
+PERSPECTIVE_VIEW = 1
+FRONT_VIEW = 2
+SIDE_VIEW = 3
+_VIEW_LABELS = ("TOP", "PERSPECTIVE", "FRONT", "SIDE")
+
 _APP_STYLE = """
 QMainWindow, QWidget { background: #34373b; color: #dedede; }
 #timelinePanel { background: #292c30; border-top: 1px solid #17191b; }
 """
 
 
-class SkinViewport(PySideEventHandlingMixin, QOpenGLWindow):
-    """The OpenGL viewport: loads the mesh, skins it on the GPU, and draws it."""
+@dataclass
+class OrthoView:
+    """Zoom and pan state for one orthographic pane, independent of the others."""
+
+    eye: Vec3
+    target: Vec3
+    up: Vec3
+    right: Vec3
+    half_height: float = 40.0
+    pan: Vec3 = field(default_factory=lambda: Vec3(0.0, 0.0, 0.0))
+
+    def matrices(self, pane_width: int, pane_height: int) -> tuple[Mat4, Mat4]:
+        """Return this pane's current (view, projection) matrices."""
+        half_width = self.half_height * pane_width / max(pane_height, 1)
+        project = ortho(
+            -half_width, half_width, -self.half_height, self.half_height, 0.05, 5000.0
+        )
+        view = look_at(self.eye + self.pan, self.target + self.pan, self.up)
+        return view, project
+
+    def pan_by(self, dx_pixels: float, dy_pixels: float, pane_height: float) -> None:
+        """Shift this pane's pan offset by a screen-space drag delta."""
+        units_per_pixel = (2.0 * self.half_height) / max(pane_height, 1.0)
+        self.pan = (
+            self.pan
+            + self.right * (-dx_pixels * units_per_pixel)
+            + self.up * (dy_pixels * units_per_pixel)
+        )
+
+
+class SkinViewport(QOpenGLWindow):
+    """The OpenGL viewport: loads the mesh, skins it on the GPU, and draws it.
+
+    Camera/navigation mirrors ``BVHViewer/main.py``'s ``BvhViewport``: a
+    ``FirstPersonCamera`` (WASD + mouse-look) for the perspective view, plus
+    an optional four-pane TOP/PERSPECTIVE/FRONT/SIDE split with independent
+    pan/zoom orthographic panes, click-to-maximize.
+    """
+
+    _MOVE_KEYS = {Qt.Key.Key_W, Qt.Key.Key_A, Qt.Key.Key_S, Qt.Key.Key_D}
+    _DIVIDER_WIDTH = 2
 
     def __init__(self, model_path: Path, parent: object = None) -> None:
         super().__init__()
-        self.setup_event_handling(
-            rotation_sensitivity=0.5,
-            translation_sensitivity=0.5,
-            zoom_sensitivity=0.5,
-            initial_position=Vec3(0, 0, 0),
-        )
         self.setTitle("Skinned Mesh Import")
         self.window_width = 1024
         self.window_height = 720
@@ -79,12 +127,100 @@ class SkinViewport(PySideEventHandlingMixin, QOpenGLWindow):
         # mesh.duration()/ticks_per_second() to set up the timeline right
         # away, before the window is even shown.
         self.mesh = SkinnedMesh(str(model_path))
-        self.view = Mat4()
-        self.project = Mat4()
         self.current_frame = 0
         self.bone_transforms: list[Mat4] = []
         self._texture_ids: dict[str, int] = {}
         self._fallback_texture_id: int | None = None
+        self._text_ready = False
+
+        self.four_view = False
+        self._maximized_pane: int | None = None
+        self._panning_pane: int | None = None
+        self.keys_pressed: set[Qt.Key] = set()
+        self._rotating_camera = False
+        self._last_mouse_x = 0.0
+        self._last_mouse_y = 0.0
+        self._frame_timer = QElapsedTimer()
+        self._frame_timer.start()
+        self._last_frame_time = 0.0
+
+        self._compute_view_setup()
+
+    # -------------------------------------------------------- camera setup
+
+    def _compute_view_setup(self) -> None:
+        """(Re)build the model-axis correction, camera and ortho panes for the current mesh.
+
+        MD5 (idTech) is always Z-up; every other format this demo can load
+        ends up Y-up in its post-import world space -- keyed off the
+        ``.md5mesh`` extension specifically (a fixed, known property of that
+        format) rather than guessed from the bounding box, since a
+        character posed with a limb held out (like this demo's own guard,
+        holding its lamp arm out) can be wider than it is tall.
+
+        ``FirstPersonCamera``'s yaw/pitch parameterisation always treats Y
+        as vertical, regardless of the ``up`` passed to its constructor,
+        so a Z-up mesh is presented to the camera (and to lighting) already
+        rotated into Y-up via ``self.model_matrix`` -- applied once here as
+        a constant, uniformly, in ``_draw_mesh`` -- rather than teaching
+        the camera two different "up" conventions.
+        """
+        z_up = self.model_path.suffix.lower() == ".md5mesh"
+        self.model_matrix = Mat4().rotate_x(-90.0) if z_up else Mat4()
+
+        bbox_min, bbox_max = self.mesh.bounding_box()
+
+        def to_display(corner: list[float]) -> Vec3:
+            if z_up:
+                return Vec3(corner[0], corner[2], -corner[1])
+            return Vec3(corner[0], corner[1], corner[2])
+
+        a = to_display(bbox_min)
+        b = to_display(bbox_max)
+        lo = Vec3(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z))
+        hi = Vec3(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z))
+        centre = Vec3((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5, (lo.z + hi.z) * 0.5)
+        height = max(hi.y - lo.y, 0.001)
+        distance = height * 2.5
+
+        eye = Vec3(centre.x, centre.y, hi.z + height * 1.5)
+        self.camera = FirstPersonCamera(eye, centre, Vec3(0.0, 1.0, 0.0), 45.0)
+        self.camera.speed = height * 0.4
+        self._look_at(eye, centre)
+
+        half_height = height * 0.75
+        self.ortho_views: dict[int, OrthoView] = {
+            TOP_VIEW: OrthoView(
+                eye=Vec3(centre.x, hi.y + distance, centre.z),
+                target=centre,
+                up=Vec3(0.0, 0.0, -1.0),
+                right=Vec3(1.0, 0.0, 0.0),
+                half_height=half_height,
+            ),
+            FRONT_VIEW: OrthoView(
+                eye=Vec3(centre.x, centre.y, hi.z + distance),
+                target=centre,
+                up=Vec3(0.0, 1.0, 0.0),
+                right=Vec3(1.0, 0.0, 0.0),
+                half_height=half_height,
+            ),
+            SIDE_VIEW: OrthoView(
+                eye=Vec3(hi.x + distance, centre.y, centre.z),
+                target=centre,
+                up=Vec3(0.0, 1.0, 0.0),
+                right=Vec3(0.0, 0.0, -1.0),
+                half_height=half_height,
+            ),
+        }
+
+    def _look_at(self, eye: Vec3, target: Vec3) -> None:
+        """Point the FirstPersonCamera at ``target`` -- its constructor ignores ``look``."""
+        direction = (target - eye).normalized()
+        pitch = math.degrees(math.asin(max(-1.0, min(1.0, direction.y))))
+        yaw = math.degrees(math.atan2(direction.z, direction.x))
+        self.camera.yaw = yaw
+        self.camera.pitch = pitch
+        self.camera._update_camera_vectors()
 
     # ------------------------------------------------------------- OpenGL
 
@@ -103,9 +239,12 @@ class SkinViewport(PySideEventHandlingMixin, QOpenGLWindow):
         ):
             raise RuntimeError("Failed to load skinning shader")
 
+        Text.add_font(FONT_NAME, str(DEMO_DIR.parent / "font" / "Arial.ttf"), 18)
+        Text.set_screen_size(self.window_width, self.window_height)
+        self._text_ready = True
+
         self._build_vao()
         self._load_textures()
-        self._frame_camera()
         self.set_frame(0)
 
     def _build_vao(self) -> None:
@@ -206,35 +345,10 @@ class SkinViewport(PySideEventHandlingMixin, QOpenGLWindow):
 
         self.model_path = model_path
         self.mesh = new_mesh
+        self._compute_view_setup()
         self._build_vao()
         self._load_textures()
-        self._frame_camera()
         self.set_frame(0)
-
-    def _frame_camera(self) -> None:
-        bbox_min, bbox_max = self.mesh.bounding_box()
-        centre = Vec3(
-            (bbox_min[0] + bbox_max[0]) * 0.5,
-            (bbox_min[1] + bbox_max[1]) * 0.5,
-            (bbox_min[2] + bbox_max[2]) * 0.5,
-        )
-        # MD5 (idTech) is always Z-up; every other format this demo can
-        # load ends up Y-up in its post-import world space. There's no
-        # reliable way to tell up from bounding-box shape alone -- a
-        # character posed with an arm held out (like this demo's own
-        # guard model) can be wider than it is tall -- so this keys off
-        # the one format whose up axis is a fixed, known property rather
-        # than guessing per-asset.
-        if self.model_path.suffix.lower() == ".md5mesh":
-            height = bbox_max[2] - bbox_min[2]
-            eye = Vec3(centre.x, bbox_min[1] - height * 1.5, centre.z)
-            up = Vec3(0.0, 0.0, 1.0)
-        else:
-            height = bbox_max[1] - bbox_min[1]
-            eye = Vec3(centre.x, centre.y, bbox_max[2] + height * 1.5)
-            up = Vec3(0.0, 1.0, 0.0)
-        self.view = look_at(eye, centre, up)
-        self.eye = eye
 
     def set_frame(self, frame: int) -> None:
         """Pose the mesh at the given timeline frame and request a repaint."""
@@ -243,35 +357,73 @@ class SkinViewport(PySideEventHandlingMixin, QOpenGLWindow):
         self.bone_transforms = self.mesh.bone_transforms(time_seconds)
         self.update()
 
+    # ------------------------------------------------------------ drawing
+
     def resizeGL(self, w: int, h: int) -> None:
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
-        self.project = perspective(45.0, float(w) / max(h, 1), 0.5, 500.0)
+        if self._text_ready:
+            Text.set_screen_size(self.window_width, self.window_height)
+        if self.four_view:
+            if self._maximized_pane is not None:
+                pane_width, pane_height = self.window_width, self.window_height
+            else:
+                _, _, pane_width, pane_height = self._four_view_rectangles()[0]
+            aspect = pane_width / max(pane_height, 1)
+        else:
+            aspect = self.window_width / max(self.window_height, 1)
+        self._set_perspective_projection(aspect)
+
+    def _set_perspective_projection(self, aspect: float) -> None:
+        # FirstPersonCamera.set_projection() returns a Mat4 but never
+        # stores it -- only the constructor assigns self._projection, so
+        # this has to be reassigned by hand on every resize/zoom.
+        self.camera.aspect = aspect
+        self.camera.near = 0.05
+        self.camera.far = 5000.0
+        self.camera._projection = self.camera.set_projection(
+            self.camera.zoom, self.camera.aspect, self.camera.near, self.camera.far
+        )
 
     def paintGL(self) -> None:
         self.makeCurrent()
-        gl.glViewport(0, 0, self.window_width, self.window_height)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         if not hasattr(self, "vao"):
             return  # initializeGL hasn't run yet
+
+        frame_time = self._frame_timer.elapsed() * 0.001
+        delta_time = min(max(frame_time - self._last_frame_time, 0.0), 0.05)
+        self._last_frame_time = frame_time
+        self._advance_camera(delta_time)
+
+        if self.four_view:
+            gl.glEnable(gl.GL_SCISSOR_TEST)
+            for rectangle, view, project, eye in self._pane_draws():
+                gl.glViewport(*rectangle)
+                gl.glScissor(*rectangle)
+                gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+                self._draw_mesh(view, project, eye)
+            gl.glDisable(gl.GL_SCISSOR_TEST)
+            self._draw_view_labels()
+        else:
+            gl.glViewport(0, 0, self.window_width, self.window_height)
+            self._draw_mesh(self.camera.view, self.camera.projection, self.camera.eye)
+
+        if self.keys_pressed & self._MOVE_KEYS:
+            self.update()
+
+    def _draw_mesh(self, view: Mat4, project: Mat4, eye: Vec3) -> None:
         ShaderLib.use(SKIN_SHADER)
 
-        rot_x = Mat4().rotate_x(self.spin_x_face)
-        rot_y = Mat4().rotate_y(self.spin_y_face)
-        mouse_global_tx = rot_y @ rot_x
-        mouse_global_tx[3, 0] = self.model_position.x
-        mouse_global_tx[3, 1] = self.model_position.y
-        mouse_global_tx[3, 2] = self.model_position.z
-
-        m = mouse_global_tx
-        mv = self.view @ m
-        mvp = self.project @ mv
+        m = self.model_matrix
+        mv = view @ m
+        mvp = project @ mv
         ShaderLib.set_uniform("M", m)
         ShaderLib.set_uniform("MV", mv)
         ShaderLib.set_uniform("MVP", mvp)
-        ShaderLib.set_uniform("viewerPos", self.eye)
+        ShaderLib.set_uniform("viewerPos", eye)
 
-        light_eye = self.view @ Vec4(self.eye.x, self.eye.y, self.eye.z, 1.0)
+        light_eye = view @ Vec4(eye.x, eye.y, eye.z, 1.0)
         ShaderLib.set_uniform(
             "light.position", light_eye.x, light_eye.y, light_eye.z, 1.0
         )
@@ -293,6 +445,204 @@ class SkinViewport(PySideEventHandlingMixin, QOpenGLWindow):
                 texture_id = self._texture_ids.get(submesh.texture_path, 0)
                 gl.glBindTexture(gl.GL_TEXTURE_2D, texture_id)
                 self.vao.draw(submesh.index_offset, submesh.index_count)
+
+    # --------------------------------------------------------- four-view
+
+    def set_four_view(self, enabled: bool) -> None:
+        self.four_view = enabled
+        self._maximized_pane = None
+        self.resizeGL(
+            round(self.window_width / self.devicePixelRatio()),
+            round(self.window_height / self.devicePixelRatio()),
+        )
+        self.update()
+
+    def toggle_maximized_pane(self, x: float, y: float) -> None:
+        if not self.four_view:
+            return
+        if self._maximized_pane is not None:
+            self._maximized_pane = None
+        else:
+            index = self._pane_index_at(x, y)
+            if index is None:
+                return
+            self._maximized_pane = index
+        self.resizeGL(
+            round(self.window_width / self.devicePixelRatio()),
+            round(self.window_height / self.devicePixelRatio()),
+        )
+        self.update()
+
+    def _four_view_rectangles(self) -> list[tuple[int, int, int, int]]:
+        divider = self._DIVIDER_WIDTH
+        left_width = max(1, (self.window_width - divider) // 2)
+        bottom_height = max(1, (self.window_height - divider) // 2)
+        right_x = left_width + divider
+        top_y = bottom_height + divider
+        right_width = max(1, self.window_width - right_x)
+        top_height = max(1, self.window_height - top_y)
+        return [
+            (0, top_y, left_width, top_height),
+            (right_x, top_y, right_width, top_height),
+            (0, 0, left_width, bottom_height),
+            (right_x, 0, right_width, bottom_height),
+        ]
+
+    def _pane_rectangles(self) -> list[tuple[int, tuple[int, int, int, int]]]:
+        """Return (pane_index, rectangle) for every pane currently being drawn."""
+        if self._maximized_pane is not None:
+            return [
+                (self._maximized_pane, (0, 0, self.window_width, self.window_height))
+            ]
+        return list(enumerate(self._four_view_rectangles()))
+
+    def _pane_index_at(self, x: float, y: float) -> int | None:
+        """Return the pane index under a window-local logical-pixel position."""
+        if not self.four_view:
+            return None
+        ratio = self.devicePixelRatio()
+        device_x = x * ratio
+        device_y = y * ratio
+        for index, (rx, ry, rw, rh) in self._pane_rectangles():
+            top = self.window_height - (ry + rh)
+            if rx <= device_x < rx + rw and top <= device_y < top + rh:
+                return index
+        return None
+
+    def _pane_draws(self) -> list[tuple[tuple[int, int, int, int], Mat4, Mat4, Vec3]]:
+        draws = []
+        for index, rectangle in self._pane_rectangles():
+            if index == PERSPECTIVE_VIEW:
+                draws.append(
+                    (
+                        rectangle,
+                        self.camera.view,
+                        self.camera.projection,
+                        self.camera.eye,
+                    )
+                )
+            else:
+                _, _, pane_width, pane_height = rectangle
+                ortho_view = self.ortho_views[index]
+                view, project = ortho_view.matrices(pane_width, pane_height)
+                draws.append(
+                    (rectangle, view, project, ortho_view.eye + ortho_view.pan)
+                )
+        return draws
+
+    def _draw_view_labels(self) -> None:
+        gl.glViewport(0, 0, self.window_width, self.window_height)
+        for index, (x, y, _, height) in self._pane_rectangles():
+            screen_y = self.window_height - (y + height)
+            Text.render_text(
+                FONT_NAME,
+                x + 10,
+                screen_y + 20,
+                _VIEW_LABELS[index],
+                Vec3(0.82, 0.84, 0.86),
+            )
+
+    def _is_perspective_position(self, x: float, y: float) -> bool:
+        if not self.four_view:
+            return True
+        return self._pane_index_at(x, y) == PERSPECTIVE_VIEW
+
+    # ------------------------------------------------------------- input
+
+    def _advance_camera(self, delta_time: float) -> None:
+        forward = float(Qt.Key.Key_W in self.keys_pressed) - float(
+            Qt.Key.Key_S in self.keys_pressed
+        )
+        strafe = float(Qt.Key.Key_D in self.keys_pressed) - float(
+            Qt.Key.Key_A in self.keys_pressed
+        )
+        if forward != 0.0 or strafe != 0.0:
+            self.camera.move(forward, strafe, delta_time)
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() in self._MOVE_KEYS:
+            if not event.isAutoRepeat():
+                self.keys_pressed.add(event.key())
+            self.update()
+            return
+        super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event) -> None:
+        if event.key() in self._MOVE_KEYS:
+            if not event.isAutoRepeat():
+                self.keys_pressed.discard(event.key())
+            self.update()
+            return
+        super().keyReleaseEvent(event)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            position = event.position()
+            if not self._is_perspective_position(position.x(), position.y()):
+                self._rotating_camera = False
+                return
+            self._last_mouse_x = position.x()
+            self._last_mouse_y = position.y()
+            self._rotating_camera = True
+            return
+        if event.button() in (Qt.MouseButton.MiddleButton, Qt.MouseButton.RightButton):
+            position = event.position()
+            index = self._pane_index_at(position.x(), position.y())
+            if index is not None and index != PERSPECTIVE_VIEW:
+                self._panning_pane = index
+                self._last_mouse_x = position.x()
+                self._last_mouse_y = position.y()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if self._rotating_camera and event.buttons() & Qt.MouseButton.LeftButton:
+            position = event.position()
+            diff_x = position.x() - self._last_mouse_x
+            diff_y = position.y() - self._last_mouse_y
+            self._last_mouse_x = position.x()
+            self._last_mouse_y = position.y()
+            self.camera.process_mouse_movement(diff_x, -diff_y)
+            self.update()
+            return
+        if self._panning_pane is not None and event.buttons() & (
+            Qt.MouseButton.MiddleButton | Qt.MouseButton.RightButton
+        ):
+            position = event.position()
+            diff_x = position.x() - self._last_mouse_x
+            diff_y = position.y() - self._last_mouse_y
+            self._last_mouse_x = position.x()
+            self._last_mouse_y = position.y()
+            _, _, _, pane_height = dict(self._pane_rectangles())[self._panning_pane]
+            pane_height_logical = pane_height / self.devicePixelRatio()
+            self.ortho_views[self._panning_pane].pan_by(
+                diff_x, diff_y, pane_height_logical
+            )
+            self.update()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._rotating_camera = False
+            return
+        if event.button() in (Qt.MouseButton.MiddleButton, Qt.MouseButton.RightButton):
+            self._panning_pane = None
+            return
+        super().mouseReleaseEvent(event)
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        position = event.position()
+        index = self._pane_index_at(position.x(), position.y())
+        if index is not None and index != PERSPECTIVE_VIEW:
+            view = self.ortho_views[index]
+            wheel_steps = event.angleDelta().y() / 120.0
+            view.half_height = max(
+                5.0, min(view.half_height * 0.9**wheel_steps, 5000.0)
+            )
+        else:
+            self.camera.process_mouse_scroll(event.angleDelta().y() * 0.01)
+        self.update()
 
 
 class MainWindow(QMainWindow):
@@ -349,6 +699,13 @@ class MainWindow(QMainWindow):
         quit_action.setShortcut(QKeySequence.StandardKey.Quit)
         quit_action.triggered.connect(self.close)
         file_menu.addAction(quit_action)
+
+        view_menu = self.menuBar().addMenu("&View")
+        self.four_view_action = QAction("Four Views", self)
+        self.four_view_action.setCheckable(True)
+        self.four_view_action.setShortcut(QKeySequence(Qt.Key.Key_4))
+        self.four_view_action.toggled.connect(self.viewport.set_four_view)
+        view_menu.addAction(self.four_view_action)
 
     def _open_file_dialog(self) -> None:
         start_dir = str(self.viewport.model_path.parent)
