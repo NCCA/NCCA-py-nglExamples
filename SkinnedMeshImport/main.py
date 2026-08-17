@@ -180,7 +180,13 @@ class SkinViewport(QOpenGLWindow):
         lo = Vec3(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z))
         hi = Vec3(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z))
         centre = Vec3((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5, (lo.z + hi.z) * 0.5)
-        height = max(hi.y - lo.y, 0.001)
+        # Vec3 components are numpy float32 scalars (its `_data` is a numpy
+        # array internally); Vec3.__mul__ rejects anything but a native
+        # Python int/float, so this needs an explicit cast at the source --
+        # otherwise it silently poisons camera.speed and every value
+        # derived from it below, only surfacing as a crash once WASD/mouse
+        # movement actually multiplies a Vec3 by it.
+        height = float(max(hi.y - lo.y, 0.001))
         distance = height * 2.5
 
         eye = Vec3(centre.x, centre.y, hi.z + height * 1.5)
