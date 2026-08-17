@@ -11,7 +11,8 @@ from pathlib import Path
 import OpenGL.GL as gl
 from bvh import Bvh, BvhParseError
 from bvh_scene import BvhScene
-from ncca.ngl import FirstPersonCamera, Mat4, Vec3, logger
+from ncca.ngl import FirstPersonCamera, Mat4, Vec3, logger, look_at, ortho
+from ncca.ngl.opengl import Text
 from PySide6.QtCore import QElapsedTimer, QEvent, QObject, Qt, QTimer
 from PySide6.QtGui import (
     QAction,
@@ -87,6 +88,7 @@ class BvhViewport(QOpenGLWindow):
     """The OpenGL viewport used by the main application window."""
 
     _MOVE_KEYS = {Qt.Key.Key_W, Qt.Key.Key_A, Qt.Key.Key_S, Qt.Key.Key_D}
+    _DIVIDER_WIDTH = 2
 
     def __init__(self) -> None:
         super().__init__()
@@ -101,6 +103,8 @@ class BvhViewport(QOpenGLWindow):
         self.window_height = 640
         self.scene = BvhScene()
         self.trace = False
+        self.four_view = False
+        self.orthographic_half_height = 40.0
         self.keys_pressed: set[Qt.Key] = set()
         self._rotating_camera = False
         self._last_mouse_x = 0.0
@@ -108,6 +112,7 @@ class BvhViewport(QOpenGLWindow):
         self._frame_timer = QElapsedTimer()
         self._frame_timer.start()
         self._last_frame_time = 0.0
+        self._text_ready = False
 
     def initializeGL(self) -> None:
         self.makeCurrent()
@@ -115,29 +120,67 @@ class BvhViewport(QOpenGLWindow):
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_MULTISAMPLE)
         self.scene.initialize_gl()
+        Text.add_font(
+            "BVHViewer",
+            str(DEMO_DIR.parent / "font" / "Arial.ttf"),
+            18,
+        )
+        Text.set_screen_size(self.window_width, self.window_height)
+        self._text_ready = True
 
     def paintGL(self) -> None:
         self.makeCurrent()
-        gl.glViewport(0, 0, self.window_width, self.window_height)
+        if self.four_view:
+            gl.glClearColor(0.08, 0.08, 0.08, 1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
         frame_time = self._frame_timer.elapsed() * 0.001
         delta_time = min(max(frame_time - self._last_frame_time, 0.0), 0.05)
         self._last_frame_time = frame_time
         self.advance_camera(delta_time)
-        self.scene.draw(
-            self.camera.view,
-            self.camera.projection,
-            Mat4(),
-            trace=self.trace,
-        )
+        if self.four_view:
+            gl.glClearColor(0.18, 0.19, 0.20, 1.0)
+            gl.glEnable(gl.GL_SCISSOR_TEST)
+            for rectangle, view, project in self._four_view_draws():
+                gl.glViewport(*rectangle)
+                gl.glScissor(*rectangle)
+                gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+                self.scene.draw(view, project, Mat4(), trace=self.trace)
+            gl.glDisable(gl.GL_SCISSOR_TEST)
+            self._draw_view_labels()
+        else:
+            gl.glViewport(0, 0, self.window_width, self.window_height)
+            self.scene.draw(
+                self.camera.view,
+                self.camera.projection,
+                Mat4(),
+                trace=self.trace,
+            )
         if self.keys_pressed & self._MOVE_KEYS:
             self.update()
 
     def resizeGL(self, width: int, height: int) -> None:
         self.window_width = int(width * self.devicePixelRatio())
         self.window_height = int(height * self.devicePixelRatio())
-        self.camera.aspect = float(width) / max(height, 1)
+        if self._text_ready:
+            Text.set_screen_size(self.window_width, self.window_height)
+        if self.four_view:
+            _, _, pane_width, pane_height = self._four_view_rectangles()[0]
+            aspect = pane_width / max(pane_height, 1)
+        else:
+            aspect = self.window_width / max(self.window_height, 1)
+        self._set_perspective_projection(aspect)
+
+    def set_four_view(self, enabled: bool) -> None:
+        self.four_view = enabled
+        self.resizeGL(
+            round(self.window_width / self.devicePixelRatio()),
+            round(self.window_height / self.devicePixelRatio()),
+        )
+        self.update()
+
+    def _set_perspective_projection(self, aspect: float) -> None:
+        self.camera.aspect = aspect
         self.camera.near = 0.05
         self.camera.far = 1500.0
         self.camera._projection = self.camera.set_projection(
@@ -146,6 +189,59 @@ class BvhViewport(QOpenGLWindow):
             self.camera.near,
             self.camera.far,
         )
+
+    def _four_view_rectangles(self) -> list[tuple[int, int, int, int]]:
+        divider = self._DIVIDER_WIDTH
+        left_width = max(1, (self.window_width - divider) // 2)
+        bottom_height = max(1, (self.window_height - divider) // 2)
+        right_x = left_width + divider
+        top_y = bottom_height + divider
+        right_width = max(1, self.window_width - right_x)
+        top_height = max(1, self.window_height - top_y)
+        return [
+            (0, top_y, left_width, top_height),
+            (right_x, top_y, right_width, top_height),
+            (0, 0, left_width, bottom_height),
+            (right_x, 0, right_width, bottom_height),
+        ]
+
+    def _four_view_draws(self) -> list[tuple[tuple[int, int, int, int], Mat4, Mat4]]:
+        rectangles = self._four_view_rectangles()
+        _, _, pane_width, pane_height = rectangles[0]
+        half_height = self.orthographic_half_height
+        half_width = half_height * pane_width / max(pane_height, 1)
+        project = ortho(
+            -half_width,
+            half_width,
+            -half_height,
+            half_height,
+            0.05,
+            1500.0,
+        )
+        top = look_at(Vec3(0, 500, 0), Vec3(0, 0, 0), Vec3(0, 0, -1))
+        front = look_at(Vec3(0, 20, 500), Vec3(0, 20, 0), Vec3(0, 1, 0))
+        side = look_at(Vec3(500, 20, 0), Vec3(0, 20, 0), Vec3(0, 1, 0))
+        return [
+            (rectangles[0], top, project),
+            (rectangles[1], self.camera.view, self.camera.projection),
+            (rectangles[2], front, project),
+            (rectangles[3], side, project),
+        ]
+
+    def _draw_view_labels(self) -> None:
+        gl.glViewport(0, 0, self.window_width, self.window_height)
+        labels = ("TOP", "PERSPECTIVE", "FRONT", "SIDE")
+        for label, (x, y, _, height) in zip(
+            labels, self._four_view_rectangles(), strict=True
+        ):
+            screen_y = self.window_height - (y + height)
+            Text.render_text(
+                "BVHViewer",
+                x + 10,
+                screen_y + 20,
+                label,
+                Vec3(0.82, 0.84, 0.86),
+            )
 
     def advance_camera(self, delta_time: float) -> None:
         forward = float(Qt.Key.Key_W in self.keys_pressed) - float(
@@ -176,6 +272,9 @@ class BvhViewport(QOpenGLWindow):
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             position = event.position()
+            if not self._is_perspective_position(position.x(), position.y()):
+                self._rotating_camera = False
+                return
             self._last_mouse_x = position.x()
             self._last_mouse_y = position.y()
             self._rotating_camera = True
@@ -201,8 +300,26 @@ class BvhViewport(QOpenGLWindow):
         super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event: QWheelEvent) -> None:
-        self.camera.process_mouse_scroll(event.angleDelta().y() * 0.01)
+        position = event.position()
+        if self.four_view and not self._is_perspective_position(
+            position.x(), position.y()
+        ):
+            wheel_steps = event.angleDelta().y() / 120.0
+            self.orthographic_half_height *= 0.9**wheel_steps
+            self.orthographic_half_height = max(
+                5.0, min(self.orthographic_half_height, 500.0)
+            )
+        else:
+            self.camera.process_mouse_scroll(event.angleDelta().y() * 0.01)
         self.update()
+
+    def _is_perspective_position(self, x: float, y: float) -> bool:
+        if not self.four_view:
+            return True
+        ratio = self.devicePixelRatio()
+        logical_width = self.window_width / ratio
+        logical_height = self.window_height / ratio
+        return x >= logical_width / 2 and y < logical_height / 2
 
 
 class MainWindow(QMainWindow):
@@ -274,6 +391,11 @@ class MainWindow(QMainWindow):
         self.trace_action.setShortcut(QKeySequence(Qt.Key.Key_T))
         self.trace_action.toggled.connect(self._set_trace)
 
+        self.four_view_action = QAction("Four Views", self)
+        self.four_view_action.setCheckable(True)
+        self.four_view_action.setShortcut(QKeySequence(Qt.Key.Key_4))
+        self.four_view_action.toggled.connect(self.viewport.set_four_view)
+
         self.fullscreen_action = QAction("Full Screen", self)
         self.fullscreen_action.setCheckable(True)
         self.fullscreen_action.setShortcut(QKeySequence(Qt.Key.Key_F))
@@ -300,6 +422,7 @@ class MainWindow(QMainWindow):
 
         view_menu = self.menuBar().addMenu("&View")
         view_menu.addAction(self.trace_action)
+        view_menu.addAction(self.four_view_action)
         view_menu.addAction(self.fullscreen_action)
 
     def _connect_timeline(self) -> None:
