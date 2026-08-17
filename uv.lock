@@ -473,6 +473,19 @@ wheels = [
 ]
 
 [[package]]
+name = "impasse"
+version = "5.4.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cffi" },
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/de/27/e850dc4ba356e5ab9c5af027daae006abb089862f6f47198a0c69182e346/impasse-5.4.2.tar.gz", hash = "sha256:582d6fb81ed49ace31531ff0af49d4577979ac9739376dad77d28c6aaa474158", size = 36969, upload-time = "2025-06-14T18:46:51.089Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/03/9a/ff686df740224778c939f3ec128caa9e3e25cd5fa23e490e89ffde25a9dc/impasse-5.4.2-py2.py3-none-any.whl", hash = "sha256:8518c24b839803e85c12b00aa1256b64acb8fee5b5a388dee15e9ed15d37cdf3", size = 38556, upload-time = "2025-06-14T18:46:50.063Z" },
+]
+
+[[package]]
 name = "iniconfig"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1126,6 +1139,7 @@ version = "0.2.0"
 source = { virtual = "." }
 dependencies = [
     { name = "freetype-py" },
+    { name = "impasse" },
     { name = "marimo" },
     { name = "matplotlib" },
     { name = "ncca-ngl" },
@@ -1145,6 +1159,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "freetype-py", specifier = ">=2.5.1" },
+    { name = "impasse", specifier = ">=5.4.2" },
     { name = "marimo", specifier = ">=0.17.2" },
     { name = "matplotlib", specifier = ">=3.10.7" },
     { name = "ncca-ngl", editable = "/Users/jmacey/teaching/Code/PyNGL" },

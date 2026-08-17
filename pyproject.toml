@@ -20,6 +20,7 @@ dependencies = [
     "matplotlib>=3.10.7",
     "ncca-ngl>=0.5.0",
     "openexr>=3.4.13",
+    "impasse>=5.4.2",
 ]
 
 
