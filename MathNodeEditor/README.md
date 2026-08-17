@@ -32,3 +32,9 @@ Open any of them with `File` -> `Open...`.
 uv run MathNodeEditor/main.py
 uv run pytest MathNodeEditor/tests
 ```
+
+## Developer notes
+
+[ARCHITECTURE.md](ARCHITECTURE.md) covers how the code is put together —
+the calculation graph, the Qt graphics layer, and the checklist for adding
+a new operation or node type.
