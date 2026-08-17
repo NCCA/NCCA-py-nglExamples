@@ -40,9 +40,11 @@ Drag with the left mouse button to look around and use the wheel to change the
 field of view. Four Views in the View menu splits the viewport into the usual
 Maya layout: the left mouse still only rotates the Perspective pane, but each
 of Top, Front and Side now has its own zoom and pan -- wheel over a pane to
-zoom just that one, middle-drag to pan it. Space maximizes whichever pane the
-mouse is over to fill the window, and space again puts the four-way layout
-back; move the mouse over the timeline first if you actually want play/pause.
+zoom just that one, middle-drag to pan it, or right-drag with a mouse. A
+two-finger click and drag does the same thing on a Mac trackpad. Space maximizes
+whichever pane the mouse is over to fill the window, and space again puts the
+four-way layout back; move the mouse over the timeline first if you actually
+want play/pause.
 The status bar shows the loaded filename, current frame and play state. Trace
 mode keeps the floor and animated skeleton visible under the joint paths.
 

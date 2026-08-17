@@ -412,7 +412,10 @@ class BvhViewport(QOpenGLWindow):
             self._last_mouse_y = position.y()
             self._rotating_camera = True
             return
-        if event.button() == Qt.MouseButton.MiddleButton:
+        if event.button() in (
+            Qt.MouseButton.MiddleButton,
+            Qt.MouseButton.RightButton,
+        ):
             position = event.position()
             index = self._pane_index_at(position.x(), position.y())
             if index is not None and index != PERSPECTIVE_VIEW:
@@ -432,9 +435,8 @@ class BvhViewport(QOpenGLWindow):
             self.camera.process_mouse_movement(diff_x, -diff_y)
             self.update()
             return
-        if (
-            self._panning_pane is not None
-            and event.buttons() & Qt.MouseButton.MiddleButton
+        if self._panning_pane is not None and event.buttons() & (
+            Qt.MouseButton.MiddleButton | Qt.MouseButton.RightButton
         ):
             position = event.position()
             diff_x = position.x() - self._last_mouse_x
@@ -454,7 +456,10 @@ class BvhViewport(QOpenGLWindow):
         if event.button() == Qt.MouseButton.LeftButton:
             self._rotating_camera = False
             return
-        if event.button() == Qt.MouseButton.MiddleButton:
+        if event.button() in (
+            Qt.MouseButton.MiddleButton,
+            Qt.MouseButton.RightButton,
+        ):
             self._panning_pane = None
             return
         super().mouseReleaseEvent(event)

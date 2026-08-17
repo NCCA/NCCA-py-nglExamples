@@ -344,6 +344,43 @@ def test_middle_drag_pans_only_the_targeted_ortho_pane(
     assert np.allclose(viewport.camera.front.to_numpy(), initial_camera_front)
 
 
+def test_right_drag_pans_an_ortho_pane(
+    application: QApplication,
+) -> None:
+    viewport = bvh_viewer.BvhViewport()
+    viewport.set_four_view(True)
+    viewport.resizeGL(800, 600)
+    initial_front_pan = (
+        viewport.ortho_views[bvh_viewer.FRONT_VIEW].pan.to_numpy().copy()
+    )
+
+    press_position = QPointF(20.0, 500.0)  # bottom-left quadrant -> FRONT_VIEW
+    move_position = QPointF(60.0, 520.0)
+    press = QMouseEvent(
+        QEvent.Type.MouseButtonPress,
+        press_position,
+        press_position,
+        Qt.MouseButton.RightButton,
+        Qt.MouseButton.RightButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    move = QMouseEvent(
+        QEvent.Type.MouseMove,
+        move_position,
+        move_position,
+        Qt.MouseButton.NoButton,
+        Qt.MouseButton.RightButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+
+    viewport.mousePressEvent(press)
+    viewport.mouseMoveEvent(move)
+
+    assert not np.allclose(
+        viewport.ortho_views[bvh_viewer.FRONT_VIEW].pan.to_numpy(), initial_front_pan
+    )
+
+
 def test_toggle_maximized_pane_collapses_to_one_view_and_restores(
     application: QApplication,
 ) -> None:
