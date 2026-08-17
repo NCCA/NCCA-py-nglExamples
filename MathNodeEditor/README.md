@@ -8,7 +8,7 @@ The value palette has `Float`, `Vec2`, `Vec3`, `Vec4`, `Mat2`, `Mat3`, `Mat4` an
 
 The Mat4 nodes cover translate, scale, rotation about each axis, `look_at`, perspective, orthographic and frustum projection, plus a `Transform` node wrapping PyNGL's `Transform` class (`Position`/`Rotation`/`Scale`, with rotation in degrees). Transform also has a Rotation Order dropdown for `xyz`, `yzx`, `zxy`, `xzy`, `yxz` and `zyx`; older graphs without the setting use `xyz`. These, and the quaternion axis-angle node, take their parameters from spin boxes built into the node itself rather than wired-in Value nodes — there's nothing to connect, just numbers to type. The remaining quaternion nodes (Hamilton product, vector rotation, conversion to and from `Mat4`, slerp, conjugate, inverse) still take wired inputs, since they combine other quaternions or matrices rather than raw numbers. The original add, subtract, component multiply, matrix multiply, dot, cross, normalise and transpose nodes are unchanged.
 
-`Multiply` is explicitly component-wise (PyNGL reserves `*` for scalar multiplication), whilst `Matrix Multiply` and `Quaternion Product` use the normal `@` operation.
+`Multiply` is explicitly component wise (PyNGL reserves `*` for scalar multiplication), whilst `Matrix Multiply` and `Quaternion Product` use the normal `@` operation.
 
 The Mesh group adds an `Obj Loader` node, which loads a triangulated `.obj` file and splits it into four separate outputs: `Vertices`, `Faces`, `UVs` and `Normals`. Non-triangular meshes are rejected with a graph error rather than auto-triangulated, same as `ColourObj`/`Obj2Numpy` elsewhere in this repo. `Transform Vertices` and `Transform Normals` let you push a matrix through those arrays — vertices take a `Mat4` (translation included), normals take a `Mat3` (translation dropped) — but the normal matrix isn't built for you. Wire up `Mat4 to Mat3` → `Inverse` → `Transpose` yourself if you want it correct under non-uniform scale, which is rather the point of a teaching tool.
 
@@ -24,7 +24,8 @@ Select a node or wire and press `Delete`/`Backspace` to remove it, or right-clic
 
 There are fourteen saved graphs covering basic vector arithmetic, `Vec2 @ Mat2`, homogeneous coordinates, triangle normals, Lambert diffuse, transform order, normal matrices, camera projections, quaternions and mesh transforms. The [examples catalogue](examples/README.md) explains what each graph demonstrates and suggests a value to change.
 
-Open any of them with `File` -> `Open...`. 
+Open any of them with `File` -> `Open...`.
+
 ## Running it
 
 ```bash
