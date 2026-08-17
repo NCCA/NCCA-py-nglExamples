@@ -272,13 +272,15 @@ def test_orthographic_drag_does_not_rotate_the_perspective_camera(
     assert np.allclose(viewport.camera.front.to_numpy(), initial_front)
 
 
-def test_wheel_zooms_the_orthographic_views_under_the_pointer(
+def test_wheel_zooms_only_the_orthographic_pane_under_the_pointer(
     application: QApplication,
 ) -> None:
     viewport = bvh_viewer.BvhViewport()
     viewport.set_four_view(True)
     viewport.resizeGL(800, 600)
-    initial_size = viewport.orthographic_half_height
+    initial_top = viewport.ortho_views[bvh_viewer.TOP_VIEW].half_height
+    initial_front = viewport.ortho_views[bvh_viewer.FRONT_VIEW].half_height
+    initial_side = viewport.ortho_views[bvh_viewer.SIDE_VIEW].half_height
     initial_perspective_zoom = viewport.camera.zoom
     wheel = QWheelEvent(
         QPointF(20.0, 20.0),
@@ -293,5 +295,123 @@ def test_wheel_zooms_the_orthographic_views_under_the_pointer(
 
     viewport.wheelEvent(wheel)
 
-    assert viewport.orthographic_half_height < initial_size
+    assert viewport.ortho_views[bvh_viewer.TOP_VIEW].half_height < initial_top
+    assert viewport.ortho_views[bvh_viewer.FRONT_VIEW].half_height == initial_front
+    assert viewport.ortho_views[bvh_viewer.SIDE_VIEW].half_height == initial_side
     assert viewport.camera.zoom == initial_perspective_zoom
+
+
+def test_middle_drag_pans_only_the_targeted_ortho_pane(
+    application: QApplication,
+) -> None:
+    viewport = bvh_viewer.BvhViewport()
+    viewport.set_four_view(True)
+    viewport.resizeGL(800, 600)
+    initial_front_pan = (
+        viewport.ortho_views[bvh_viewer.FRONT_VIEW].pan.to_numpy().copy()
+    )
+    initial_top_pan = viewport.ortho_views[bvh_viewer.TOP_VIEW].pan.to_numpy().copy()
+    initial_camera_front = viewport.camera.front.to_numpy().copy()
+
+    press_position = QPointF(20.0, 500.0)  # bottom-left quadrant -> FRONT_VIEW
+    move_position = QPointF(60.0, 520.0)
+    press = QMouseEvent(
+        QEvent.Type.MouseButtonPress,
+        press_position,
+        press_position,
+        Qt.MouseButton.MiddleButton,
+        Qt.MouseButton.MiddleButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    move = QMouseEvent(
+        QEvent.Type.MouseMove,
+        move_position,
+        move_position,
+        Qt.MouseButton.NoButton,
+        Qt.MouseButton.MiddleButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+
+    viewport.mousePressEvent(press)
+    viewport.mouseMoveEvent(move)
+
+    assert not np.allclose(
+        viewport.ortho_views[bvh_viewer.FRONT_VIEW].pan.to_numpy(), initial_front_pan
+    )
+    assert np.allclose(
+        viewport.ortho_views[bvh_viewer.TOP_VIEW].pan.to_numpy(), initial_top_pan
+    )
+    assert np.allclose(viewport.camera.front.to_numpy(), initial_camera_front)
+
+
+def test_toggle_maximized_pane_collapses_to_one_view_and_restores(
+    application: QApplication,
+) -> None:
+    viewport = bvh_viewer.BvhViewport()
+    viewport.set_four_view(True)
+    viewport.resizeGL(800, 600)
+
+    viewport.toggle_maximized_pane(20.0, 20.0)  # inside the TOP quadrant
+
+    assert viewport._pane_rectangles() == [(bvh_viewer.TOP_VIEW, (0, 0, 800, 600))]
+
+    viewport.toggle_maximized_pane(400.0, 300.0)  # anywhere restores four-view
+
+    assert viewport._maximized_pane is None
+    assert len(viewport._pane_rectangles()) == 4
+
+
+def test_maximized_pane_draws_and_labels_only_that_pane(
+    application: QApplication, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    viewport = bvh_viewer.BvhViewport()
+    viewport.set_four_view(True)
+    viewport.resizeGL(800, 600)
+    viewport.toggle_maximized_pane(20.0, 20.0)  # TOP_VIEW
+
+    labels: list[tuple[int, int, str]] = []
+    monkeypatch.setattr(bvh_viewer.gl, "glViewport", lambda *args: None)
+    monkeypatch.setattr(
+        bvh_viewer.Text,
+        "render_text",
+        lambda font, x, y, label, colour: labels.append((x, y, label)),
+    )
+
+    draws = viewport._pane_draws()
+    viewport._draw_view_labels()
+
+    assert len(draws) == 1
+    assert draws[0][0] == (0, 0, 800, 600)
+    assert labels == [(10, 20, "TOP")]
+
+
+def test_space_over_the_viewport_maximizes_the_pane_under_the_mouse(
+    application: QApplication, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    window = bvh_viewer.MainWindow(Path(__file__).parent.parent / "bvh" / "test.bvh")
+    window.viewport.set_four_view(True)
+    window.viewport.resizeGL(800, 600)
+    monkeypatch.setattr(window.viewport, "width", lambda: 800)
+    monkeypatch.setattr(window.viewport, "height", lambda: 600)
+    monkeypatch.setattr(window.viewport, "mapFromGlobal", lambda point: QPoint(20, 20))
+
+    window._handle_space()
+
+    assert window.viewport._maximized_pane == bvh_viewer.TOP_VIEW
+
+
+def test_space_outside_the_viewport_still_toggles_playback(
+    application: QApplication, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    window = bvh_viewer.MainWindow(Path(__file__).parent.parent / "bvh" / "test.bvh")
+    window.viewport.set_four_view(True)
+    window.viewport.resizeGL(800, 600)
+    monkeypatch.setattr(window.viewport, "width", lambda: 800)
+    monkeypatch.setattr(window.viewport, "height", lambda: 600)
+    monkeypatch.setattr(window.viewport, "mapFromGlobal", lambda point: QPoint(-5, -5))
+    was_paused = window.viewport.scene.paused
+
+    window._handle_space()
+
+    assert window.viewport.scene.paused != was_paused
+    assert window.viewport._maximized_pane is None

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import sys
 import traceback
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import OpenGL.GL as gl
@@ -17,6 +18,7 @@ from PySide6.QtCore import QElapsedTimer, QEvent, QObject, Qt, QTimer
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
+    QCursor,
     QKeyEvent,
     QKeySequence,
     QMouseEvent,
@@ -84,6 +86,66 @@ QSlider::handle:horizontal {
 """
 
 
+TOP_VIEW = 0
+PERSPECTIVE_VIEW = 1
+FRONT_VIEW = 2
+SIDE_VIEW = 3
+_VIEW_LABELS = ("TOP", "PERSPECTIVE", "FRONT", "SIDE")
+
+
+@dataclass
+class OrthoView:
+    """Zoom and pan state for one orthographic pane, independent of the others."""
+
+    eye: Vec3
+    target: Vec3
+    up: Vec3
+    right: Vec3
+    half_height: float = 40.0
+    pan: Vec3 = field(default_factory=lambda: Vec3(0.0, 0.0, 0.0))
+
+    def matrices(self, pane_width: int, pane_height: int) -> tuple[Mat4, Mat4]:
+        """Return this pane's current (view, projection) matrices.
+
+        Parameters
+        ----------
+            pane_width : int
+                pane width, in the same units as pane_height
+            pane_height : int
+                pane height, used to keep the projection square-pixelled
+
+        Returns
+        -------
+            tuple[Mat4, Mat4]
+                view matrix (including pan) and orthographic projection
+        """
+        half_width = self.half_height * pane_width / max(pane_height, 1)
+        project = ortho(
+            -half_width, half_width, -self.half_height, self.half_height, 0.05, 1500.0
+        )
+        view = look_at(self.eye + self.pan, self.target + self.pan, self.up)
+        return view, project
+
+    def pan_by(self, dx_pixels: float, dy_pixels: float, pane_height: float) -> None:
+        """Shift this pane's pan offset by a screen-space drag delta.
+
+        Parameters
+        ----------
+            dx_pixels : float
+                horizontal drag delta in screen pixels (positive is right)
+            dy_pixels : float
+                vertical drag delta in screen pixels (positive is down)
+            pane_height : float
+                current pane height, to convert pixels to world units
+        """
+        units_per_pixel = (2.0 * self.half_height) / max(pane_height, 1.0)
+        self.pan = (
+            self.pan
+            + self.right * (-dx_pixels * units_per_pixel)
+            + self.up * (dy_pixels * units_per_pixel)
+        )
+
+
 class BvhViewport(QOpenGLWindow):
     """The OpenGL viewport used by the main application window."""
 
@@ -104,7 +166,28 @@ class BvhViewport(QOpenGLWindow):
         self.scene = BvhScene()
         self.trace = False
         self.four_view = False
-        self.orthographic_half_height = 40.0
+        self.ortho_views: dict[int, OrthoView] = {
+            TOP_VIEW: OrthoView(
+                eye=Vec3(0, 500, 0),
+                target=Vec3(0, 0, 0),
+                up=Vec3(0, 0, -1),
+                right=Vec3(1, 0, 0),
+            ),
+            FRONT_VIEW: OrthoView(
+                eye=Vec3(0, 20, 500),
+                target=Vec3(0, 20, 0),
+                up=Vec3(0, 1, 0),
+                right=Vec3(1, 0, 0),
+            ),
+            SIDE_VIEW: OrthoView(
+                eye=Vec3(500, 20, 0),
+                target=Vec3(0, 20, 0),
+                up=Vec3(0, 1, 0),
+                right=Vec3(0, 0, -1),
+            ),
+        }
+        self._maximized_pane: int | None = None
+        self._panning_pane: int | None = None
         self.keys_pressed: set[Qt.Key] = set()
         self._rotating_camera = False
         self._last_mouse_x = 0.0
@@ -141,7 +224,7 @@ class BvhViewport(QOpenGLWindow):
         if self.four_view:
             gl.glClearColor(0.18, 0.19, 0.20, 1.0)
             gl.glEnable(gl.GL_SCISSOR_TEST)
-            for rectangle, view, project in self._four_view_draws():
+            for rectangle, view, project in self._pane_draws():
                 gl.glViewport(*rectangle)
                 gl.glScissor(*rectangle)
                 gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
@@ -165,7 +248,10 @@ class BvhViewport(QOpenGLWindow):
         if self._text_ready:
             Text.set_screen_size(self.window_width, self.window_height)
         if self.four_view:
-            _, _, pane_width, pane_height = self._four_view_rectangles()[0]
+            if self._maximized_pane is not None:
+                pane_width, pane_height = self.window_width, self.window_height
+            else:
+                _, _, pane_width, pane_height = self._four_view_rectangles()[0]
             aspect = pane_width / max(pane_height, 1)
         else:
             aspect = self.window_width / max(self.window_height, 1)
@@ -173,6 +259,32 @@ class BvhViewport(QOpenGLWindow):
 
     def set_four_view(self, enabled: bool) -> None:
         self.four_view = enabled
+        self._maximized_pane = None
+        self.resizeGL(
+            round(self.window_width / self.devicePixelRatio()),
+            round(self.window_height / self.devicePixelRatio()),
+        )
+        self.update()
+
+    def toggle_maximized_pane(self, x: float, y: float) -> None:
+        """Maximize the pane under (x, y), or restore the four-view layout.
+
+        Parameters
+        ----------
+            x : float
+                cursor position, window-local logical pixels
+            y : float
+                cursor position, window-local logical pixels
+        """
+        if not self.four_view:
+            return
+        if self._maximized_pane is not None:
+            self._maximized_pane = None
+        else:
+            index = self._pane_index_at(x, y)
+            if index is None:
+                return
+            self._maximized_pane = index
         self.resizeGL(
             round(self.window_width / self.devicePixelRatio()),
             round(self.window_height / self.devicePixelRatio()),
@@ -205,41 +317,62 @@ class BvhViewport(QOpenGLWindow):
             (right_x, 0, right_width, bottom_height),
         ]
 
-    def _four_view_draws(self) -> list[tuple[tuple[int, int, int, int], Mat4, Mat4]]:
-        rectangles = self._four_view_rectangles()
-        _, _, pane_width, pane_height = rectangles[0]
-        half_height = self.orthographic_half_height
-        half_width = half_height * pane_width / max(pane_height, 1)
-        project = ortho(
-            -half_width,
-            half_width,
-            -half_height,
-            half_height,
-            0.05,
-            1500.0,
-        )
-        top = look_at(Vec3(0, 500, 0), Vec3(0, 0, 0), Vec3(0, 0, -1))
-        front = look_at(Vec3(0, 20, 500), Vec3(0, 20, 0), Vec3(0, 1, 0))
-        side = look_at(Vec3(500, 20, 0), Vec3(0, 20, 0), Vec3(0, 1, 0))
-        return [
-            (rectangles[0], top, project),
-            (rectangles[1], self.camera.view, self.camera.projection),
-            (rectangles[2], front, project),
-            (rectangles[3], side, project),
-        ]
+    def _pane_rectangles(self) -> list[tuple[int, tuple[int, int, int, int]]]:
+        """Return (pane_index, rectangle) for every pane currently being drawn."""
+        if self._maximized_pane is not None:
+            return [
+                (self._maximized_pane, (0, 0, self.window_width, self.window_height))
+            ]
+        return list(enumerate(self._four_view_rectangles()))
+
+    def _pane_index_at(self, x: float, y: float) -> int | None:
+        """Return the pane index under a window-local logical-pixel position.
+
+        Parameters
+        ----------
+            x : float
+                cursor position, window-local logical pixels
+            y : float
+                cursor position, window-local logical pixels (Qt: 0 at the top)
+
+        Returns
+        -------
+            int or None
+                pane index, or None when four-view is off or (x, y) misses every pane
+        """
+        if not self.four_view:
+            return None
+        ratio = self.devicePixelRatio()
+        device_x = x * ratio
+        device_y = y * ratio
+        for index, (rx, ry, rw, rh) in self._pane_rectangles():
+            top = self.window_height - (ry + rh)
+            if rx <= device_x < rx + rw and top <= device_y < top + rh:
+                return index
+        return None
+
+    def _pane_draws(self) -> list[tuple[tuple[int, int, int, int], Mat4, Mat4]]:
+        draws = []
+        for index, rectangle in self._pane_rectangles():
+            if index == PERSPECTIVE_VIEW:
+                draws.append((rectangle, self.camera.view, self.camera.projection))
+            else:
+                _, _, pane_width, pane_height = rectangle
+                view, project = self.ortho_views[index].matrices(
+                    pane_width, pane_height
+                )
+                draws.append((rectangle, view, project))
+        return draws
 
     def _draw_view_labels(self) -> None:
         gl.glViewport(0, 0, self.window_width, self.window_height)
-        labels = ("TOP", "PERSPECTIVE", "FRONT", "SIDE")
-        for label, (x, y, _, height) in zip(
-            labels, self._four_view_rectangles(), strict=True
-        ):
+        for index, (x, y, _, height) in self._pane_rectangles():
             screen_y = self.window_height - (y + height)
             Text.render_text(
                 "BVHViewer",
                 x + 10,
                 screen_y + 20,
-                label,
+                _VIEW_LABELS[index],
                 Vec3(0.82, 0.84, 0.86),
             )
 
@@ -279,6 +412,14 @@ class BvhViewport(QOpenGLWindow):
             self._last_mouse_y = position.y()
             self._rotating_camera = True
             return
+        if event.button() == Qt.MouseButton.MiddleButton:
+            position = event.position()
+            index = self._pane_index_at(position.x(), position.y())
+            if index is not None and index != PERSPECTIVE_VIEW:
+                self._panning_pane = index
+                self._last_mouse_x = position.x()
+                self._last_mouse_y = position.y()
+            return
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
@@ -291,24 +432,40 @@ class BvhViewport(QOpenGLWindow):
             self.camera.process_mouse_movement(diff_x, -diff_y)
             self.update()
             return
+        if (
+            self._panning_pane is not None
+            and event.buttons() & Qt.MouseButton.MiddleButton
+        ):
+            position = event.position()
+            diff_x = position.x() - self._last_mouse_x
+            diff_y = position.y() - self._last_mouse_y
+            self._last_mouse_x = position.x()
+            self._last_mouse_y = position.y()
+            _, _, _, pane_height = dict(self._pane_rectangles())[self._panning_pane]
+            pane_height_logical = pane_height / self.devicePixelRatio()
+            self.ortho_views[self._panning_pane].pan_by(
+                diff_x, diff_y, pane_height_logical
+            )
+            self.update()
+            return
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             self._rotating_camera = False
             return
+        if event.button() == Qt.MouseButton.MiddleButton:
+            self._panning_pane = None
+            return
         super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         position = event.position()
-        if self.four_view and not self._is_perspective_position(
-            position.x(), position.y()
-        ):
+        index = self._pane_index_at(position.x(), position.y())
+        if index is not None and index != PERSPECTIVE_VIEW:
+            view = self.ortho_views[index]
             wheel_steps = event.angleDelta().y() / 120.0
-            self.orthographic_half_height *= 0.9**wheel_steps
-            self.orthographic_half_height = max(
-                5.0, min(self.orthographic_half_height, 500.0)
-            )
+            view.half_height = max(5.0, min(view.half_height * 0.9**wheel_steps, 500.0))
         else:
             self.camera.process_mouse_scroll(event.angleDelta().y() * 0.01)
         self.update()
@@ -316,10 +473,7 @@ class BvhViewport(QOpenGLWindow):
     def _is_perspective_position(self, x: float, y: float) -> bool:
         if not self.four_view:
             return True
-        ratio = self.devicePixelRatio()
-        logical_width = self.window_width / ratio
-        logical_height = self.window_height / ratio
-        return x >= logical_width / 2 and y < logical_height / 2
+        return self._pane_index_at(x, y) == PERSPECTIVE_VIEW
 
 
 class MainWindow(QMainWindow):
@@ -368,7 +522,7 @@ class MainWindow(QMainWindow):
 
         self.play_action = QAction("Play / Pause", self)
         self.play_action.setShortcut(QKeySequence(Qt.Key.Key_Space))
-        self.play_action.triggered.connect(self.toggle_playback)
+        self.play_action.triggered.connect(self._handle_space)
 
         self.first_action = QAction("First Frame", self)
         self.first_action.setShortcut(QKeySequence(Qt.Key.Key_Home))
@@ -509,6 +663,18 @@ class MainWindow(QMainWindow):
         """Toggle between playing and paused."""
         self.set_playing(self.viewport.scene.paused)
         self._sync_frame_display()
+
+    def _handle_space(self) -> None:
+        """Maximize the pane under the mouse, or play/pause everywhere else."""
+        local_pos = self.viewport.mapFromGlobal(QCursor.pos())
+        over_viewport = (
+            0 <= local_pos.x() < self.viewport.width()
+            and 0 <= local_pos.y() < self.viewport.height()
+        )
+        if over_viewport and self.viewport.four_view:
+            self.viewport.toggle_maximized_pane(local_pos.x(), local_pos.y())
+            return
+        self.toggle_playback()
 
     def set_playback_fps(self, fps: float) -> None:
         """Set the playback rate and update the animation timer.
