@@ -7,42 +7,38 @@ import argparse
 import sys
 import traceback
 
+from ncca.ngl import logger
 from node_editor import MathNodeWindow
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtWidgets import QApplication
 
 
 class DebugApplication(QApplication):
-    """
-    A custom QApplication subclass for improved debugging.
+    """A QApplication that reports exceptions raised inside Qt event handlers.
 
-    By default, Qt's event loop can suppress exceptions that occur within event handlers
-    (like paintGL or mouseMoveEvent), making it very difficult to debug as the application
-    may simply crash or freeze without any error message. This class overrides the `notify`
-    method to catch these exceptions, print a full traceback to the console, and then
-    re-raise the exception to halt the program, making the error immediately visible.
+    Qt's event loop normally swallows exceptions raised in ``paintGL``,
+    ``mouseMoveEvent`` and similar handlers, so the app just freezes or
+    crashes with no traceback. Overriding ``notify`` lets us print one
+    before re-raising.
     """
 
-    def __init__(self, argv):
+    def __init__(self, argv: list[str]) -> None:
+        """Create the application and log that debug mode is active."""
         super().__init__(argv)
         logger.info("Running in full debug mode")
 
-    def notify(self, receiver, event):
-        """
-        Overrides the central event handler to catch and report exceptions.
-        """
+    def notify(self, receiver: QObject, event: QEvent) -> bool:
+        """Forward to Qt's normal dispatch, printing a traceback on failure."""
         try:
-            # Attempt to process the event as usual
             return super().notify(receiver, event)
         except Exception:
-            # If an exception occurs, print the full traceback
             traceback.print_exc()
-            # Re-raise the exception to stop the application
             raise
 
 
-if __name__ == "__main__":
+def _parse_args() -> argparse.Namespace:
+    """Parse the --debug and --smoketest command-line flags."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--smoketest",
@@ -58,41 +54,49 @@ if __name__ == "__main__":
         action="store_true",
         help="run with DebugApplication (tracebacks from Qt event handlers)",
     )
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    # --- Application Entry Point ---
 
-    format: QSurfaceFormat = QSurfaceFormat()
-    # Request 4x multisampling for anti-aliasing
-    format.setSamples(4)
-    # Request OpenGL version 4.1 as this is the highest supported on macOS
-    format.setMajorVersion(4)
-    format.setMinorVersion(1)
-    # Request a Core Profile context, which removes deprecated, fixed-function pipeline features
-    format.setProfile(QSurfaceFormat.CoreProfile)
-    # Request a 24-bit depth buffer for proper 3D sorting
-    format.setDepthBufferSize(24)
+def _configure_surface_format() -> None:
+    """Set the default OpenGL surface format for every window this app creates.
+
+    Must run before any QApplication or QOpenGLWindow is constructed.
+    """
+    surface_format = QSurfaceFormat()
+    surface_format.setSamples(4)  # 4x multisampling for anti-aliasing
+    # OpenGL 4.1 Core is the highest version macOS supports.
+    surface_format.setMajorVersion(4)
+    surface_format.setMinorVersion(1)
+    surface_format.setProfile(QSurfaceFormat.CoreProfile)
+    surface_format.setDepthBufferSize(24)
     # Embedded previews and pop-out windows need to share ShaderLib's
     # OpenGL program ids.
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
-    # Set default format for all new OpenGL contexts
-    QSurfaceFormat.setDefaultFormat(format)
+    QSurfaceFormat.setDefaultFormat(surface_format)
 
-    # Apply this format to all new OpenGL contexts
-    QSurfaceFormat.setDefaultFormat(format)
 
-    if args.debug:
-        app = DebugApplication(sys.argv)
-    else:
-        app = QApplication(sys.argv)
+def main() -> int:
+    """Show the editor window and run the event loop; return the exit code.
 
+    Reuses an existing QApplication if one was already created (by the
+    ``__main__`` block below, or by a caller such as a test), rather than
+    always constructing a plain one, so callers can still choose
+    ``DebugApplication`` first.
+    """
+    app = QApplication.instance() or QApplication(sys.argv)
     app.setOrganizationName("NCCA")
     app.setApplicationName("MathNodeEditor")
     window = MathNodeWindow(load_example=True)
     window.show()
+    return app.exec()
 
+
+if __name__ == "__main__":
+    args = _parse_args()
+    _configure_surface_format()
+
+    app = DebugApplication(sys.argv) if args.debug else QApplication(sys.argv)
     if args.smoketest is not None:
         QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
 
-    # Start the application's event loop
-    sys.exit(app.exec())
+    sys.exit(main())

@@ -42,6 +42,8 @@ QUATERNION_HEADER_COLOUR = QColor("#7052a0")
 MESH_HEADER_COLOUR = QColor("#307b72")
 OUTPUT_HEADER_COLOUR = QColor("#98515b")
 
+# Every Operation needs an entry here (step 4 of "Adding a new operation"
+# in math_graph.py) or catalogue_node_style/operation_node_style raise KeyError.
 OPERATION_NODE_STYLES: dict[Operation, NodeVisualStyle] = {
     Operation.ADD: NodeVisualStyle("+", MATHS_HEADER_COLOUR),
     Operation.SUBTRACT: NodeVisualStyle("−", MATHS_HEADER_COLOUR),

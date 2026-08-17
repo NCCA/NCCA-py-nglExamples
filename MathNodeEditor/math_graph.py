@@ -38,6 +38,37 @@ class MathType(Enum):
     QUATERNION = "Quaternion"
 
 
+# Adding a new operation
+# ----------------------
+# A *wired* operation (its inputs come from other nodes, like Add or Cross)
+# needs, in this file:
+#   1. A member on Operation below.
+#   2. Its input socket names in OPERATION_INPUT_NAMES -- this also sets
+#      OPERATION_ARITY automatically, since arity is just len(names).
+#   3. A handler function (see _add, _cross, _normalise, ...) registered
+#      under the same key in _OPERATION_HANDLERS.
+# ...and one entry each in two other files, so the operation is paintable
+# and reachable from the UI:
+#   4. A NodeVisualStyle in node_visuals.OPERATION_NODE_STYLES.
+#   5. A slot in one of palette.py's operation tuples (MATH_OPERATIONS,
+#      MAT4_OPERATIONS, QUATERNION_OPERATIONS, MESH_OPERATIONS, or a new
+#      one) so it shows up in the Tab menu and side palette.
+#
+# A *generator* operation (parameters are typed in on the node itself, like
+# Look At or Transform, rather than wired) additionally needs:
+#   6. A place in GENERATOR_OPERATIONS below.
+#   7. Its parameter types in OPERATION_PARAMETER_TYPES, listed in the same
+#      order as step 2's OPERATION_INPUT_NAMES.
+#   8. Its result type in GENERATOR_OUTPUT_TYPE.
+#   9. Starting numbers in graphics_items.GENERATOR_DEFAULTS, so a freshly
+#      created node shows something sensible rather than zeroes.
+#
+# Adding a whole new *kind* of node -- not just another Operation, but
+# something structurally different like Obj Loader or Mesh Viewer -- is a
+# bigger job: a GraphNode dataclass and MathGraph methods here, a NODE_KINDS
+# entry and a _validate_node case in graph_document.py, a BaseNodeItem
+# subclass in graphics_items.py, a style in node_visuals.py, a catalogue
+# entry in palette.py, and to_dict/from_dict cases in canvas.py.
 class Operation(Enum):
     """Operations which can be added to a graph."""
 
@@ -665,7 +696,15 @@ def validate_mesh_arrays(
 
 @dataclass(slots=True)
 class ValueNode:
-    """A typed source value in the graph."""
+    """A typed source value in the graph.
+
+    Attributes
+    ----------
+        math_type : MathType
+            the PyNGL type this node's components are read as
+        components : tuple[float, ...]
+            the raw numbers, in ``VALUE_CLASSES[math_type]`` constructor order
+    """
 
     math_type: MathType
     components: tuple[float, ...]
@@ -678,6 +717,15 @@ class GeneratorNode:
     Suits operations like Look At, Perspective and Transform, whose PyNGL
     inputs are just labelled Float/Vec3 numbers rather than other computed
     values, so there is nothing meaningful to connect a wire to.
+
+    Attributes
+    ----------
+        operation : Operation
+            which GENERATOR_OPERATIONS member this node evaluates
+        parameters : list[tuple[float, ...]]
+            one component tuple per name in OPERATION_INPUT_NAMES[operation]
+        rotation_order : str | None
+            Transform's rotation order; unused (and ``None``) elsewhere
     """
 
     operation: Operation
@@ -687,7 +735,15 @@ class GeneratorNode:
 
 @dataclass(slots=True)
 class OperationNode:
-    """A mathematical operation and its input connections."""
+    """A mathematical operation and its input connections.
+
+    Attributes
+    ----------
+        operation : Operation
+            which operation this node evaluates
+        inputs : dict[int, str]
+            source node id for each connected input, keyed by input index
+    """
 
     operation: Operation
     inputs: dict[int, str] = field(default_factory=dict)
@@ -720,7 +776,21 @@ class MeshViewerNode:
 
 @dataclass(slots=True)
 class MeshViewerInputs:
-    """The evaluated inputs of a Mesh Viewer node, ready to merge and render."""
+    """The evaluated inputs of a Mesh Viewer node, ready to merge and render.
+
+    Attributes
+    ----------
+        vertices : VertexArray
+            the mesh's vertex positions
+        faces : FaceArray
+            the mesh's triangles, as per-corner vertex/uv/normal indices
+        uvs : UVArray | None
+            the mesh's texture coordinates, if the UVs input is wired
+        normals : NormalArray | None
+            the mesh's vertex normals, if the Normals input is wired
+        colour : Vec4 | None
+            the solid-shading colour, if the Colour input is wired
+    """
 
     vertices: VertexArray
     faces: FaceArray
