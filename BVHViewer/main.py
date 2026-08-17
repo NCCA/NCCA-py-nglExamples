@@ -119,14 +119,18 @@ class BvhViewport(QOpenGLWindow):
     def paintGL(self) -> None:
         self.makeCurrent()
         gl.glViewport(0, 0, self.window_width, self.window_height)
-        if not self.trace:
-            gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
         frame_time = self._frame_timer.elapsed() * 0.001
         delta_time = min(max(frame_time - self._last_frame_time, 0.0), 0.05)
         self._last_frame_time = frame_time
         self.advance_camera(delta_time)
-        self.scene.draw(self.camera.view, self.camera.projection, Mat4())
+        self.scene.draw(
+            self.camera.view,
+            self.camera.projection,
+            Mat4(),
+            trace=self.trace,
+        )
         if self.keys_pressed & self._MOVE_KEYS:
             self.update()
 

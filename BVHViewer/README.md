@@ -31,13 +31,14 @@ without changing the motion data.
 | Space | play / pause |
 | Home / End | first / last frame |
 | ← / → | previous / next frame |
-| T | toggle trace mode (stop clearing the framebuffer, for a motion-trail look) |
+| T | toggle trace mode (draw a different coloured motion path for each joint) |
 | W / A / S / D | move the camera |
 | F | fullscreen |
 
 Drag with the left mouse button to look around and use the wheel to change the
 field of view. The status bar shows the loaded filename, current frame and play
-state.
+state. Trace mode keeps the floor and animated skeleton visible under the joint
+paths.
 
 ## How it works
 
@@ -45,7 +46,8 @@ state.
   `step_forward`/`step_backward`/`replay`/`advance`). No Qt, no OpenGL, so it's
   headlessly testable.
 - `bvh_scene.py` -- the drawing: walks the joint tree each frame, building a
-  sphere at every joint and a cylinder for every bone.
+  sphere at every joint and a cylinder for every bone. Trace mode samples the
+  joint positions into NumPy arrays and draws them as coloured VAO line strips.
 - `timeline.py` -- the scrubber, draggable playback range, numeric frame/FPS
   fields and transport controls.
 - `main.py` -- the application window, first-person camera, file menu, playback
