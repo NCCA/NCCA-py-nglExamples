@@ -23,6 +23,11 @@ from PySide6.QtWidgets import (
 if TYPE_CHECKING:
     from canvas import MathNodeScene, MathNodeView
 
+# A new Operation goes in one of these tuples (or a new one added to
+# NODE_CATALOGUE below) -- step 5 of "Adding a new operation" in
+# math_graph.py. Anything in GENERATOR_OPERATIONS is wired up as a
+# generator node automatically by _operation_catalogue_entries; everything
+# else gets the usual wired-input operation node.
 MATH_OPERATIONS = (
     Operation.ADD,
     Operation.SUBTRACT,

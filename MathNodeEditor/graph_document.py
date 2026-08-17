@@ -19,6 +19,10 @@ from math_graph import (
 )
 
 SCHEMA_VERSION = 1
+# A whole new node kind (see the last paragraph of "Adding a new operation"
+# in math_graph.py) needs a name added here and a matching case in
+# _validate_node and _input_count below, or saved graphs containing it fail
+# validate_document before they even reach the canvas.
 NODE_KINDS = frozenset(
     {"value", "operation", "generator", "output", "obj_loader", "mesh_viewer"}
 )

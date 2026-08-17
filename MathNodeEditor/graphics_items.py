@@ -128,6 +128,9 @@ def default_components(math_type: MathType) -> tuple[float, ...]:
     )
 
 
+# Every GENERATOR_OPERATIONS member needs starting numbers here -- step 9
+# of "Adding a new operation" in math_graph.py -- or
+# default_generator_parameters raises KeyError when the node is created.
 GENERATOR_DEFAULTS: dict[Operation, tuple[tuple[float, ...], ...]] = {
     Operation.LOOK_AT: ((0.0, 2.0, 8.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
     Operation.PERSPECTIVE: ((45.0,), (1.778,), (0.1,), (100.0,)),
