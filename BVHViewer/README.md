@@ -32,11 +32,12 @@ without changing the motion data.
 | Home / End | first / last frame |
 | ← / → | previous / next frame |
 | T | toggle trace mode (stop clearing the framebuffer, for a motion-trail look) |
-| W / S | wireframe / filled |
+| W / A / S / D | move the camera |
 | F | fullscreen |
 
-Left mouse rotates, right mouse pans and the wheel zooms. The status bar shows
-the loaded filename, current frame and play state.
+Drag with the left mouse button to look around and use the wheel to change the
+field of view. The status bar shows the loaded filename, current frame and play
+state.
 
 ## How it works
 
@@ -47,8 +48,8 @@ the loaded filename, current frame and play state.
   sphere at every joint and a cylinder for every bone.
 - `timeline.py` -- the scrubber, draggable playback range, numeric frame/FPS
   fields and transport controls.
-- `main.py` -- the application window, file menu, playback timer and OpenGL
-  viewport.
+- `main.py` -- the application window, first-person camera, file menu, playback
+  timer and OpenGL viewport.
 - `tests/` -- pytest, run with `uv run pytest BVHViewer/tests` from the root of
   the repository.
 

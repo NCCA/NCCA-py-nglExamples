@@ -11,10 +11,17 @@ from pathlib import Path
 import OpenGL.GL as gl
 from bvh import Bvh, BvhParseError
 from bvh_scene import BvhScene
-from ncca.ngl import Mat4, Vec3, logger, look_at, perspective
-from ncca.ngl.opengl import PySideEventHandlingMixin
-from PySide6.QtCore import QEvent, QObject, Qt, QTimer
-from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QSurfaceFormat
+from ncca.ngl import FirstPersonCamera, Mat4, Vec3, logger
+from PySide6.QtCore import QElapsedTimer, QEvent, QObject, Qt, QTimer
+from PySide6.QtGui import (
+    QAction,
+    QCloseEvent,
+    QKeyEvent,
+    QKeySequence,
+    QMouseEvent,
+    QSurfaceFormat,
+    QWheelEvent,
+)
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import (
     QApplication,
@@ -76,30 +83,37 @@ QSlider::handle:horizontal {
 """
 
 
-class BvhViewport(PySideEventHandlingMixin, QOpenGLWindow):
+class BvhViewport(QOpenGLWindow):
     """The OpenGL viewport used by the main application window."""
+
+    _MOVE_KEYS = {Qt.Key.Key_W, Qt.Key.Key_A, Qt.Key.Key_S, Qt.Key.Key_D}
 
     def __init__(self) -> None:
         super().__init__()
-        self.setup_event_handling(
-            rotation_sensitivity=0.5,
-            translation_sensitivity=0.01,
-            zoom_sensitivity=0.1,
-            initial_position=Vec3(0, 0, 0),
+        self.camera = FirstPersonCamera(
+            Vec3(0, 12, 100),
+            Vec3(0, 12, 0),
+            Vec3(0, 1, 0),
+            45.0,
         )
-        self.view = Mat4()
-        self.project = Mat4()
+        self.camera.speed = 25.0
         self.window_width = 1024
         self.window_height = 640
         self.scene = BvhScene()
         self.trace = False
+        self.keys_pressed: set[Qt.Key] = set()
+        self._rotating_camera = False
+        self._last_mouse_x = 0.0
+        self._last_mouse_y = 0.0
+        self._frame_timer = QElapsedTimer()
+        self._frame_timer.start()
+        self._last_frame_time = 0.0
 
     def initializeGL(self) -> None:
         self.makeCurrent()
         gl.glClearColor(0.18, 0.19, 0.20, 1.0)
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_MULTISAMPLE)
-        self.view = look_at(Vec3(0, 25, 100), Vec3(0, 0, 0), Vec3(0, 1, 0))
         self.scene.initialize_gl()
 
     def paintGL(self) -> None:
@@ -108,18 +122,83 @@ class BvhViewport(PySideEventHandlingMixin, QOpenGLWindow):
         if not self.trace:
             gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        rot_x = Mat4().rotate_x(self.spin_x_face)
-        rot_y = Mat4().rotate_y(self.spin_y_face)
-        mouse_global_tx = rot_y @ rot_x
-        mouse_global_tx[3, 0] = self.model_position.x
-        mouse_global_tx[3, 1] = self.model_position.y
-        mouse_global_tx[3, 2] = self.model_position.z
-        self.scene.draw(self.view, self.project, mouse_global_tx)
+        frame_time = self._frame_timer.elapsed() * 0.001
+        delta_time = min(max(frame_time - self._last_frame_time, 0.0), 0.05)
+        self._last_frame_time = frame_time
+        self.advance_camera(delta_time)
+        self.scene.draw(self.camera.view, self.camera.projection, Mat4())
+        if self.keys_pressed & self._MOVE_KEYS:
+            self.update()
 
     def resizeGL(self, width: int, height: int) -> None:
         self.window_width = int(width * self.devicePixelRatio())
         self.window_height = int(height * self.devicePixelRatio())
-        self.project = perspective(45.0, float(width) / max(height, 1), 0.05, 1500.0)
+        self.camera.aspect = float(width) / max(height, 1)
+        self.camera.near = 0.05
+        self.camera.far = 1500.0
+        self.camera._projection = self.camera.set_projection(
+            self.camera.zoom,
+            self.camera.aspect,
+            self.camera.near,
+            self.camera.far,
+        )
+
+    def advance_camera(self, delta_time: float) -> None:
+        forward = float(Qt.Key.Key_W in self.keys_pressed) - float(
+            Qt.Key.Key_S in self.keys_pressed
+        )
+        strafe = float(Qt.Key.Key_D in self.keys_pressed) - float(
+            Qt.Key.Key_A in self.keys_pressed
+        )
+        if forward != 0.0 or strafe != 0.0:
+            self.camera.move(forward, strafe, delta_time)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.key() in self._MOVE_KEYS:
+            if not event.isAutoRepeat():
+                self.keys_pressed.add(event.key())
+            self.update()
+            return
+        super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event: QKeyEvent) -> None:
+        if event.key() in self._MOVE_KEYS:
+            if not event.isAutoRepeat():
+                self.keys_pressed.discard(event.key())
+            self.update()
+            return
+        super().keyReleaseEvent(event)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            position = event.position()
+            self._last_mouse_x = position.x()
+            self._last_mouse_y = position.y()
+            self._rotating_camera = True
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if self._rotating_camera and event.buttons() & Qt.MouseButton.LeftButton:
+            position = event.position()
+            diff_x = position.x() - self._last_mouse_x
+            diff_y = position.y() - self._last_mouse_y
+            self._last_mouse_x = position.x()
+            self._last_mouse_y = position.y()
+            self.camera.process_mouse_movement(diff_x, -diff_y)
+            self.update()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._rotating_camera = False
+            return
+        super().mouseReleaseEvent(event)
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        self.camera.process_mouse_scroll(event.angleDelta().y() * 0.01)
+        self.update()
 
 
 class MainWindow(QMainWindow):
