@@ -24,7 +24,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from timeline import TimelineWidget
+from timeline import FrameRangeSlider, TimelineWidget
+
+__all__ = ["FrameRangeSlider", "TimelineWidget"]
 
 DEMO_DIR = Path(__file__).resolve().parent
 DEFAULT_BVH = DEMO_DIR / "bvh" / "Male1_B10_WalkTurnLeft45.bvh"
@@ -52,7 +54,7 @@ QPushButton {
 }
 QPushButton:hover { background: #51565c; }
 QPushButton:pressed, QPushButton:checked { background: #697985; }
-QSpinBox {
+QSpinBox, QDoubleSpinBox {
     background: #202225;
     border: 1px solid #53585e;
     padding: 2px 5px;
@@ -146,7 +148,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
 
         self._playback_timer = QTimer(self)
-        self._playback_timer.timeout.connect(self._advance)
+        self._playback_timer.timeout.connect(self.advance_playback)
 
         self._create_actions()
         self._create_menus()
@@ -219,6 +221,8 @@ class MainWindow(QMainWindow):
 
     def _connect_timeline(self) -> None:
         self.timeline.frame_requested.connect(self.seek_frame)
+        self.timeline.playback_range_changed.connect(self._playback_range_changed)
+        self.timeline.fps_changed.connect(self.set_playback_fps)
         self.timeline.first_requested.connect(self.go_to_first_frame)
         self.timeline.previous_requested.connect(self.step_backward)
         self.timeline.play_toggled.connect(self.toggle_playback)
@@ -270,8 +274,8 @@ class MainWindow(QMainWindow):
 
         self.viewport.scene.set_character(character)
         self._bvh_path = resolved
-        self._playback_timer.setInterval(max(1, round(character.frame_time * 1000)))
         self.timeline.set_clip(character.num_frames, character.frame_time)
+        self.set_playback_fps(self.timeline.playback_fps())
         self.set_playing(True)
         self.setWindowTitle(f"BVHViewer — {resolved.name}")
         self._sync_frame_display()
@@ -300,6 +304,27 @@ class MainWindow(QMainWindow):
         self.set_playing(self.viewport.scene.paused)
         self._sync_frame_display()
 
+    def set_playback_fps(self, fps: float) -> None:
+        """Set the playback rate and update the animation timer.
+
+        Parameters
+        ----------
+            fps : float
+                requested playback frames per second
+        """
+        bounded_fps = max(1.0, min(float(fps), 240.0))
+        self.timeline.set_playback_fps(bounded_fps)
+        self._playback_timer.setInterval(max(1, round(1000.0 / bounded_fps)))
+        self._sync_frame_display()
+
+    def playback_fps(self) -> float:
+        """Return the selected playback frame rate."""
+        return self.timeline.playback_fps()
+
+    def playback_interval_ms(self) -> int:
+        """Return the current playback timer interval in milliseconds."""
+        return self._playback_timer.interval()
+
     def seek_frame(self, frame: int) -> None:
         """Pause and display the requested timeline frame.
 
@@ -315,40 +340,51 @@ class MainWindow(QMainWindow):
 
     def go_to_first_frame(self) -> None:
         """Pause and jump to the start of the clip."""
-        self.seek_frame(0)
+        range_start, _ = self.timeline.playback_range()
+        self.seek_frame(range_start)
 
     def go_to_last_frame(self) -> None:
         """Pause and jump to the end of the clip."""
-        self.seek_frame(max(0, self.viewport.scene.frame_count() - 1))
+        _, range_end = self.timeline.playback_range()
+        self.seek_frame(range_end)
 
     def step_forward(self) -> None:
         """Pause and move forward by one frame."""
-        self.set_playing(False)
-        self.viewport.scene.step_forward()
-        self._sync_frame_display()
-        self.viewport.update()
+        range_start, range_end = self.timeline.playback_range()
+        current = self.viewport.scene.current_frame_number()
+        target = range_start if current < range_start else min(current + 1, range_end)
+        self.seek_frame(target)
 
     def step_backward(self) -> None:
         """Pause and move backwards by one frame."""
-        self.set_playing(False)
-        self.viewport.scene.step_backward()
-        self._sync_frame_display()
-        self.viewport.update()
+        range_start, range_end = self.timeline.playback_range()
+        current = self.viewport.scene.current_frame_number()
+        target = range_end if current > range_end else max(current - 1, range_start)
+        self.seek_frame(target)
 
-    def _advance(self) -> None:
-        self.viewport.scene.advance()
+    def advance_playback(self) -> None:
+        """Advance one timer tick within the selected playback range."""
+        range_start, range_end = self.timeline.playback_range()
+        self.viewport.scene.advance_in_range(range_start, range_end)
         self._sync_frame_display()
         self.viewport.update()
 
     def _sync_frame_display(self) -> None:
         frame = self.viewport.scene.current_frame_number()
         last_frame = max(0, self.viewport.scene.frame_count() - 1)
+        range_start, range_end = self.timeline.playback_range()
         self.timeline.set_frame(frame)
         filename = self._bvh_path.name if self._bvh_path else "No clip"
         state = "Playing" if not self.viewport.scene.paused else "Paused"
         self.statusBar().showMessage(
-            f"{filename}    Frame {frame} / {last_frame}    {state}"
+            f"{filename}    Frame {frame} / {last_frame}    "
+            f"Range {range_start} - {range_end}    "
+            f"{self.playback_fps():.2f} fps    {state}"
         )
+
+    def _playback_range_changed(self, range_start: int, range_end: int) -> None:
+        del range_start, range_end
+        self._sync_frame_display()
 
     def _set_trace(self, enabled: bool) -> None:
         self.viewport.trace = enabled

@@ -88,6 +88,21 @@ class BvhScene:
         for character in self.characters:
             character.advance()
 
+    def advance_in_range(self, range_start: int, range_end: int) -> None:
+        """Advance each character within an inclusive playback range.
+
+        Parameters
+        ----------
+            range_start : int
+                first frame in the playback range
+            range_end : int
+                last frame in the playback range
+        """
+        if self.paused:
+            return
+        for character in self.characters:
+            character.advance_in_range(range_start, range_end)
+
     def current_frame_number(self) -> int:
         """The first character's current frame, or 0 if the scene is empty."""
         if not self.characters:

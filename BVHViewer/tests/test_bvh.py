@@ -176,6 +176,24 @@ def test_advance_loops_back_to_zero_after_the_last_frame():
 
 
 @pytest.mark.parametrize(
+    ("current_frame", "range_start", "range_end", "expected_frame"),
+    [(10, 10, 12, 11), (12, 10, 12, 10), (5, 10, 12, 10), (20, 10, 12, 10)],
+)
+def test_advance_in_range_stays_inside_the_inclusive_playback_range(
+    current_frame: int,
+    range_start: int,
+    range_end: int,
+    expected_frame: int,
+) -> None:
+    bvh = Bvh(TEST_BVH)
+    bvh.seek(current_frame)
+
+    bvh.advance_in_range(range_start, range_end)
+
+    assert bvh.current_frame == expected_frame
+
+
+@pytest.mark.parametrize(
     ("requested_frame", "expected_frame"),
     [(-10, 0), (0, 0), (1, 1), (200, 1)],
 )

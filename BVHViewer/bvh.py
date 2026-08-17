@@ -271,6 +271,23 @@ class Bvh:
         else:
             self.current_frame += 1
 
+    def advance_in_range(self, range_start: int, range_end: int) -> None:
+        """Advance within an inclusive playback range.
+
+        Parameters
+        ----------
+            range_start : int
+                first frame in the playback range
+            range_end : int
+                last frame in the playback range
+        """
+        start = max(0, min(int(range_start), self.num_frames - 1))
+        end = max(start, min(int(range_end), self.num_frames - 1))
+        if self.current_frame < start or self.current_frame >= end:
+            self.current_frame = start
+        else:
+            self.current_frame += 1
+
     # ------------------------------------------------------------- pose
     def local_matrix(self, joint: Joint) -> Mat4:
         """The transform from `joint`'s parent to `joint`, at the current frame.

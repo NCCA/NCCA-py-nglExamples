@@ -48,3 +48,13 @@ def test_frame_count_matches_the_loaded_character() -> None:
     scene.set_character(Bvh.from_text(_CLIP))
 
     assert scene.frame_count() == 3
+
+
+def test_advance_in_range_loops_at_the_selected_end_frame() -> None:
+    scene = BvhScene()
+    scene.set_character(Bvh.from_text(_CLIP))
+    scene.seek(2)
+
+    scene.advance_in_range(1, 2)
+
+    assert scene.current_frame_number() == 1

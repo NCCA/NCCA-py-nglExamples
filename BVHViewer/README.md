@@ -17,9 +17,14 @@ the command line:
 uv run BVHViewer/main.py --bvh BVHViewer/bvh/test.bvh
 ```
 
-The bottom panel shows the current frame, clip range and frame rate. Drag the
+The bottom panel shows the current frame, clip range and playback rate. Drag the
 orange timeline handle to scrub, type a frame into the frame field, or use the
 transport buttons to jump, step and play. Manual frame changes pause playback.
+
+The second orange bar sets the playback range. Drag either end of the bar or
+type the start and end frames into the fields. Playback and the transport
+controls then stay inside that range. The FPS field changes the playback speed
+without changing the motion data.
 
 | Key | Does |
 | --- | --- |
@@ -40,7 +45,8 @@ the loaded filename, current frame and play state.
   headlessly testable.
 - `bvh_scene.py` -- the drawing: walks the joint tree each frame, building a
   sphere at every joint and a cylinder for every bone.
-- `timeline.py` -- the scrubber, frame field and transport controls.
+- `timeline.py` -- the scrubber, draggable playback range, numeric frame/FPS
+  fields and transport controls.
 - `main.py` -- the application window, file menu, playback timer and OpenGL
   viewport.
 - `tests/` -- pytest, run with `uv run pytest BVHViewer/tests` from the root of
