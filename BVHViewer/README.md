@@ -32,13 +32,16 @@ without changing the motion data.
 | Home / End | first / last frame |
 | ← / → | previous / next frame |
 | T | toggle trace mode (draw a different coloured motion path for each joint) |
+| 4 | toggle the Top, Perspective, Front and Side layout |
 | W / A / S / D | move the camera |
 | F | fullscreen |
 
 Drag with the left mouse button to look around and use the wheel to change the
-field of view. The status bar shows the loaded filename, current frame and play
-state. Trace mode keeps the floor and animated skeleton visible under the joint
-paths.
+field of view. Four Views in the View menu splits the viewport into the usual
+Maya layout. The left mouse controls the Perspective pane and the wheel zooms
+the Perspective pane or changes the scale of the orthographic views. The status
+bar shows the loaded filename, current frame and play state. Trace mode keeps
+the floor and animated skeleton visible under the joint paths.
 
 ## How it works
 
@@ -50,8 +53,8 @@ paths.
   joint positions into NumPy arrays and draws them as coloured VAO line strips.
 - `timeline.py` -- the scrubber, draggable playback range, numeric frame/FPS
   fields and transport controls.
-- `main.py` -- the application window, first-person camera, file menu, playback
-  timer and OpenGL viewport.
+- `main.py` -- the application window, first-person and orthographic cameras,
+  file menu, playback timer and OpenGL viewport.
 - `tests/` -- pytest, run with `uv run pytest BVHViewer/tests` from the root of
   the repository.
 
