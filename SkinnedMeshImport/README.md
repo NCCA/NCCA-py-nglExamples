@@ -17,16 +17,16 @@ uv run SkinnedMeshImport/main.py
 
 ## Controls
 
-| Key / control | Action |
-| :--- | :--- |
-| `W`/`A`/`S`/`D` | fly the camera forward/left/back/right |
-| LMB-drag | look around |
-| wheel | zoom (perspective pane) / scale (ortho pane) |
-| MMB/RMB-drag in an ortho pane | pan that pane |
-| `4`, or View > Four Views | toggle the TOP/PERSPECTIVE/FRONT/SIDE split |
-| click a pane in four-view | maximize it; click again to restore |
-| `Cmd`/`Ctrl` + `O`, or File > Open | load a different rigged mesh |
-| Timeline transport | play/pause, step, scrub, playback rate/range |
+| Key / control                      | Action                                       |
+| :--------------------------------- | :------------------------------------------- |
+| `W`/`A`/`S`/`D`                    | fly the camera forward/left/back/right       |
+| LMB-drag                           | look around                                  |
+| wheel                              | zoom (perspective pane) / scale (ortho pane) |
+| MMB/RMB-drag in an ortho pane      | pan that pane                                |
+| `4`, or View > Four Views          | toggle the TOP/PERSPECTIVE/FRONT/SIDE split  |
+| click a pane in four-view          | maximize it; click again to restore          |
+| `Cmd`/`Ctrl` + `O`, or File > Open | load a different rigged mesh                 |
+| Timeline transport                 | play/pause, step, scrub, playback rate/range |
 
 The camera setup mirrors `BVHViewer` exactly: a `FirstPersonCamera` for the perspective pane, three independent `OrthoView` panes with their own pan/zoom state for TOP/FRONT/SIDE, `glScissor`-clipped rendering into a 2x2 split, and click-to-maximize. One wrinkle specific to this demo: `FirstPersonCamera`'s yaw/pitch always treats **Y** as vertical regardless of the `up` vector passed to its constructor, but MD5 (idTech) meshes come out Z-up in post-import world space -- every other format this demo loads ends up Y-up. Rather than teach the camera two conventions, I key this off the `.md5mesh` extension itself, since that's a fixed property of the format, and give a Z-up mesh one constant `rotate_x(-90)` model matrix in `_draw_mesh` to present it to the camera (and to lighting) already in Y-up space. Guessing from the bounding box instead would have been a mistake -- a character posed with a limb held out, like this demo's own guard holding its lamp arm out, can end up wider than it is tall.
 
@@ -34,16 +34,12 @@ File > Open isn't limited to MD5 -- it hands whatever you pick straight to impas
 
 ## impasse has two struct bugs
 
-Getting this working meant finding two genuine bugs in impasse 5.4.2 (the latest release on PyPI), both a mismatch between the struct layouts impasse's `cffi` bindings declare and what the installed `libassimp` (6.0.5 here) actually compiled. I've worked around both locally in `mesh.py` rather than patching the installed package, since `uv sync` would just overwrite that.
+Getting this working meant finding two bugs in impasse 5.4.2 (the latest release on PyPI), both a mismatch between the struct layouts impasse's `cffi` bindings declare and what the installed `libassimp` (6.0.5 here) actually compiled. I've worked around both locally in `mesh.py` rather than patching the installed package, since `uv sync` would just overwrite that.
 
 1. **`aiBone`**: impasse declares the field order `mName, mArmature, mNode, mNumWeights, mWeights, mOffsetMatrix`. Real assimp (see `mesh.h`) puts `mNumWeights` straight after `mName`, before the armature/node pointers. Reading `Bone.weights` or `Bone.offset_matrix` through impasse's own accessors walks off that offset and segfaults.
 2. **`aiQuatKey`**: impasse's cdef is missing the trailing `aiAnimInterpolation mInterpolation` enum that real assimp has on both `aiVectorKey` and `aiQuatKey`. It doesn't matter for `aiVectorKey` -- the struct's 20 real bytes round up to 24 for 8-byte alignment regardless, so the missing field just gets absorbed by padding. It does matter for `aiQuatKey`, whose 24 real bytes are already aligned: impasse computes a 24-byte element stride where the real array uses 32, so `rotation_keys[i]` for `i > 0` silently reads from the wrong offset -- the first key looks fine, everything after it doesn't.
 
 I read both fields instead by re-casting the same underlying struct pointer through a small private `cffi` definition with the corrected layout -- see `_read_bone_weights_and_offset` and `_read_rotation_keys` in `mesh.py`.
-
-## One PyNGL texture-convention gotcha, not an impasse bug
-
-`ncca.ngl.opengl.Texture` uploads pixels in the order PIL decodes them (row 0 = the top of the image), without flipping for OpenGL's bottom-left texture origin. Everything worked except the textures, which took a moment to place -- the model was clearly the right shape and correctly posed, just muddy and wrong-looking, and it wasn't obvious at first that this was a V-flip rather than something wrong with the skinning itself. `mesh.py` flips V itself (`1.0 - v`) when building the UV buffer, rather than fixing it in the library.
 
 ## Tests
 
