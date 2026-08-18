@@ -17,3 +17,11 @@ CPU-side matrix bookkeeping regardless of the rendering backend.
 - Left-drag : orbit, Right-drag : pan, Wheel : zoom, `Space` : reset, `Esc` : quit
 
 ![MatrixStack](MatrixStack.png)
+
+## WebGPU version
+
+`main_webgpu.py` shares `matrix_stack.py` unchanged with the OpenGL version
+— the push/pop logic is pure CPU-side matrix maths, independent of the
+rendering backend. WebGPU has no runtime primitive generator, so the ring's
+small spheres are the baked octahedron mesh instead, and the grid is a flat
+quad.
