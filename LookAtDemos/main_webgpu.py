@@ -30,6 +30,15 @@ UNIFORM_DTYPE = np.dtype(
     [("mvp", np.float32, (4, 4)), ("normal_matrix", np.float32, (4, 4))]
 )
 
+# One uniform buffer + bind group per on-screen pane (up to 4 in multi-view
+# mode; simple mode just uses pane 0). WebGPU's queue-timeline ordering only
+# guarantees a submitted command buffer sees a resource's state as of
+# immediately before that submit - a single shared buffer rewritten in a
+# loop before one submit() would have every draw call in that render pass
+# observe only the last write. Per-pane buffers (the same pattern
+# BVHViewer's webgpu_renderer.py uses for its four camera views) avoids that.
+PANE_COUNT = 4
+
 
 class WebGPUScene(WebGPUWidget):
     def __init__(self) -> None:
@@ -60,23 +69,30 @@ class WebGPUScene(WebGPUWidget):
         )
         self.vertex_count = troll_data.size // 8
         self.uniforms = np.zeros((), dtype=UNIFORM_DTYPE)
-        self.uniform_buffer = self.device.create_buffer(
-            size=self.uniforms.nbytes,
-            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
-        )
-        self.bind_group = self.device.create_bind_group(
-            layout=self.bind_group_layout,
-            entries=[
-                {
-                    "binding": 0,
-                    "resource": {
-                        "buffer": self.uniform_buffer,
-                        "offset": 0,
-                        "size": self.uniform_buffer.size,
-                    },
-                }
-            ],
-        )
+        self.pane_uniform_buffers = []
+        self.pane_bind_groups = []
+        for pane_index in range(PANE_COUNT):
+            uniform_buffer = self.device.create_buffer(
+                size=self.uniforms.nbytes,
+                usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+                label=f"look_at_pane_{pane_index}",
+            )
+            self.pane_uniform_buffers.append(uniform_buffer)
+            self.pane_bind_groups.append(
+                self.device.create_bind_group(
+                    layout=self.bind_group_layout,
+                    entries=[
+                        {
+                            "binding": 0,
+                            "resource": {
+                                "buffer": uniform_buffer,
+                                "offset": 0,
+                                "size": uniform_buffer.size,
+                            },
+                        }
+                    ],
+                )
+            )
         self._create_render_buffer()
 
     def _create_pipeline(self) -> None:
@@ -125,12 +141,20 @@ class WebGPUScene(WebGPUWidget):
             multisample={"count": self.msaa_sample_count},
         )
 
-    def _draw_pane(self, render_pass, view: Mat4, project: Mat4, model: Mat4) -> None:
+    def _draw_pane(
+        self,
+        render_pass,
+        view: Mat4,
+        project: Mat4,
+        model: Mat4,
+        pane_index: int,
+    ) -> None:
         mv = view @ model
         self.uniforms["mvp"] = (project @ mv).to_numpy()
         self.uniforms["normal_matrix"] = mv.inverse().transposed().to_numpy()
-        self.device.queue.write_buffer(self.uniform_buffer, 0, self.uniforms.tobytes())
-        render_pass.set_bind_group(0, self.bind_group, [], 0, 999999)
+        uniform_buffer = self.pane_uniform_buffers[pane_index]
+        self.device.queue.write_buffer(uniform_buffer, 0, self.uniforms.tobytes())
+        render_pass.set_bind_group(0, self.pane_bind_groups[pane_index], [], 0, 999999)
         render_pass.set_vertex_buffer(0, self.vertex_buffer)
         render_pass.draw(self.vertex_count)
 
@@ -162,13 +186,18 @@ class WebGPUScene(WebGPUWidget):
         )
         render_pass.set_pipeline(self.pipeline)
 
-        w, h = self.width(), self.height()
+        # Viewport/scissor rects must be in device pixels - self.texture_size
+        # is the actual render-target size (self.width()/height() are Qt
+        # logical pixels, which only match on a devicePixelRatio == 1
+        # display and would otherwise draw into just the top-left corner of
+        # the real framebuffer on HiDPI/Retina screens).
+        w, h = self.texture_size
         if not self.multi_view:
             render_pass.set_viewport(0, 0, w, h, 0.0, 1.0)
             render_pass.set_scissor_rect(0, 0, w, h)
             view = look_at(Vec3(2, 2, 2), Vec3(0, 0, 0), Vec3(0, 1, 0))
             project = perspective(45.0, w / h, 0.05, 350.0, PerspMode.WebGPU)
-            self._draw_pane(render_pass, view, project, self.mouse_global_tx)
+            self._draw_pane(render_pass, view, project, self.mouse_global_tx, 0)
         else:
             half_w, half_h = w // 2, h // 2
             panes = [
@@ -177,7 +206,7 @@ class WebGPUScene(WebGPUWidget):
                 ((0, 0, half_w, half_h), Vec3(0, 0, 2), Vec3(0, 1, 0), True),
                 ((half_w, 0, half_w, half_h), Vec3(2, 0, 0), Vec3(0, 1, 0), True),
             ]
-            for (x, y, pw, ph), eye, up, is_ortho in panes:
+            for pane_index, ((x, y, pw, ph), eye, up, is_ortho) in enumerate(panes):
                 render_pass.set_viewport(x, y, pw, ph, 0.0, 1.0)
                 render_pass.set_scissor_rect(x, y, pw, ph)
                 view = look_at(eye, Vec3(0, 0, 0), up)
@@ -189,7 +218,7 @@ class WebGPUScene(WebGPUWidget):
                         45.0, pw / max(ph, 1), 0.01, 100.0, PerspMode.WebGPU
                     )
                     model = self.mouse_global_tx
-                self._draw_pane(render_pass, view, project, model)
+                self._draw_pane(render_pass, view, project, model, pane_index)
 
         render_pass.end()
         self.device.queue.submit([command_encoder.finish()])
