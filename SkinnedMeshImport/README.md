@@ -8,12 +8,23 @@ A PyNGL port of the `AssetImportDemos/SkeletalAnimation` demo from [NGL9Demos](h
 uv run SkinnedMeshImport/main.py
 ```
 
+There is also a WebGPU version. It has the same timeline, camera and
+four-view controls, and File > Open, but skins and renders the mesh with
+WebGPU instead:
+
+```bash
+uv run SkinnedMeshImport/main_webgpu.py
+```
+
 - `mesh.py` -- loads the scene via impasse, merges all sub-meshes into one indexed vertex buffer, and walks the node/animation hierarchy each frame to build the per-bone skinning matrices
 - `main.py` -- OpenGL, `PySide6.QtOpenGL.QOpenGLWindow` inside a `QMainWindow`, with an animation transport underneath (borrowed from `BVHViewer/timeline.py`) and a `FirstPersonCamera` / four-view split borrowed from `BVHViewer/main.py`'s `BvhViewport`
 - `timeline.py` -- the scrubber and transport controls, same file as BVHViewer's
 - `MultiBufferIndexVAO.py` -- a small `AbstractVAO` subclass for a mesh that needs several vertex buffers plus a separate index buffer, which the stock VAO classes in `ncca.ngl` don't cover
 - `shaders/SkinVertex.glsl` -- linear blend skinning in the vertex shader, four bones per vertex
 - `models/guard/` -- the boblampclean mesh, animation and textures, copied from NGL9Demos
+- `main_webgpu.py` -- the WebGPU viewport and application entry point, mirroring `BVHViewer/main_webgpu.py`'s split from its OpenGL `main.py`
+- `webgpu_renderer.py` -- the WebGPU pipeline: five vertex buffers, an index buffer, a bone storage buffer, and one texture bind group per submesh
+- `skin_webgpu.wgsl` -- the same four-bones-per-vertex linear blend skin and Blinn-Phong lighting as `shaders/SkinVertex.glsl` / `SkinFragment.glsl`, ported to WGSL
 
 ## Controls
 
@@ -40,6 +51,22 @@ Getting this working meant finding two bugs in impasse 5.4.2 (the latest release
 2. **`aiQuatKey`**: impasse's cdef is missing the trailing `aiAnimInterpolation mInterpolation` enum that real assimp has on both `aiVectorKey` and `aiQuatKey`. It doesn't matter for `aiVectorKey` -- the struct's 20 real bytes round up to 24 for 8-byte alignment regardless, so the missing field just gets absorbed by padding. It does matter for `aiQuatKey`, whose 24 real bytes are already aligned: impasse computes a 24-byte element stride where the real array uses 32, so `rotation_keys[i]` for `i > 0` silently reads from the wrong offset -- the first key looks fine, everything after it doesn't.
 
 I read both fields instead by re-casting the same underlying struct pointer through a small private `cffi` definition with the corrected layout -- see `_read_bone_weights_and_offset` and `_read_rotation_keys` in `mesh.py`.
+
+## Differences from the OpenGL version
+
+**No bone-count ceiling.** The OpenGL shader's `gBones[128]` is a fixed-size
+GLSL uniform array, so `main.py` warns and leaves extra bones unanimated
+past `MAX_BONES = 128`. `skin_webgpu.wgsl` reads the bone palette from a
+WGSL storage buffer instead (`var<storage, read> bones: array<mat4x4<f32>>`),
+sized to the mesh's actual bone count -- there's no equivalent cap here.
+
+**A second V-flip.** `mesh.py` flips every UV's V coordinate once
+(`1.0 - v`), because `ncca.ngl.opengl.Texture` uploads pixels in PIL's
+top-row-first order without flipping for OpenGL's bottom-left texture
+origin. WebGPU's texture origin is top-left, so that first flip is wrong
+here -- `skin_webgpu.wgsl`'s fragment shader flips V back a second time
+(`vec2(uv.x, 1.0 - uv.y)`) rather than giving the shared, backend-agnostic
+loader a second UV buffer.
 
 ## Tests
 

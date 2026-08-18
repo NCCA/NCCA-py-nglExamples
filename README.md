@@ -106,7 +106,7 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 | :---------------------------------------------------------------------------------------------: | :------------------------------------- | :----------------------------------------------------------------------------------------------------------------- |
 | <a href="SkeletalAnimation"><img src="SkeletalAnimation/SkeletalAnimation.png" width="220"></a> | [SkeletalAnimation](SkeletalAnimation) | Linear blend skinning vs dual-quaternion skinning, and the "candy wrapper" artefact that tells them apart (OpenGL) |
 |           <a href="MassSpring"><img src="MassSpring/MassSpring.png" width="220"></a>            | [MassSpring](MassSpring)               | Damped mass spring chain with RK4 integration, from a single spring up to a rope                                   |
-| <a href="SkinnedMeshImport"><img src="SkinnedMeshImport/SkinnedMeshImport.png" width="220"></a> | [SkinnedMeshImport](SkinnedMeshImport) | Importing a rigged mesh with impasse (Python assimp) and skinning it on the GPU (OpenGL)                            |
+| <a href="SkinnedMeshImport"><img src="SkinnedMeshImport/SkinnedMeshImport.png" width="220"></a> | [SkinnedMeshImport](SkinnedMeshImport) | Importing a rigged mesh with impasse (Python assimp) and skinning it on the GPU (OpenGL and WebGPU)                 |
 
 ## Textures & Materials
 
