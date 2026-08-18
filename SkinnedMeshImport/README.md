@@ -60,13 +60,19 @@ past `MAX_BONES = 128`. `skin_webgpu.wgsl` reads the bone palette from a
 WGSL storage buffer instead (`var<storage, read> bones: array<mat4x4<f32>>`),
 sized to the mesh's actual bone count -- there's no equivalent cap here.
 
-**A second V-flip.** `mesh.py` flips every UV's V coordinate once
+**No second V-flip needed.** `mesh.py` flips every UV's V coordinate once
 (`1.0 - v`), because `ncca.ngl.opengl.Texture` uploads pixels in PIL's
 top-row-first order without flipping for OpenGL's bottom-left texture
-origin. WebGPU's texture origin is top-left, so that first flip is wrong
-here -- `skin_webgpu.wgsl`'s fragment shader flips V back a second time
-(`vec2(uv.x, 1.0 - uv.y)`) rather than giving the shared, backend-agnostic
-loader a second UV buffer.
+origin. I originally assumed WebGPU's top-left texture origin meant
+`skin_webgpu.wgsl` needed to flip V back a second time in the fragment
+shader -- it doesn't. Both `glTexImage2D` and wgpu's `writeTexture` map
+the first uploaded row to `v = 0`, so the one flip the shared loader
+already does is correct for both backends. The texture-handling
+difference that does survive: OpenGL's default wrap mode is
+`GL_REPEAT`, but wgpu's sampler defaults to clamp-to-edge, and this
+mesh's own UVs run outside `[0, 1]` (up to ~1.094 in u, ~1.125 in v).
+`webgpu_renderer.py`'s sampler now sets `address_mode_u`/`address_mode_v`
+to `wgpu.AddressMode.repeat` to match.
 
 ## Tests
 

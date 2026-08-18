@@ -68,7 +68,10 @@ class SkinWebGPURenderer:
         self._bone_buffer = self._create_bone_buffer(self._bone_capacity)
         self._bone_bind_group = self._create_bone_bind_group()
         self._sampler = device.create_sampler(
-            mag_filter=wgpu.FilterMode.linear, min_filter=wgpu.FilterMode.linear
+            mag_filter=wgpu.FilterMode.linear,
+            min_filter=wgpu.FilterMode.linear,
+            address_mode_u=wgpu.AddressMode.repeat,
+            address_mode_v=wgpu.AddressMode.repeat,
         )
         self._pipeline = self._create_pipeline(shader)
 

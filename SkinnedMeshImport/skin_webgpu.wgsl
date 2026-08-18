@@ -55,12 +55,8 @@ fn vertex_main(input: VertexInput) -> VertexOutput {
 
 @fragment
 fn fragment_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    // mesh.py flips V once for OpenGL's bottom-left texture origin; WebGPU's
-    // origin is top-left, so this flips it back rather than giving the
-    // shared loader a second UV buffer.
-    let flipped_uv = vec2<f32>(input.uv.x, 1.0 - input.uv.y);
-    let tex_colour = textureSample(t_diffuse, s_diffuse, flipped_uv);
 
+    let tex_colour = textureSample(t_diffuse, s_diffuse, input.uv);
     let normal = normalize(input.normal);
     let eye_direction = normalize(camera.eye_position.xyz - input.world_position);
     let light_direction = normalize(camera.light_position.xyz - input.world_position);
