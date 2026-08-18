@@ -654,14 +654,21 @@ class SkinViewport(QOpenGLWindow):
 class MainWindow(QMainWindow):
     """The skinned-mesh viewport plus an animation transport underneath."""
 
-    def __init__(self, model_path: Path = DEFAULT_MODEL) -> None:
+    def __init__(
+        self,
+        model_path: Path = DEFAULT_MODEL,
+        viewport: SkinViewport | QWidget | None = None,
+    ) -> None:
         super().__init__()
         self.setWindowTitle("SkinnedMeshImport")
         self.resize(1100, 780)
         self.setStyleSheet(_APP_STYLE)
 
-        self.viewport = SkinViewport(model_path)
-        viewport_widget = QWidget.createWindowContainer(self.viewport, self)
+        self.viewport = viewport if viewport is not None else SkinViewport(model_path)
+        if isinstance(self.viewport, QWidget):
+            viewport_widget = self.viewport
+        else:
+            viewport_widget = QWidget.createWindowContainer(self.viewport, self)
         viewport_widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         viewport_widget.setFocus()
 
@@ -814,7 +821,7 @@ class DebugApplication(QApplication):
             raise
 
 
-if __name__ == "__main__":
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "model", nargs="?", default=str(DEFAULT_MODEL), help="mesh file to load"
@@ -833,8 +840,10 @@ if __name__ == "__main__":
         action="store_true",
         help="run with DebugApplication (tracebacks from Qt event handlers)",
     )
-    args = parser.parse_args()
+    return parser.parse_args(argv)
 
+
+def _configure_surface_format() -> None:
     surface_format = QSurfaceFormat()
     surface_format.setSamples(4)
     surface_format.setMajorVersion(4)
@@ -843,7 +852,12 @@ if __name__ == "__main__":
     surface_format.setDepthBufferSize(24)
     QSurfaceFormat.setDefaultFormat(surface_format)
 
-    app = DebugApplication(sys.argv) if args.debug else QApplication(sys.argv)
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parse_args(argv)
+    _configure_surface_format()
+    app_type = DebugApplication if args.debug else QApplication
+    app = app_type(sys.argv if argv is None else [sys.argv[0], *argv])
 
     window = MainWindow(Path(args.model))
     window.show()
@@ -851,4 +865,8 @@ if __name__ == "__main__":
     if args.smoketest is not None:
         QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
 
-    sys.exit(app.exec())
+    return app.exec()
+
+
+if __name__ == "__main__":
+    sys.exit(main())
