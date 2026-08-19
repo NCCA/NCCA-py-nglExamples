@@ -257,6 +257,11 @@ class Scene(PySideEventHandlingMixin, QOpenGLWindow):
 
 
 class MainWindow(QMainWindow):
+    # These name the matrix product built in Scene.transform_matrix() (e.g.
+    # "Rotate -> Translate -> Scale" means r @ t @ s), not a left-to-right
+    # application order. Since points transform as matrix @ point, the
+    # rightmost term acts on the object first -- see README.md for the
+    # worked-through reasoning.
     _ORDERS = [
         ("Rotate -> Translate -> Scale", "RTS"),
         ("Translate -> Rotate -> Scale", "TRS"),

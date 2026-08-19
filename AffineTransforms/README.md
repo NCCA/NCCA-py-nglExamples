@@ -10,6 +10,14 @@ different. A read-only `Mat4Widget` shows the composed matrix as you go, so
 you can watch the translation row rotate away under RTS and stay put under
 TRS.
 
+One thing that trips people up: the three combo-box labels name the matrix
+*product*, not a left-to-right timeline — `Rotate -> Translate -> Scale`
+means `R @ T @ S`. Points transform as `matrix @ point`, so the rightmost
+term acts on the object first. That label therefore scales the object,
+then translates it, then rotates it — the reverse of what the arrows
+suggest at a glance. Read each label right-to-left to see what actually
+happens to the object.
+
 Simplified from the NGL9Demos original, which had five modes: the
 hand-crafted "Gimbal Lock" mode poked raw matrix elements to exploit C++'s
 memory layout directly, which doesn't port sensibly to Python, and

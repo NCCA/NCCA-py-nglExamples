@@ -69,6 +69,11 @@ UNIFORM_DTYPE = np.dtype(
 
 
 class WebGPUScene(WebGPUWidget):
+    # These name the matrix product built in transform_matrix() (e.g.
+    # "Rotate -> Translate -> Scale" means r @ t @ s), not a left-to-right
+    # application order. Since points transform as matrix @ point, the
+    # rightmost term acts on the object first -- see README.md for the
+    # worked-through reasoning.
     _ORDERS = [
         ("Rotate -> Translate -> Scale", "RTS"),
         ("Translate -> Rotate -> Scale", "TRS"),
