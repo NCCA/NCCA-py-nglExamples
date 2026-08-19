@@ -179,6 +179,7 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 | <a href="DefferedLighting"><img src="DefferedLighting/WebGPUNGL.png" width="220"></a> | [DefferedLighting](DefferedLighting) | Deferred lighting (WebGPU)                                             |
 |  <a href="WebGPUShadows"><img src="WebGPUShadows/WebGPUShadows.png" width="220"></a>  | [WebGPUShadows](WebGPUShadows)       | PCF shadow mapping (WebGPU)                                            |
 |  <a href="ShadowMapping"><img src="ShadowMapping/ShadowMapping.png" width="220"></a>  | [ShadowMapping](ShadowMapping)       | Two-pass depth-map shadows with PCF, bias and culling toggles (OpenGL) |
+|        <a href="Spotlight"><img src="Spotlight/Spotlight.png" width="220"></a>        | [Spotlight](Spotlight)               | Four animated cone-attenuation spotlights sweeping a grid of teapots (OpenGL) |
 
 ## Ray Marching
 
