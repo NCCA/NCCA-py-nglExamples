@@ -15,6 +15,6 @@ GL/Qt dependency, with pytest coverage in `tests/test_view_to_world.py`.
 
 ## WebGPU version
 
-A future WebGPU entry point for this demo imports `view_to_world.py`
-unchanged — the unprojection is pure CPU-side matrix maths, independent of
-the rendering backend.
+`main_webgpu.py` shares `view_to_world.py`'s `unproject_point` unchanged
+with the OpenGL version — screen-to-world unprojection is pure numpy maths,
+independent of the rendering backend.
