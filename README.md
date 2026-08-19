@@ -192,6 +192,7 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 |                                                 Preview                                                  | Demo                                         | Description                                                                       |
 | :------------------------------------------------------------------------------------------------------: | :------------------------------------------- | :-------------------------------------------------------------------------------- |
 | <a href="GeometryTessellation"><img src="GeometryTessellation/GeometryTessellation.png" width="220"></a> | [GeometryTessellation](GeometryTessellation) | Geometry-shader normal visualiser + distance-LOD tessellated noise plane (OpenGL) |
+| <a href="ShadedGrid"><img src="ShadedGrid/ShadedGrid.png" width="220"></a>                               | [ShadedGrid](ShadedGrid)                     | Animated Phong-shaded wave grid with geometry-shader face/vertex normal visualisation (OpenGL) |
 
 ## Uniforms & Buffers
 
