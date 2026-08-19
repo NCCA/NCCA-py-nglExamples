@@ -2,11 +2,12 @@
 """ShadedGrid demo (WebGPU): an animated wave grid, Phong-shaded.
 
 Same wave-height grid and animation as the OpenGL version in main.py --
-see that file for the derivation of the heightfield and its normals. This
-entry point deliberately does not include the geometry-shader
-normal-visualization pass main.py draws on top: WebGPU has no
-geometry-shader stage, and reinterpreting it as a compute pass was ruled
-out of scope. What's left is the shaded, animating grid on its own.
+both share wave_grid.py's build_wave_grid(), so see that module for the
+derivation of the heightfield and its normals. This entry point
+deliberately does not include the geometry-shader normal-visualization
+pass main.py draws on top: WebGPU has no geometry-shader stage, and
+reinterpreting it as a compute pass was ruled out of scope. What's left is
+the shaded, animating grid on its own.
 """
 
 import argparse
@@ -20,6 +21,7 @@ from ncca.ngl import Mat4, PerspMode, Vec3, look_at, perspective
 from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication
+from wave_grid import build_wave_grid
 from wgpu.utils import get_default_device
 
 _GRID_N = 40
@@ -60,69 +62,6 @@ _LIGHTING_DTYPE = np.dtype(
         ("lights", _LIGHT_DTYPE, 3),
     ]
 )
-
-
-def _wave_heights(x: np.ndarray, z: np.ndarray, offset: float) -> np.ndarray:
-    y = np.sin(x + offset) + np.cos(x - offset)
-    y += np.sin(z + offset) + np.cos(z - offset)
-    return y * 0.5
-
-
-def build_wave_grid(n: int, size: float, offset: float) -> np.ndarray:
-    """Non-indexed triangle-list grid, interleaved x,y,z,nx,ny,nz,u,v float32.
-
-    Ported verbatim from main.py's build_wave_grid -- same heightfield and
-    the same central-difference normals, correct at every edge.
-    """
-    coords = np.linspace(-size / 2.0, size / 2.0, n, dtype=np.float64)
-    xs, zs = np.meshgrid(coords, coords, indexing="xy")
-    ys = _wave_heights(xs, zs, offset)
-
-    step = size / (n - 1)
-    x_prev = _wave_heights(np.roll(xs, 1, axis=1), zs, offset)
-    x_next = _wave_heights(np.roll(xs, -1, axis=1), zs, offset)
-    x_prev[:, 0] = ys[:, 0]
-    x_next[:, -1] = ys[:, -1]
-    dy_dx = (x_next - x_prev) / (2.0 * step)
-    dy_dx[:, 0] = (ys[:, 1] - ys[:, 0]) / step
-    dy_dx[:, -1] = (ys[:, -1] - ys[:, -2]) / step
-
-    z_prev = _wave_heights(xs, np.roll(zs, 1, axis=0), offset)
-    z_next = _wave_heights(xs, np.roll(zs, -1, axis=0), offset)
-    z_prev[0, :] = ys[0, :]
-    z_next[-1, :] = ys[-1, :]
-    dy_dz = (z_next - z_prev) / (2.0 * step)
-    dy_dz[0, :] = (ys[1, :] - ys[0, :]) / step
-    dy_dz[-1, :] = (ys[-1, :] - ys[-2, :]) / step
-
-    normals = np.stack([-dy_dx, np.ones_like(ys), -dy_dz], axis=-1)
-    normals /= np.linalg.norm(normals, axis=-1, keepdims=True)
-
-    u = (xs - xs.min()) / size
-    v = (zs - zs.min()) / size
-
-    def vertex(i: int, j: int) -> tuple[float, ...]:
-        return (
-            xs[j, i],
-            ys[j, i],
-            zs[j, i],
-            normals[j, i, 0],
-            normals[j, i, 1],
-            normals[j, i, 2],
-            u[j, i],
-            v[j, i],
-        )
-
-    tris: list[float] = []
-    for j in range(n - 1):
-        for i in range(n - 1):
-            tris.extend(vertex(i, j + 1))
-            tris.extend(vertex(i + 1, j))
-            tris.extend(vertex(i, j))
-            tris.extend(vertex(i, j + 1))
-            tris.extend(vertex(i + 1, j + 1))
-            tris.extend(vertex(i + 1, j))
-    return np.array(tris, dtype=np.float32)
 
 
 class WebGPUScene(WebGPUWidget):
