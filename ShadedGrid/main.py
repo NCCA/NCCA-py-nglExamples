@@ -112,8 +112,11 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glEnable(gl.GL_MULTISAMPLE)
         self.view = look_at(Vec3(0, 3, 6), Vec3(0, 0, 0), Vec3(0, 1, 0))
 
+        shader_dir = Path(__file__).parent / "shaders"
         ShaderLib.load_shader(
-            "Phong", "shaders/PhongVertex.glsl", "shaders/PhongFragment.glsl"
+            "Phong",
+            str(shader_dir / "PhongVertex.glsl"),
+            str(shader_dir / "PhongFragment.glsl"),
         )
         ShaderLib.use("Phong")
         ShaderLib.set_uniform("material.ambient", 0.329412, 0.223529, 0.027451, 1.0)
@@ -133,7 +136,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         ShaderLib.set_uniform("light[2].diffuse", 0.4, 0.4, 0.4, 1.0)
         ShaderLib.set_uniform("light[2].specular", 0.4, 0.4, 0.4, 1.0)
 
-        shader_dir = Path(__file__).parent / "shaders"
         ShaderLib.load_shader(
             "NormalViz",
             str(shader_dir / "normalVertex.glsl"),

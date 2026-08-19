@@ -5,6 +5,7 @@ import argparse
 import math
 import sys
 import traceback
+from pathlib import Path
 
 import OpenGL.GL as gl
 from ncca.ngl import Mat3, Mat4, Prims, Transform, Vec3, logger, look_at, perspective
@@ -53,10 +54,11 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glEnable(gl.GL_MULTISAMPLE)
         self.view = look_at(Vec3(0, 8, 16), Vec3(0, 0, 0), Vec3(0, 1, 0))
 
+        shader_dir = Path(__file__).parent / "shaders"
         ShaderLib.load_shader(
             "Spotlight",
-            "shaders/SpotlightVertex.glsl",
-            "shaders/SpotlightFragment.glsl",
+            str(shader_dir / "SpotlightVertex.glsl"),
+            str(shader_dir / "SpotlightFragment.glsl"),
         )
         ShaderLib.use("Spotlight")
         ShaderLib.set_uniform("material.ambient", 0.274725, 0.1995, 0.0745, 1.0)
