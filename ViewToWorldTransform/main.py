@@ -65,18 +65,29 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             "Arial", str(Path(__file__).parent.parent / "font" / "Arial.ttf"), 16
         )
 
-    def paintGL(self) -> None:
-        self.makeCurrent()
-        gl.glViewport(0, 0, self.window_width, self.window_height)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        ShaderLib.use(DefaultShader.DIFFUSE)
+    def scene_global_tx(self) -> Mat4:
+        """The mouse orbit/pan transform shared by drawing and picking.
 
+        `paintGL` draws every placed cube through this, and `mousePressEvent`
+        folds it into the unproject matrix too — otherwise a click only maps
+        to the right world point when the camera hasn't been orbited or
+        panned since load.
+        """
         rot_x = Mat4().rotate_x(self.spin_x_face)
         rot_y = Mat4().rotate_y(self.spin_y_face)
         global_tx = rot_y @ rot_x
         global_tx[3, 0] = self.model_position.x
         global_tx[3, 1] = self.model_position.y
         global_tx[3, 2] = self.model_position.z
+        return global_tx
+
+    def paintGL(self) -> None:
+        self.makeCurrent()
+        gl.glViewport(0, 0, self.window_width, self.window_height)
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+        ShaderLib.use(DefaultShader.DIFFUSE)
+
+        global_tx = self.scene_global_tx()
 
         tx = Transform()
         for position in self.click_positions:
@@ -113,7 +124,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             position = event.position()
             ratio = self.devicePixelRatio()
             x, y = int(position.x() * ratio), int(position.y() * ratio)
-            view_projection = (self.project @ self.view).to_numpy()
+            global_tx = self.scene_global_tx()
+            view_projection = (self.project @ self.view @ global_tx).to_numpy()
             world = unproject_point(
                 x, y, self.window_width, self.window_height, view_projection
             )
