@@ -4,9 +4,8 @@ MatrixStack: an OpenGL-style push/pop matrix stack (WebGPU).
 
 Same push/pop matrix-stack logic as the OpenGL version (main.py) — the stack
 itself (matrix_stack.py) is pure CPU-side maths shared unchanged between
-both entry points. The ring of small GL-generated spheres is replaced with
-the baked octahedron mesh, and the reference grid with a flat quad, since
-WebGPU has no equivalent runtime primitive generator.
+both entry points. All of the transforms are packed into one uniform buffer
+before the instanced troll and sphere draws are encoded.
 
 Controls:
     I/O  increase / decrease the sphere ring's vertical wave frequency
@@ -36,17 +35,12 @@ UNIFORM_DTYPE = np.dtype(
         ("light_diffuse", np.float32, 4),
     ]
 )
-
-# One uniform buffer + bind group per draw call in a frame: 3 trolls + 126
-# ring octahedra (the `while i < 2*pi: ... i += 0.05` loop below runs 126
-# times, independent of the freq/rotation state) + 1 floor = 130. WebGPU's
-# queue-timeline ordering only guarantees a submitted command buffer sees a
-# resource's state as of immediately before that submit -- a single buffer
-# rewritten in a loop before one submit() would have every draw call in
-# that render pass observe only the last write (the exact bug this pool
-# fixes; same pattern as LookAtDemos/main_webgpu.py's per-pane buffers and
-# BVHViewer/webgpu_renderer.py's per-camera buffers).
-MAX_DRAWS_PER_FRAME = 130
+TROLL_INSTANCE_COUNT = 3
+SPHERE_INSTANCE_COUNT = len(np.arange(0.0, 2.0 * math.pi, 0.05))
+FLOOR_INSTANCE_COUNT = 1
+TOTAL_INSTANCE_COUNT = (
+    TROLL_INSTANCE_COUNT + SPHERE_INSTANCE_COUNT + FLOOR_INSTANCE_COUNT
+)
 
 
 def quad_floor(size: float) -> np.ndarray:
@@ -58,6 +52,92 @@ def quad_floor(size: float) -> np.ndarray:
     order = (0, 1, 2, 0, 2, 3)
     verts = [(*corners[i], *n, *uvs[i]) for i in order]
     return np.array(verts, dtype=np.float32).reshape(-1)
+
+
+def build_scene_uniforms(
+    stack: MatrixStack,
+    rotation: float,
+    freq: float,
+    model_position: Vec3,
+    spin_x_face: float,
+    spin_y_face: float,
+) -> np.ndarray:
+    """
+    Builds all of the per-instance uniforms before the render pass starts.
+
+    Parameters
+    ----------
+        stack : MatrixStack
+            the shared matrix stack with its current view and projection
+        rotation : float
+            current animation angle in degrees
+        freq : float
+            vertical wave frequency for the sphere ring
+        model_position : Vec3
+            mouse-controlled scene translation
+        spin_x_face : float
+            mouse-controlled X rotation in degrees
+        spin_y_face : float
+            mouse-controlled Y rotation in degrees
+    """
+    uniforms = np.zeros(TOTAL_INSTANCE_COUNT, dtype=UNIFORM_DTYPE)
+    uniforms["light_pos"] = (1.0, 1.0, 1.0, 0.0)
+    uniforms["light_diffuse"] = (1.0, 1.0, 1.0, 1.0)
+    instance = 0
+
+    def store_current(colour: tuple[float, float, float, float]) -> None:
+        nonlocal instance
+        uniforms[instance]["mvp"] = stack.mvp().to_numpy()
+        uniforms[instance]["normal_matrix"] = (
+            stack.mv().inverse().transposed().to_numpy()
+        )
+        uniforms[instance]["colour"] = colour
+        instance += 1
+
+    stack.push_matrix()
+    stack.translate(0.0, 0.0, model_position.z)
+    stack.translate(model_position.x, model_position.y, 0.0)
+    stack.rotate_axis_angle(spin_x_face, 1.0, 0.0, 0.0)
+    stack.rotate_axis_angle(spin_y_face, 0.0, 1.0, 0.0)
+
+    stack.push_matrix()
+    stack.translate(0.0, -0.65, 0.0)
+    store_current((1.0, 1.0, 1.0, 1.0))
+    stack.pop_matrix()
+
+    stack.push_matrix()
+    stack.scale(0.5, 0.5, 0.5)
+    stack.translate(-1.0, -1.85, -1.0)
+    stack.rotate_axis_angle(45.0, 0.0, 1.0, 0.0)
+    store_current((1.0, 1.0, 1.0, 1.0))
+    stack.pop_matrix()
+
+    stack.push_matrix()
+    stack.scale(0.5, 0.5, 0.5)
+    stack.translate(1.0, -1.85, -1.0)
+    store_current((1.0, 1.0, 1.0, 1.0))
+    stack.pop_matrix()
+
+    for angle in np.arange(0.0, 2.0 * math.pi, 0.05):
+        x = math.cos(angle) * 2.0
+        z = math.sin(angle) * 2.0
+        y = math.sin(angle * freq) * 0.5
+        stack.push_matrix()
+        stack.rotate_axis_angle(rotation, 0.0, 1.0, 0.0)
+        stack.translate(x, y, z)
+        stack.push_matrix()
+        stack.scale(0.04, 0.04, 0.04)
+        stack.rotate_axis_angle(rotation * 2.0, 0.0, 1.0, 0.0)
+        store_current((abs(x), abs(y), abs(z), 1.0))
+        stack.pop_matrix()
+        stack.pop_matrix()
+
+    stack.push_matrix()
+    stack.translate(0.0, -1.2, 0.0)
+    store_current((1.0, 1.0, 1.0, 1.0))
+    stack.pop_matrix()
+    stack.pop_matrix()
+    return uniforms
 
 
 class WebGPUScene(WebGPUWidget):
@@ -91,7 +171,6 @@ class WebGPUScene(WebGPUWidget):
 
         self.device = get_default_device()
         self._create_pipeline()
-        self._create_draw_buffer_pool()
         self._create_geometry()
         self._create_render_buffer()
 
@@ -116,6 +195,23 @@ class WebGPUScene(WebGPUWidget):
                     "buffer": {"type": wgpu.BufferBindingType.uniform},
                 }
             ]
+        )
+        self.uniform_buffer = self.device.create_buffer(
+            size=TOTAL_INSTANCE_COUNT * UNIFORM_DTYPE.itemsize,
+            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+        )
+        self.bind_group = self.device.create_bind_group(
+            layout=self.bind_group_layout,
+            entries=[
+                {
+                    "binding": 0,
+                    "resource": {
+                        "buffer": self.uniform_buffer,
+                        "offset": 0,
+                        "size": self.uniform_buffer.size,
+                    },
+                }
+            ],
         )
         pipeline_layout = self.device.create_pipeline_layout(
             bind_group_layouts=[self.bind_group_layout]
@@ -151,82 +247,58 @@ class WebGPUScene(WebGPUWidget):
             multisample={"count": self.msaa_sample_count},
         )
 
-    def _create_draw_buffer_pool(self) -> None:
-        """Pre-allocate MAX_DRAWS_PER_FRAME uniform buffers + bind groups.
-
-        _draw_current() hands out one pool slot per draw call, indexed by a
-        counter that resets at the start of each frame, instead of the
-        original one-buffer-per-mesh-type scheme (which aliased every draw
-        sharing a mesh onto whatever transform was written last -- see
-        MAX_DRAWS_PER_FRAME's comment above).
-        """
-        self._draw_uniforms = np.zeros((), dtype=UNIFORM_DTYPE)
-        self._draw_uniform_buffers = []
-        self._draw_bind_groups = []
-        for index in range(MAX_DRAWS_PER_FRAME):
-            uniform_buffer = self.device.create_buffer(
-                size=self._draw_uniforms.nbytes,
-                usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
-                label=f"matrix_stack_draw_{index}",
-            )
-            self._draw_uniform_buffers.append(uniform_buffer)
-            self._draw_bind_groups.append(
-                self.device.create_bind_group(
-                    layout=self.bind_group_layout,
-                    entries=[
-                        {
-                            "binding": 0,
-                            "resource": {
-                                "buffer": uniform_buffer,
-                                "offset": 0,
-                                "size": uniform_buffer.size,
-                            },
-                        }
-                    ],
-                )
-            )
-        self._draw_index = 0
-
     def _make_object(self, data: np.ndarray):
         vertex_buffer = self.device.create_buffer_with_data(
             data=data, usage=wgpu.BufferUsage.VERTEX
         )
-        return {"vertex_buffer": vertex_buffer, "count": data.size // 8}
+        return {
+            "vertex_buffer": vertex_buffer,
+            "count": data.size // 8,
+        }
 
     def _create_geometry(self) -> None:
         self.troll = self._make_object(PrimData.primitive(Prims.TROLL.value))
-        self.octahedron = self._make_object(PrimData.primitive(Prims.OCTAHEDRON.value))
+        self.sphere = self._make_object(PrimData.sphere(1.0, 20))
         self.floor = self._make_object(quad_floor(10.0))
 
-    def _draw_current(self, render_pass, obj: dict, colour: tuple) -> None:
-        """Draw obj using the stack's *current* top-of-stack transform.
-
-        Reuses MatrixStack.mvp()/mv() directly -- the exact same methods the
-        OpenGL version calls -- so the only thing that differs between the
-        two backends is how the result reaches the GPU (a GL uniform vs a
-        WebGPU uniform buffer), not how it's computed. Each call claims the
-        next buffer/bind-group slot from the pre-allocated pool (see
-        MAX_DRAWS_PER_FRAME) so draws sharing a mesh don't alias onto the
-        same transform.
-        """
-        uniform_buffer = self._draw_uniform_buffers[self._draw_index]
-        bind_group = self._draw_bind_groups[self._draw_index]
-        self._draw_index += 1
-
-        self._draw_uniforms["mvp"] = self.stack.mvp().to_numpy()
-        self._draw_uniforms["normal_matrix"] = (
-            self.stack.mv().inverse().transposed().to_numpy()
-        )
-        self._draw_uniforms["colour"] = colour
-        self._draw_uniforms["light_pos"] = (1.0, 1.0, 1.0, 0.0)
-        self._draw_uniforms["light_diffuse"] = (1.0, 1.0, 1.0, 1.0)
-        self.device.queue.write_buffer(uniform_buffer, 0, self._draw_uniforms.tobytes())
-        render_pass.set_bind_group(0, bind_group, [], 0, 999999)
+    def _draw_instances(
+        self,
+        render_pass,
+        obj: dict,
+        instance_count: int,
+        first_instance: int,
+    ) -> None:
         render_pass.set_vertex_buffer(0, obj["vertex_buffer"])
-        render_pass.draw(obj["count"])
+        render_pass.draw(obj["count"], instance_count, 0, first_instance)
+
+    def _upload_and_draw_scene(self, render_pass) -> None:
+        uniforms = build_scene_uniforms(
+            self.stack,
+            self.rotation,
+            self.freq,
+            self.model_position,
+            self.spin_x_face,
+            self.spin_y_face,
+        )
+        # Rewriting one uniform for every draw leaves each queued draw seeing
+        # the last value. Upload the complete frame once and index it per instance.
+        self.device.queue.write_buffer(self.uniform_buffer, 0, uniforms.tobytes())
+        render_pass.set_bind_group(0, self.bind_group, [], 0, 999999)
+        self._draw_instances(render_pass, self.troll, TROLL_INSTANCE_COUNT, 0)
+        self._draw_instances(
+            render_pass,
+            self.sphere,
+            SPHERE_INSTANCE_COUNT,
+            TROLL_INSTANCE_COUNT,
+        )
+        self._draw_instances(
+            render_pass,
+            self.floor,
+            FLOOR_INSTANCE_COUNT,
+            TOTAL_INSTANCE_COUNT - FLOOR_INSTANCE_COUNT,
+        )
 
     def paintWebGPU(self) -> None:
-        self._draw_index = 0
         command_encoder = self.device.create_command_encoder()
         render_pass = command_encoder.begin_render_pass(
             color_attachments=[
@@ -246,57 +318,7 @@ class WebGPUScene(WebGPUWidget):
             },
         )
         render_pass.set_pipeline(self.pipeline)
-
-        # Identical push/pop structure to the OpenGL version's paintGL --
-        # this is the actual point of the demo: the same MatrixStack calls
-        # drive both backends.
-        self.stack.push_matrix()
-        self.stack.translate(0, 0, self.model_position.z)
-        self.stack.translate(self.model_position.x, self.model_position.y, 0)
-        self.stack.rotate_axis_angle(self.spin_x_face, 1, 0, 0)
-        self.stack.rotate_axis_angle(self.spin_y_face, 0, 1, 0)
-
-        self.stack.push_matrix()
-        self.stack.translate(0, -0.65, 0)
-        self._draw_current(render_pass, self.troll, (1, 1, 1, 1))
-        self.stack.pop_matrix()
-
-        self.stack.push_matrix()
-        self.stack.scale(0.5, 0.5, 0.5)
-        self.stack.translate(-1.0, -1.85, -1.0)
-        self.stack.rotate_axis_angle(45, 0, 1, 0)
-        self._draw_current(render_pass, self.troll, (1, 1, 1, 1))
-        self.stack.pop_matrix()
-
-        self.stack.push_matrix()
-        self.stack.scale(0.5, 0.5, 0.5)
-        self.stack.translate(1.0, -1.85, -1.0)
-        self._draw_current(render_pass, self.troll, (1, 1, 1, 1))
-        self.stack.pop_matrix()
-
-        i = 0.0
-        while i < 2.0 * math.pi:
-            self.stack.push_matrix()
-            x = math.cos(i) * 2.0
-            z = math.sin(i) * 2.0
-            y = math.sin(i * self.freq) * 0.5
-            self.stack.rotate_axis_angle(self.rotation, 0, 1, 0)
-            self.stack.translate(x, y, z)
-            self.stack.push_matrix()
-            self.stack.scale(0.04, 0.04, 0.04)
-            self.stack.rotate_axis_angle(self.rotation * 2, 0, 1, 0)
-            self._draw_current(
-                render_pass, self.octahedron, (abs(x), abs(y), abs(z), 1.0)
-            )
-            self.stack.pop_matrix()
-            self.stack.pop_matrix()
-            i += 0.05
-
-        self.stack.push_matrix()
-        self.stack.translate(0, -1.2, 0)
-        self._draw_current(render_pass, self.floor, (1, 1, 1, 1))
-        self.stack.pop_matrix()
-        self.stack.pop_matrix()
+        self._upload_and_draw_scene(render_pass)
 
         render_pass.end()
         self.device.queue.submit([command_encoder.finish()])
