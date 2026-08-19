@@ -18,7 +18,17 @@ from pathlib import Path
 
 import OpenGL.GL as gl
 from axis import draw_axis
-from ncca.ngl import Mat3, Mat4, Prims, Quaternion, Vec3, logger, look_at, perspective
+from ncca.ngl import (
+    Mat3,
+    Mat4,
+    MatrixError,
+    Prims,
+    Quaternion,
+    Vec3,
+    logger,
+    look_at,
+    perspective,
+)
 from ncca.ngl.opengl import Primitives, PySideEventHandlingMixin, ShaderLib
 from ncca.ngl.widgets import Mat4Widget, Vec3Widget
 from PySide6.QtCore import Qt, QTimer
@@ -160,7 +170,16 @@ class Scene(PySideEventHandlingMixin, QOpenGLWindow):
             )
             return t @ r @ s
         else:  # "TAxisS": translate, axis-angle rotation, scale
-            r = Quaternion.from_axis_angle(self.axis_v, self.axis_angle).to_mat4()
+            # Quaternion.from_axis_angle() does not normalize its axis, so a
+            # non-unit axis (e.g. the very natural (1,1,1)) would silently
+            # bake extra scale into what is supposed to be a pure rotation.
+            # A zero-length axis has no defined direction -- fall back to
+            # identity rotation rather than letting Vec3.normalized() raise.
+            try:
+                axis = self.axis_v.normalized()
+                r = Quaternion.from_axis_angle(axis, self.axis_angle).to_mat4()
+            except ZeroDivisionError:
+                r = Mat4()
             return t @ r @ s
 
     def paintGL(self) -> None:
@@ -190,7 +209,16 @@ class Scene(PySideEventHandlingMixin, QOpenGLWindow):
         # in here would tilt the normals as soon as the camera orbits (see
         # commit 8b77482, the same fix applied family-wide to HDRI/IBL/
         # SimplePBR/PBRTexture).
-        ShaderLib.set_uniform("normal_matrix", Mat3.from_mat4(m).inverse().transposed())
+        # A scale slider can reach exactly 0 (range is -20..20), which makes
+        # `m` singular -- Mat3.inverse() raises MatrixError in that case.
+        # Fall back to the identity normal matrix rather than crashing the
+        # next repaint; the object itself is degenerate (zero volume) at
+        # that point anyway, so the shading is moot.
+        try:
+            normal_matrix = Mat3.from_mat4(m).inverse().transposed()
+        except MatrixError:
+            normal_matrix = Mat3()
+        ShaderLib.set_uniform("normal_matrix", normal_matrix)
         ShaderLib.set_uniform("albedo", *self.colour)
         Primitives.draw(_VBO_NAMES[self.draw_index])
 
@@ -213,6 +241,19 @@ class Scene(PySideEventHandlingMixin, QOpenGLWindow):
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
         self.project = perspective(45.0, float(w) / h, 0.05, 450.0)
+
+    def keyPressEvent(self, event) -> None:
+        # PySideEventHandlingMixin.keyPressEvent handles Escape with
+        # self.close() -- fine for a top-level window, but here `self` is
+        # the embedded QOpenGLWindow shown via createWindowContainer, so
+        # that would only close the viewport and leave the QMainWindow
+        # shell up with a dead embedded window. Intercept Escape here and
+        # quit the whole application instead; everything else still goes
+        # through the mixin (orbit/pan/zoom keys, wireframe, reset, etc.).
+        if event.key() == Qt.Key_Escape:
+            QApplication.instance().quit()
+            return
+        super().keyPressEvent(event)
 
 
 class MainWindow(QMainWindow):
