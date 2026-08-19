@@ -149,6 +149,10 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.update()
         super().keyPressEvent(event)
 
+    def closeEvent(self, event) -> None:
+        self.animation_timer.stop()
+        super().closeEvent(event)
+
 
 class DebugApplication(QApplication):
     def __init__(self, argv):
