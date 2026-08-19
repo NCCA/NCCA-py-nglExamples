@@ -1,5 +1,12 @@
 # TODO
 
+
+1. Check Matrix Stack demos
+2. remove LookAtDemos not needed now.
+3. Check View To World webgpu as it doesn't update 
+4. AffineTransforms Gizmo too big and rotation not dynamic
+
+
 WebGPUWidget checks (and in PyGNL)
 FBO in PyNGL
 Tessellation in ShaderLib
