@@ -37,6 +37,17 @@ UNIFORM_DTYPE = np.dtype(
     ]
 )
 
+# One uniform buffer + bind group per draw call in a frame: 3 trolls + 126
+# ring octahedra (the `while i < 2*pi: ... i += 0.05` loop below runs 126
+# times, independent of the freq/rotation state) + 1 floor = 130. WebGPU's
+# queue-timeline ordering only guarantees a submitted command buffer sees a
+# resource's state as of immediately before that submit -- a single buffer
+# rewritten in a loop before one submit() would have every draw call in
+# that render pass observe only the last write (the exact bug this pool
+# fixes; same pattern as LookAtDemos/main_webgpu.py's per-pane buffers and
+# BVHViewer/webgpu_renderer.py's per-camera buffers).
+MAX_DRAWS_PER_FRAME = 130
+
 
 def quad_floor(size: float) -> np.ndarray:
     """Interleaved x,y,z,nx,ny,nz,u,v flat quad facing +y, centred at the origin."""
@@ -80,6 +91,7 @@ class WebGPUScene(WebGPUWidget):
 
         self.device = get_default_device()
         self._create_pipeline()
+        self._create_draw_buffer_pool()
         self._create_geometry()
         self._create_render_buffer()
 
@@ -139,35 +151,47 @@ class WebGPUScene(WebGPUWidget):
             multisample={"count": self.msaa_sample_count},
         )
 
+    def _create_draw_buffer_pool(self) -> None:
+        """Pre-allocate MAX_DRAWS_PER_FRAME uniform buffers + bind groups.
+
+        _draw_current() hands out one pool slot per draw call, indexed by a
+        counter that resets at the start of each frame, instead of the
+        original one-buffer-per-mesh-type scheme (which aliased every draw
+        sharing a mesh onto whatever transform was written last -- see
+        MAX_DRAWS_PER_FRAME's comment above).
+        """
+        self._draw_uniforms = np.zeros((), dtype=UNIFORM_DTYPE)
+        self._draw_uniform_buffers = []
+        self._draw_bind_groups = []
+        for index in range(MAX_DRAWS_PER_FRAME):
+            uniform_buffer = self.device.create_buffer(
+                size=self._draw_uniforms.nbytes,
+                usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
+                label=f"matrix_stack_draw_{index}",
+            )
+            self._draw_uniform_buffers.append(uniform_buffer)
+            self._draw_bind_groups.append(
+                self.device.create_bind_group(
+                    layout=self.bind_group_layout,
+                    entries=[
+                        {
+                            "binding": 0,
+                            "resource": {
+                                "buffer": uniform_buffer,
+                                "offset": 0,
+                                "size": uniform_buffer.size,
+                            },
+                        }
+                    ],
+                )
+            )
+        self._draw_index = 0
+
     def _make_object(self, data: np.ndarray):
         vertex_buffer = self.device.create_buffer_with_data(
             data=data, usage=wgpu.BufferUsage.VERTEX
         )
-        uniforms = np.zeros((), dtype=UNIFORM_DTYPE)
-        uniform_buffer = self.device.create_buffer(
-            size=uniforms.nbytes,
-            usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
-        )
-        bind_group = self.device.create_bind_group(
-            layout=self.bind_group_layout,
-            entries=[
-                {
-                    "binding": 0,
-                    "resource": {
-                        "buffer": uniform_buffer,
-                        "offset": 0,
-                        "size": uniform_buffer.size,
-                    },
-                }
-            ],
-        )
-        return {
-            "vertex_buffer": vertex_buffer,
-            "count": data.size // 8,
-            "uniforms": uniforms,
-            "uniform_buffer": uniform_buffer,
-            "bind_group": bind_group,
-        }
+        return {"vertex_buffer": vertex_buffer, "count": data.size // 8}
 
     def _create_geometry(self) -> None:
         self.troll = self._make_object(PrimData.primitive(Prims.TROLL.value))
@@ -180,23 +204,29 @@ class WebGPUScene(WebGPUWidget):
         Reuses MatrixStack.mvp()/mv() directly -- the exact same methods the
         OpenGL version calls -- so the only thing that differs between the
         two backends is how the result reaches the GPU (a GL uniform vs a
-        WebGPU uniform buffer), not how it's computed.
+        WebGPU uniform buffer), not how it's computed. Each call claims the
+        next buffer/bind-group slot from the pre-allocated pool (see
+        MAX_DRAWS_PER_FRAME) so draws sharing a mesh don't alias onto the
+        same transform.
         """
-        obj["uniforms"]["mvp"] = self.stack.mvp().to_numpy()
-        obj["uniforms"]["normal_matrix"] = (
+        uniform_buffer = self._draw_uniform_buffers[self._draw_index]
+        bind_group = self._draw_bind_groups[self._draw_index]
+        self._draw_index += 1
+
+        self._draw_uniforms["mvp"] = self.stack.mvp().to_numpy()
+        self._draw_uniforms["normal_matrix"] = (
             self.stack.mv().inverse().transposed().to_numpy()
         )
-        obj["uniforms"]["colour"] = colour
-        obj["uniforms"]["light_pos"] = (1.0, 1.0, 1.0, 0.0)
-        obj["uniforms"]["light_diffuse"] = (1.0, 1.0, 1.0, 1.0)
-        self.device.queue.write_buffer(
-            obj["uniform_buffer"], 0, obj["uniforms"].tobytes()
-        )
-        render_pass.set_bind_group(0, obj["bind_group"], [], 0, 999999)
+        self._draw_uniforms["colour"] = colour
+        self._draw_uniforms["light_pos"] = (1.0, 1.0, 1.0, 0.0)
+        self._draw_uniforms["light_diffuse"] = (1.0, 1.0, 1.0, 1.0)
+        self.device.queue.write_buffer(uniform_buffer, 0, self._draw_uniforms.tobytes())
+        render_pass.set_bind_group(0, bind_group, [], 0, 999999)
         render_pass.set_vertex_buffer(0, obj["vertex_buffer"])
         render_pass.draw(obj["count"])
 
     def paintWebGPU(self) -> None:
+        self._draw_index = 0
         command_encoder = self.device.create_command_encoder()
         render_pass = command_encoder.begin_render_pass(
             color_attachments=[

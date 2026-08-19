@@ -53,7 +53,17 @@ class MatrixStack:
         self._stack[self._top] = self._stack[self._top] @ final
 
     def rotate_axis_angle(self, angle: float, x: float, y: float, z: float) -> None:
-        r = Quaternion.from_axis_angle(Vec3(x, y, z), angle).to_mat4()
+        # Quaternion.from_axis_angle() does not normalize its axis, so a
+        # non-unit axis would silently bake extra scale into what is meant
+        # to be a pure rotation. A zero-length axis has no defined direction
+        # -- fall back to identity rotation rather than letting
+        # Vec3.normalized() raise (mirrors AffineTransforms/main.py's
+        # equivalent axis-angle branch).
+        try:
+            axis = Vec3(x, y, z).normalized()
+            r = Quaternion.from_axis_angle(axis, angle).to_mat4()
+        except ZeroDivisionError:
+            r = Mat4()
         self._stack[self._top] = self._stack[self._top] @ r
 
     def translate(self, x: float, y: float, z: float) -> None:
