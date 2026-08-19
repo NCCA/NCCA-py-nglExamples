@@ -111,7 +111,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
     def mousePressEvent(self, event) -> None:
         if event.modifiers() == Qt.ShiftModifier and event.button() == Qt.LeftButton:
             position = event.position()
-            x, y = int(position.x()), int(position.y())
+            ratio = self.devicePixelRatio()
+            x, y = int(position.x() * ratio), int(position.y() * ratio)
             view_projection = (self.project @ self.view).to_numpy()
             world = unproject_point(
                 x, y, self.window_width, self.window_height, view_projection
