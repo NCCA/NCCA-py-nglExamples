@@ -98,20 +98,28 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             self._draw_scene(view, project, self.mouse_global_tx)
             return
 
+        # Each ortho pane gets its own -aspect..aspect bound, same as the
+        # perspective pane's fov/aspect below -- a fixed -1..1 box stretches
+        # X on a non-square pane (each quadrant here is half_w x half_h) and
+        # would falsely suggest orthographic projection itself distorts
+        # shapes.
         x, y, w, h = self._viewport_rect("top")
         gl.glViewport(x, y, w, h)
+        aspect = w / h
         view = look_at(Vec3(0, 2, 0), Vec3(0, 0, 0), Vec3(0, 0, -1))
-        self._draw_scene(view, ortho(-1, 1, -1, 1, 0.1, 100), Mat4())
+        self._draw_scene(view, ortho(-aspect, aspect, -1, 1, 0.1, 100), Mat4())
 
         x, y, w, h = self._viewport_rect("front")
         gl.glViewport(x, y, w, h)
+        aspect = w / h
         view = look_at(Vec3(0, 0, 2), Vec3(0, 0, 0), Vec3(0, 1, 0))
-        self._draw_scene(view, ortho(-1, 1, -1, 1, 0.01, 200), Mat4())
+        self._draw_scene(view, ortho(-aspect, aspect, -1, 1, 0.01, 200), Mat4())
 
         x, y, w, h = self._viewport_rect("side")
         gl.glViewport(x, y, w, h)
+        aspect = w / h
         view = look_at(Vec3(2, 0, 0), Vec3(0, 0, 0), Vec3(0, 1, 0))
-        self._draw_scene(view, ortho(-1, 1, -1, 1, 0.1, 100), Mat4())
+        self._draw_scene(view, ortho(-aspect, aspect, -1, 1, 0.1, 100), Mat4())
 
         x, y, w, h = self._viewport_rect("persp")
         gl.glViewport(x, y, w, h)

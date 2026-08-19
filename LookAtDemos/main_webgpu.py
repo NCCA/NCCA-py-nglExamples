@@ -200,23 +200,56 @@ class WebGPUScene(WebGPUWidget):
             self._draw_pane(render_pass, view, project, self.mouse_global_tx, 0)
         else:
             half_w, half_h = w // 2, h // 2
+            # Per-pane near/far match the OpenGL sibling's (main.py):
+            # (0.1, 100) for top/side, (0.01, 200) for front. The ortho
+            # bounds are -aspect..aspect rather than a fixed -1..1 -- each
+            # quadrant here is half_w x half_h, and a fixed box stretches X
+            # on a non-square pane, which would falsely suggest orthographic
+            # projection itself distorts shapes.
             panes = [
-                ((0, half_h, half_w, half_h), Vec3(0, 2, 0), Vec3(0, 0, -1), True),
-                ((half_w, half_h, half_w, half_h), Vec3(0, 1, 1), Vec3(0, 1, 0), False),
-                ((0, 0, half_w, half_h), Vec3(0, 0, 2), Vec3(0, 1, 0), True),
-                ((half_w, 0, half_w, half_h), Vec3(2, 0, 0), Vec3(0, 1, 0), True),
+                (
+                    (0, half_h, half_w, half_h),
+                    Vec3(0, 2, 0),
+                    Vec3(0, 0, -1),
+                    True,
+                    0.1,
+                    100,
+                ),
+                (
+                    (half_w, half_h, half_w, half_h),
+                    Vec3(0, 1, 1),
+                    Vec3(0, 1, 0),
+                    False,
+                    0.01,
+                    100,
+                ),
+                ((0, 0, half_w, half_h), Vec3(0, 0, 2), Vec3(0, 1, 0), True, 0.01, 200),
+                (
+                    (half_w, 0, half_w, half_h),
+                    Vec3(2, 0, 0),
+                    Vec3(0, 1, 0),
+                    True,
+                    0.1,
+                    100,
+                ),
             ]
-            for pane_index, ((x, y, pw, ph), eye, up, is_ortho) in enumerate(panes):
+            for pane_index, (
+                (x, y, pw, ph),
+                eye,
+                up,
+                is_ortho,
+                near,
+                far,
+            ) in enumerate(panes):
                 render_pass.set_viewport(x, y, pw, ph, 0.0, 1.0)
                 render_pass.set_scissor_rect(x, y, pw, ph)
                 view = look_at(eye, Vec3(0, 0, 0), up)
+                aspect = pw / max(ph, 1)
                 if is_ortho:
-                    project = ortho(-1, 1, -1, 1, 0.01, 200, PerspMode.WebGPU)
+                    project = ortho(-aspect, aspect, -1, 1, near, far, PerspMode.WebGPU)
                     model = Mat4()
                 else:
-                    project = perspective(
-                        45.0, pw / max(ph, 1), 0.01, 100.0, PerspMode.WebGPU
-                    )
+                    project = perspective(45.0, aspect, near, far, PerspMode.WebGPU)
                     model = self.mouse_global_tx
                 self._draw_pane(render_pass, view, project, model, pane_index)
 
