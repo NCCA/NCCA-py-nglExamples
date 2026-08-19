@@ -96,9 +96,13 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 
 ## Transforms & Hierarchy
 
-|                                  Preview                                   | Demo                     | Description                                                                    |
-| :------------------------------------------------------------------------: | :----------------------- | :----------------------------------------------------------------------------- |
+|                                          Preview                                          | Demo                                       | Description                                                                       |
+| :----------------------------------------------------------------------------------------: | :------------------------------------------ | :--------------------------------------------------------------------------------- |
 | <a href="SceneGraph"><img src="SceneGraph/SceneGraph.png" width="220"></a> | [SceneGraph](SceneGraph) | A robot arm built from a minimal, unit-tested transform-hierarchy `Node` class |
+| <a href="MatrixStack"><img src="MatrixStack/MatrixStack.png" width="220"></a> | [MatrixStack](MatrixStack) | Hand-rolled push/pop matrix stack driving a hierarchy of trolls and an orbiting sphere ring (OpenGL + WebGPU) |
+| <a href="LookAtDemos"><img src="LookAtDemos/LookAtDemos.png" width="220"></a> | [LookAtDemos](LookAtDemos) | Interactive perspective camera against a 2x2 orthographic multi-view comparison of the same scene (OpenGL + WebGPU) |
+| <a href="ViewToWorldTransform"><img src="ViewToWorldTransform/ViewToWorldTransform.png" width="220"></a> | [ViewToWorldTransform](ViewToWorldTransform) | Shift-click to unproject a screen position into a world-space point (OpenGL + WebGPU) |
+| <a href="AffineTransforms"><img src="AffineTransforms/AffineTransforms.png" width="220"></a> | [AffineTransforms](AffineTransforms) | Translate/rotate/scale composition order (RTS vs TRS vs axis-angle) shown live against a Mat4 readout (OpenGL + WebGPU) |
 
 ## Animation
 
