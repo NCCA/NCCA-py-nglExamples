@@ -1,5 +1,7 @@
 # ShadedGrid
 
+![](ShadedGrid.png)
+
 An animated wave-height grid, Phong-shaded with 3-point lighting, with a
 geometry-shader pass drawn on top that visualizes each triangle's face
 normal (red) and each vertex's normal (yellow) as line segments — watch
