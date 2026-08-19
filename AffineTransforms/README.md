@@ -49,3 +49,12 @@ uv run main.py
   embedded via `QWidget.createWindowContainer` (`BVHViewer` and
   `SkinnedMeshImport` do the same); give the container `StrongFocus` and
   call `setFocus()` on it or keyboard input never reaches the window.
+
+## WebGPU version
+
+`main_webgpu.py` compares the same three matrix orders using a simpler
+diffuse shader (no PBR) and a primitive selector limited to the baked mesh
+set (`PrimData.primitive` has no sphere/cylinder/cone/disk/plane/torus data
+— those are GL-only runtime tessellations). It omits the axis gizmo and the
+geometry-shader normal visualization; WebGPU has no geometry-shader stage
+at all, which is why that feature is GL-only in the first place.
