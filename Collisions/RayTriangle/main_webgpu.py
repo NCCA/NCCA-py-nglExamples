@@ -6,11 +6,12 @@ rendering model.
 
 A hit triangle is tinted red rather than drawn wireframe (wgpu has no
 practical per-draw polygon-mode toggle against a pooled pipeline), and the
-hit-point marker is a single rebuilt-every-frame GPU point rather than a
-mesh sphere -- see the module docstring notes inline for why. There's no
-animation timer here, same as main.py -- the scene only changes on key
-input, so every triangle is re-tested against the ray on every
-paintWebGPU call rather than gated behind a tick.
+hit-point markers are rebuilt-every-frame GPU points -- one per
+simultaneously-hit triangle -- rather than mesh spheres; see the module
+docstring notes inline for why. There's no animation timer here, same as
+main.py -- the scene only changes on key input, so every triangle is
+re-tested against the ray on every paintWebGPU call rather than gated
+behind a tick.
 """
 
 import argparse
@@ -81,7 +82,7 @@ class WebGPUScene(WebGPUWidget):
         self.msaa_sample_count = 4
         self.ray_start = Vec3(0, 0, 0.2)
         self.ray_end = Vec3(0, 0, -20)
-        self.hit_point = None
+        self.hit_points: list = []
         self.view = look_at(Vec3(0, 1, 15), Vec3(0, 0, 0), Vec3(0, 1, 0))
         self.project = perspective(45.0, 1024.0 / 720.0, 0.05, 350.0, PerspMode.WebGPU)
         self.mouse_global_tx = Mat4()
@@ -229,7 +230,7 @@ class WebGPUScene(WebGPUWidget):
             **common_line_kwargs,
         )
         self.point_pipeline = self.device.create_render_pipeline(
-            label="ray_triangle_hit_point",
+            label="ray_triangle_hit_points",
             primitive={"topology": wgpu.PrimitiveTopology.point_list},
             **common_line_kwargs,
         )
@@ -348,15 +349,21 @@ class WebGPUScene(WebGPUWidget):
             ],
         )
 
-        # Hit-point marker: the scene has a single ray, so at most one
-        # point is ever drawn per frame -- rebuilt from the current
-        # per-triangle test results each paintWebGPU call. When no
-        # triangle is hit that frame, the draw call is skipped entirely
-        # (see paintWebGPU) rather than issuing a 0-vertex draw.
+        # Hit-point markers: worst case every triangle is simultaneously
+        # pierced by the ray -- size for the full worst case, one point
+        # per triangle (_NUM_TRIANGLES), mirroring
+        # RaySphere/main_webgpu.py's point_vertex_capacity pattern (sized
+        # there for its own worst case of 4 points per hit sphere).
+        # Rebuilt from the current per-triangle test results each
+        # paintWebGPU call; only the first point_vertex_count vertices
+        # are drawn. When no triangle is hit that frame, the draw call is
+        # skipped entirely (see paintWebGPU) rather than issuing a
+        # 0-vertex draw.
+        self.point_vertex_capacity = _NUM_TRIANGLES
         self.point_vertex_buffer = self.device.create_buffer(
-            size=1 * 6 * 4,
+            size=self.point_vertex_capacity * 6 * 4,
             usage=wgpu.BufferUsage.VERTEX | wgpu.BufferUsage.COPY_DST,
-            label="ray_triangle_hit_point",
+            label="ray_triangle_hit_points",
         )
         self.point_vertex_count = 0
 
@@ -370,7 +377,12 @@ class WebGPUScene(WebGPUWidget):
         # is cheap and always current.
         ray_start_np = np.array([self.ray_start.x, self.ray_start.y, self.ray_start.z])
         ray_end_np = np.array([self.ray_end.x, self.ray_end.y, self.ray_end.z])
-        self.hit_point = None
+        # Accumulate every hit point this frame, not just the last one --
+        # 50 triangle centres scattered on a radius-10 sphere plausibly
+        # produce close pairs, and the ray endpoints are under full
+        # manual (8-key) control, so more than one simultaneous hit is
+        # genuinely reachable, not just a theoretical edge case.
+        self.hit_points = []
         for tri in self.triangles:
             hit, hit_point = ray_triangle_intersect(
                 ray_start_np,
@@ -381,7 +393,7 @@ class WebGPUScene(WebGPUWidget):
             )
             tri["hit"] = hit
             if hit:
-                self.hit_point = hit_point
+                self.hit_points.append(hit_point)
 
     # ------------------------------------------------------------------
     # per-frame geometry rebuilds
@@ -407,16 +419,18 @@ class WebGPUScene(WebGPUWidget):
         self.device.queue.write_buffer(self.line_vertex_buffer, 0, data.tobytes())
 
     def _update_point_buffer(self) -> None:
-        if self.hit_point is None:
-            self.point_vertex_count = 0
-            return
-        p = self.hit_point
-        data = np.array(
-            [p[0], p[1], p[2], 1.0, 0.0, 0.0],
-            dtype=np.float32,
-        )
-        self.device.queue.write_buffer(self.point_vertex_buffer, 0, data.tobytes())
-        self.point_vertex_count = 1
+        # Mirrors RaySphere/main_webgpu.py's _update_point_buffer: a flat
+        # accumulate-all-hits pass over the current test results, written
+        # in one go, drawing only point_vertex_count of the fixed-capacity
+        # buffer this frame.
+        verts: list[float] = []
+        for p in self.hit_points:
+            verts.extend([float(p[0]), float(p[1]), float(p[2]), 1.0, 0.0, 0.0])
+
+        self.point_vertex_count = len(verts) // 6
+        if verts:
+            data = np.array(verts, dtype=np.float32)
+            self.device.queue.write_buffer(self.point_vertex_buffer, 0, data.tobytes())
 
     # ------------------------------------------------------------------
     # rendering
