@@ -20,6 +20,6 @@ Left-drag : orbit, Right-drag : pan, Wheel : zoom
 ## WebGPU version
 
 `main_webgpu.py` reproduces the same 50-sphere/tiltable-plane setup
-independently. Spheres use the baked `octahedron` mesh, the plane is a
-small hand-built quad; a colliding sphere is tinted red instead of drawn
-wireframe.
+independently. Spheres are a real generated sphere mesh (`PrimData.sphere`),
+the plane is a small hand-built quad; a colliding sphere is tinted red
+instead of drawn wireframe.

@@ -157,12 +157,12 @@ class WebGPUScene(WebGPUWidget):
             },
             primitive={
                 "topology": wgpu.PrimitiveTopology.triangle_list,
-                # Unlike RaySphere's closed octahedron stand-ins, a
-                # triangle here is a single open-faced polygon -- main.py
-                # never enables GL_CULL_FACE either, so both sides need to
-                # stay visible as the camera orbits. The v0 cube markers
-                # share this pipeline too; culling "none" costs a few
-                # overdrawn back faces on those and nothing else.
+                # Unlike a closed mesh (a sphere, say), a triangle here is
+                # a single open-faced polygon -- main.py never enables
+                # GL_CULL_FACE either, so both sides need to stay visible
+                # as the camera orbits. The v0 cube markers share this
+                # pipeline too; culling "none" costs a few overdrawn back
+                # faces on those and nothing else.
                 "cull_mode": wgpu.CullMode.none,
             },
             depth_stencil={
@@ -243,12 +243,12 @@ class WebGPUScene(WebGPUWidget):
         self.cube_vertex_count = cube_data.size // 8
 
     def _create_triangles(self) -> None:
-        # Real 3-vertex geometry, unlike RaySphere's baked-octahedron
-        # stand-ins -- each triangle gets its own tiny position+normal
-        # vertex buffer (padded with a dummy 0,0 UV pair so the layout
-        # matches the baked meshes' pos+normal+uv stride and both can
-        # share mesh_pipeline). Built once here, since triangles are
-        # static once spawned -- only the ray moves every frame.
+        # Each triangle gets its own tiny position+normal vertex buffer,
+        # built from its own 3 vertices rather than instancing one shared
+        # mesh (padded with a dummy 0,0 UV pair so the layout matches the
+        # other meshes' pos+normal+uv stride and both can share
+        # mesh_pipeline). Built once here, since triangles are static once
+        # spawned -- only the ray moves every frame.
         self.triangles = []
         for _ in range(_NUM_TRIANGLES):
             v0, v1, v2 = _random_triangle()
