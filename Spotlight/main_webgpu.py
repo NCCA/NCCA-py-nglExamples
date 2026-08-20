@@ -395,6 +395,15 @@ class WebGPUScene(WebGPUWidget):
             self.model_position = Vec3(0, 0, 0)
         self.update()
 
+    def closeEvent(self, event) -> None:
+        # Stop the animation timer before the base class tears down the
+        # wgpu surface/device -- otherwise a queued timer tick can fire a
+        # GPU call (_update_lights / paintWebGPU) after teardown and
+        # crash. Same fix as main.py's closeEvent, mirrored from
+        # ShadedGrid/main_webgpu.py.
+        self.animation_timer.stop()
+        super().closeEvent(event)
+
 
 class DebugApplication(QApplication):
     def __init__(self, argv):
