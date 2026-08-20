@@ -119,9 +119,25 @@ class TestSpherePlaneCollide:
         self.width = 10.0
         self.depth = 10.0
 
-    def test_sphere_touching_plane_collides(self):
-        assert sphere_plane_collide(
+    def test_sphere_merely_touching_plane_no_collision(self):
+        # The C++'s literal threshold is `D = normal.(pos-center) + radius;
+        # hit when D <= 0`, i.e. the sphere must sink a full diameter past
+        # the plane -- merely touching it (pos.y == radius) is NOT enough,
+        # even though that reads as "obviously colliding" physically.
+        assert not sphere_plane_collide(
             np.array([0.0, 1.0, 0.0]),
+            1.0,
+            self.center,
+            self.normal,
+            self.width,
+            self.depth,
+        )
+
+    def test_sphere_sunk_full_diameter_through_plane_collides(self):
+        # Boundary case: pos.y == -radius makes D == 0 exactly, which the
+        # C++'s `D <= 0.0f` counts as a hit.
+        assert sphere_plane_collide(
+            np.array([0.0, -1.0, 0.0]),
             1.0,
             self.center,
             self.normal,
@@ -161,10 +177,12 @@ class TestSpherePlaneCollide:
 
     def test_offset_plane_centre_still_correct(self):
         # regression test for the deliberate generalisation over the C++
-        # source, which only handles a plane through the world origin
+        # source, which only handles a plane through the world origin.
+        # Same full-diameter threshold as above, just re-based on a plane
+        # centre 5 units up: the boundary is offset_center.y - radius == 4.
         offset_center = np.array([0.0, 5.0, 0.0])
         assert sphere_plane_collide(
-            np.array([0.0, 6.0, 0.0]),
+            np.array([0.0, 4.0, 0.0]),
             1.0,
             offset_center,
             self.normal,
@@ -172,7 +190,7 @@ class TestSpherePlaneCollide:
             self.depth,
         )
         assert not sphere_plane_collide(
-            np.array([0.0, 9.0, 0.0]),
+            np.array([0.0, 6.0, 0.0]),
             1.0,
             offset_center,
             self.normal,

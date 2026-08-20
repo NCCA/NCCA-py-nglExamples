@@ -100,18 +100,28 @@ def sphere_plane_collide(
     plane_width: float,
     plane_depth: float,
 ) -> bool:
-    """True if the sphere touches or has crossed the plane, within the
-    plane's rectangular extent (width along x, depth along z, centred on
-    plane_center). Ported from NGL9Demos/Collisions/SpherePlane's
+    """True if the sphere has sunk a full diameter through the plane,
+    within the plane's rectangular extent (width along x, depth along z,
+    centred on plane_center). Ported from NGL9Demos/Collisions/SpherePlane's
     spherePlaneCollide(), generalised to a plane_center not at the world
     origin (the C++ only handles a plane through the origin -- see the
-    plan's "deliberate deviations" note)."""
+    plan's "deliberate deviations" note).
+
+    The threshold matches the C++ literally: `D = normal.(pos - center) +
+    radius; hit when D <= 0`, i.e. normal.(pos - center) <= -radius. That
+    means merely touching the plane (surface distance == 0) is NOT a hit --
+    the sphere's centre has to cross all the way to a full diameter past
+    it. The C++'s own inline comment right above that check talks about a
+    "BBox extent / 2" threshold that doesn't match the code at all
+    (looks like a copy-paste from the BoundingBox demo), so this may well
+    be an unintentional bug in the original -- but the plan calls for
+    reproducing NGL9Demos's behaviour exactly, so it's kept as-is."""
     pos = np.asarray(sphere_pos, dtype=np.float64)
     normal = np.asarray(plane_normal, dtype=np.float64)
     center = np.asarray(plane_center, dtype=np.float64)
 
-    signed_dist = float(normal @ (pos - center)) - radius
-    if signed_dist > 0.0:
+    offset = float(normal @ (pos - center)) + radius
+    if offset > 0.0:
         return False
 
     half_w = plane_width / 2.0
