@@ -167,7 +167,7 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 
 |                                       Preview                                        | Demo                                     | Description                                                                  |
 | :------------------------------------------------------------------------------------: | :--------------------------------------- | :---------------------------------------------------------------------------- |
-| <a href="Collisions/SphereSphere"><img src="Collisions/SphereSphere/SphereSphere.png" width="220"></a> | [Collisions/SphereSphere](Collisions/SphereSphere) | Two moving spheres bounce off two static ones (analytic sphere/sphere test) |
+| <a href="Collisions/SphereSphere"><img src="Collisions/SphereSphere/SphereSphere.png" width="220"></a> | [Collisions/SphereSphere](Collisions/SphereSphere) | Two moving spheres bounce off two static ones (analytic sphere/sphere test) (OpenGL + WebGPU) |
 
 ## Framebuffers & Post Processing
 

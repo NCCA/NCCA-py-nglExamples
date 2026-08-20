@@ -9,3 +9,9 @@ test (`collision_maths.sphere_sphere_collide`).
 
 ## Controls
 Left-drag : orbit, Right-drag : pan, Wheel : zoom, `space` : reset
+
+## WebGPU version
+
+`main_webgpu.py` reproduces the same 4-sphere setup and collision rules
+independently. Spheres are drawn as the baked `octahedron` mesh (WebGPU
+has no runtime sphere primitive here).
