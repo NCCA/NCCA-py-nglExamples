@@ -29,7 +29,6 @@ from ncca.ngl import (
     Mat4,
     PerspMode,
     PrimData,
-    Prims,
     Vec3,
     logger,
     look_at,
@@ -244,7 +243,19 @@ class WebGPUScene(WebGPUWidget):
         )
 
     def _create_geometry(self) -> None:
-        sphere_data = PrimData.primitive(Prims.OCTAHEDRON.value)
+        # A real generated sphere, not a baked-mesh substitute: PrimData
+        # .sphere() is a pure-numpy port of Paul Bourke's classic sphere
+        # algorithm (zero GL/Qt/wgpu dependency), producing the same
+        # interleaved [x,y,z,nx,ny,nz,u,v] float32 layout that every other
+        # buffer here expects. Generated once at unit radius and scaled
+        # per-instance via the model matrix (each sphere's actual radius
+        # varies, uniform(0.5, 2.5) -- see _draw_instance/paintWebGPU's
+        # existing `Mat4().scale(radius, radius, radius)`), so one shared
+        # vertex buffer covers every sphere in the pool regardless of its
+        # radius. Precision 40 matches main.py's
+        # `Primitives.create(Prims.SPHERE, "sphere", 1.0, 40)` for a
+        # consistent look between the two backends.
+        sphere_data = PrimData.sphere(1.0, 40)
         self.sphere_vertex_buffer = self.device.create_buffer_with_data(
             data=sphere_data.tobytes(), usage=wgpu.BufferUsage.VERTEX
         )
