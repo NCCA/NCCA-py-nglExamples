@@ -20,3 +20,14 @@ than going through `ShaderLib`/`Texture`.
   no edges to outline, ported anyway to match the source)
 - `f` / `n` : fullscreen / windowed
 - Left-drag : orbit, Right-drag : pan, Wheel : zoom
+
+## WebGPU version
+
+`main_webgpu.py` reinterprets the OpenGL Texture Buffer Object + `texelFetch`
+mechanism: WebGPU has neither, so the per-vertex height values instead live
+in a read-only storage buffer (`var<storage, read> array<f32>`), indexed by
+`@builtin(vertex_index)` in the vertex shader -- the same "raw per-vertex
+data fed to the shader outside normal vertex attributes" lesson, WebGPU's
+native tool for it. One platform limitation to note: WebGPU's `point-list`
+topology has no point-size control, so points render at 1 pixel here versus
+the OpenGL version's `glPointSize(4)`.
