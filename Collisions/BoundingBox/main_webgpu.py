@@ -473,6 +473,7 @@ class WebGPUScene(WebGPUWidget):
         self.project = perspective(
             45.0, float(w) / max(h, 1), 0.05, 350.0, PerspMode.WebGPU
         )
+        self.update()
 
     def closeEvent(self, event) -> None:
         # Stop the animation timer before the base class tears down the
