@@ -241,6 +241,12 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.project = perspective(45.0, float(w) / h, 0.05, 350.0)
 
     def keyPressEvent(self, event) -> None:
+        # Mirrors PySideEventHandlingMixin's own if/elif/else dispatch:
+        # keys this demo owns are handled here and never fall through, so
+        # Key_Space toggles `animate` only -- it must not also trigger the
+        # mixin's own Key_Space handler (reset_camera), which would reset
+        # the orbit/pan on every pause. Anything we don't recognise still
+        # goes to super() as before.
         key = event.key()
         if key == Qt.Key_F:
             self.showFullScreen()
@@ -248,8 +254,10 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             self.showNormal()
         elif key == Qt.Key_Space:
             self.animate = not self.animate
+        else:
+            super().keyPressEvent(event)
+            return
         self.update()
-        super().keyPressEvent(event)
 
     def closeEvent(self, event) -> None:
         self.animation_timer.stop()
