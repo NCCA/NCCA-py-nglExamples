@@ -169,7 +169,7 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 | :------------------------------------------------------------------------------------: | :--------------------------------------- | :---------------------------------------------------------------------------- |
 | <a href="Collisions/SphereSphere"><img src="Collisions/SphereSphere/SphereSphere.png" width="220"></a> | [Collisions/SphereSphere](Collisions/SphereSphere) | Two moving spheres bounce off two static ones (analytic sphere/sphere test) (OpenGL + WebGPU) |
 | <a href="Collisions/RaySphere"><img src="Collisions/RaySphere/RaySphere.png" width="220"></a> | [Collisions/RaySphere](Collisions/RaySphere) | N spheres tested each tick against 2 animated sweeping rays (OpenGL + WebGPU) |
-| <a href="Collisions/RayTriangle"><img src="Collisions/RayTriangle/RayTriangle.png" width="220"></a> | [Collisions/RayTriangle](Collisions/RayTriangle) | N triangles tested every frame against a keyboard-moved ray (Moller-Trumbore) (OpenGL) |
+| <a href="Collisions/RayTriangle"><img src="Collisions/RayTriangle/RayTriangle.png" width="220"></a> | [Collisions/RayTriangle](Collisions/RayTriangle) | N triangles tested every frame against a keyboard-moved ray (Moller-Trumbore) (OpenGL + WebGPU) |
 
 ## Framebuffers & Post Processing
 

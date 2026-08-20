@@ -13,3 +13,9 @@ animation timer here -- the scene only changes when you move the ray.
 `up`/`down`/`left`/`right` : move the ray's end point
 `w`/`z` : move the ray's start point up/down, `a`/`s` : left/right
 Left-drag : orbit, Right-drag : pan, Wheel : zoom
+
+## WebGPU version
+
+`main_webgpu.py` reproduces the same 50-triangle setup independently,
+with real per-triangle geometry (no baked-mesh stand-in needed). A hit
+triangle is tinted red instead of drawn wireframe.
