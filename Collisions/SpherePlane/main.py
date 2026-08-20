@@ -93,8 +93,17 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         # so the rotation is extracted into a Mat3 which does support
         # Mat3 @ Vec3 -- same pattern as Camera/uvn_camera.py's
         # _rotate_vec3() elsewhere in this repo.
+        #
+        # This library's Mat3 @ Vec3 multiplies as matrix_data @ v (column-
+        # vector convention), but this repo's rendering convention is
+        # row-vector (translation in row 3, uploaded row-major with
+        # GL_FALSE -- see shader_program.py's _set_matrix_uniform).
+        # For a rotation matrix that mismatch is exactly a transpose, i.e.
+        # an inverse, so the untransposed multiply silently returns the
+        # mirror-image normal at any nonzero tilt. Transposing first makes
+        # this match what the vertex shader actually does to a row vector.
         rot = Mat4().rotate_z(self.plane_zrot) @ Mat4().rotate_x(self.plane_xrot)
-        return Mat3.from_mat4(rot) @ Vec3(0, 1, 0)
+        return Mat3.from_mat4(rot).transposed() @ Vec3(0, 1, 0)
 
     def _on_tick(self) -> None:
         normal = self._plane_normal()

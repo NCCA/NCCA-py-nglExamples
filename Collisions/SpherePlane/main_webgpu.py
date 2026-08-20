@@ -41,9 +41,6 @@ _NUM_SPHERES = 50
 _PLANE_WIDTH = 5.0
 _PLANE_DEPTH = 5.0
 _RESPAWN_EVERY = 20
-# 50 spheres + 1 plane, one pool slot per draw call/frame -- the plane is
-# always object index 0.
-_DRAW_POOL_SIZE = _NUM_SPHERES + 1
 
 
 def _v3(v: Vec3) -> np.ndarray:
@@ -181,16 +178,21 @@ class WebGPUScene(WebGPUWidget):
         self.plane_vertex_count = plane_data.size // 8
 
     def _create_draw_buffer_pool(self) -> None:
-        # One uniform buffer/bind-group slot per draw (51: 1 plane + 50
-        # spheres), indexed by a counter reset every frame -- see
-        # Spotlight/main_webgpu.py and SphereSphere/main_webgpu.py for the
-        # established rationale (a single shared buffer rewritten mid-frame
-        # would alias between draws issued before the GPU has consumed the
-        # earlier write).
+        # One uniform buffer/bind-group slot per draw (1 plane + however
+        # many spheres --spheres actually requested), indexed by a counter
+        # reset every frame -- see Spotlight/main_webgpu.py and
+        # SphereSphere/main_webgpu.py for the established rationale (a
+        # single shared buffer rewritten mid-frame would alias between
+        # draws issued before the GPU has consumed the earlier write).
+        # Sized from self.spheres (already populated in __init__ by the
+        # time this runs) rather than a fixed module constant -- unlike
+        # BoundingBox, there's no runtime +/- key here to grow the sphere
+        # count later, so there's nothing to cap against.
+        draw_pool_size = len(self.spheres) + 1
         uniform_size = (16 + 16 + 4) * 4  # mvp mat4 + normal_matrix mat4 + colour vec4
         self.draw_uniform_buffers = []
         self.draw_bind_groups = []
-        for _ in range(_DRAW_POOL_SIZE):
+        for _ in range(draw_pool_size):
             buf = self.device.create_buffer(
                 size=uniform_size,
                 usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
@@ -213,10 +215,18 @@ class WebGPUScene(WebGPUWidget):
     def _plane_normal(self) -> Vec3:
         # Mat4 only multiplies with Vec4, so the rotation is extracted
         # into a Mat3 which does support Mat3 @ Vec3 -- same pattern as
-        # main.py's _plane_normal() (Task 8) and Camera/uvn_camera.py's
+        # main.py's _plane_normal() and Camera/uvn_camera.py's
         # _rotate_vec3().
+        #
+        # This library's Mat3 @ Vec3 multiplies as matrix_data @ v (column-
+        # vector convention), but this repo's rendering convention is
+        # row-vector. For a rotation matrix that mismatch is exactly a
+        # transpose/inverse, so the untransposed multiply silently returns
+        # the mirror-image normal at any nonzero tilt. Transposing first
+        # makes this match what the vertex shader actually does to a row
+        # vector.
         rot = Mat4().rotate_z(self.plane_zrot) @ Mat4().rotate_x(self.plane_xrot)
-        return Mat3.from_mat4(rot) @ Vec3(0, 1, 0)
+        return Mat3.from_mat4(rot).transposed() @ Vec3(0, 1, 0)
 
     def _on_tick(self) -> None:
         normal = self._plane_normal()
