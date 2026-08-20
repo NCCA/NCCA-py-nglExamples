@@ -100,7 +100,12 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         ShaderLib.set_uniform("lightPos", 1.0, 1.0, 1.0)
         ShaderLib.set_uniform("lightDiffuse", 1.0, 1.0, 1.0, 1.0)
         Primitives.load_default_primitives()
-        Primitives.create(Prims.SPHERE, "smallSphere", 0.05, 10)
+        # Radius 0.1, not the C++'s literal 0.05 -- the C++ additionally
+        # calls setScale(2.0, 2.0, 2.0) on this marker before drawing it,
+        # so its actual visual radius is 0.05 * 2.0 = 0.1. This baked mesh
+        # skips the extra per-draw scale and bakes the doubled radius in
+        # directly instead.
+        Primitives.create(Prims.SPHERE, "smallSphere", 0.1, 10)
 
         # Reused every frame -- rebuilding a fresh VAO per draw call would
         # leak a VBO/VAO pair every tick.
