@@ -23,3 +23,17 @@ as `time` advances.
 - `1` / `2` : decrease / increase the noise UV scale (`repeat`)
 - Left-drag : orbit, Right-drag : pan, Wheel : zoom
 - `Esc` : quit
+
+## WebGPU version
+
+`main_webgpu.py` reinterprets the JSON-driven shader assembly for WGSL's
+shape: wgpu-py has no native "load a shader program from JSON" path (a
+WGSL module is one source string with both vertex and fragment entry
+points, unlike GLSL's separate compiled stages), so `shaders_webgpu/shaders.json`
+lists WGSL fragment files that get concatenated into one module source
+before `device.create_shader_module` — same "assemble a shader from
+JSON-declared files" lesson, applied to WebGPU's single-module shape. One
+intentional smoothing: the OpenGL version's `repeat` uniform has a visible
+jump on the first `1`/`2` keypress, an artifact of the C++ source setting
+its initial value in two disconnected places; this version starts `repeat`
+at `0.1` cleanly since there's no equivalent second initialization site here.

@@ -1,0 +1,6 @@
+{
+  "ShaderModule": {
+    "name": "NoiseShader",
+    "path": ["common.wgsl", "noise3D.wgsl", "phong_noise.wgsl"]
+  }
+}
