@@ -18,3 +18,11 @@ reversing both directions anyway.
 `r` : reset all spheres, `+`/`-` : add/remove a sphere (minimum 1)
 `f` : fullscreen, `n` : windowed
 Left-drag : orbit, Right-drag : pan, Wheel : zoom
+
+## WebGPU version
+
+`main_webgpu.py` reproduces the same default 50-sphere setup and
+controls independently (minus `f`/`n` fullscreen, which has no WebGPU
+`QWidget` equivalent here). The sphere count is capped at 200 -- a
+fixed-size GPU buffer pool needs a ceiling, unlike the C++'s unbounded
+array; the default behaviour (50 spheres, add/remove by 1) is unaffected.
