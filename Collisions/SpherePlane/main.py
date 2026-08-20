@@ -100,6 +100,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         normal = self._plane_normal()
         normal_np = np.array([normal.x, normal.y, normal.z])
         for s in self.spheres:
+            s["hit"] = False
             s["pos"] = s["pos"] + s["dir"]
             hit = sphere_plane_collide(
                 np.array([s["pos"].x, s["pos"].y, s["pos"].z]),
