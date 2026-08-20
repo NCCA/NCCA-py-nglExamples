@@ -100,6 +100,12 @@ class WebGPUScene(WebGPUWidget):
     def __init__(self, num_spheres: int = _NUM_SPHERES) -> None:
         super().__init__()
         self.msaa_sample_count = 4
+        # Clamp at construction time too, not just in the `+` key handler
+        # -- the buffer pool only ever has _POOL_CAP slots, so a caller
+        # passing --spheres above the cap must be capped here as well, or
+        # _draw_instance's first paintWebGPU() call IndexErrors straight
+        # into the pool.
+        num_spheres = min(num_spheres, _POOL_CAP)
         self.spheres = [_spawn_sphere() for _ in range(num_spheres)]
         self.animate = True
         self.check_sphere_sphere = False
