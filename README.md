@@ -31,6 +31,7 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 - [Environment & Sky](#environment--sky)
 - [Curves & Interpolation](#curves--interpolation)
 - [Selection & Picking](#selection--picking)
+- [Collision Detection](#collision-detection)
 - [Framebuffers & Post Processing](#framebuffers--post-processing)
 - [Lighting & Shadows](#lighting--shadows)
 - [Ray Marching](#ray-marching)
@@ -161,6 +162,12 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 | <a href="SelectionManipulatorWebGPU"><img src="SelectionManipulatorWebGPU/SelectionManipulatorWebGPU.png" width="220"></a> | [SelectionManipulatorWebGPU](SelectionManipulatorWebGPU) | Manipulator (WebGPU)                                          |
 |               <a href="WebGPUComputePicking"><img src="WebGPUComputePicking/WebGPUPick.png" width="220"></a>               | [WebGPUComputePicking](WebGPUComputePicking)             | Compute-shader picking (WebGPU)                               |
 |                   <a href="StencilOutline"><img src="StencilOutline/StencilOutline.png" width="220"></a>                   | [StencilOutline](StencilOutline)                         | Maya-style two-pass stencil-buffer selection outline (OpenGL) |
+
+## Collision Detection
+
+|                                       Preview                                        | Demo                                     | Description                                                                  |
+| :------------------------------------------------------------------------------------: | :--------------------------------------- | :---------------------------------------------------------------------------- |
+| <a href="Collisions/SphereSphere"><img src="Collisions/SphereSphere/SphereSphere.png" width="220"></a> | [Collisions/SphereSphere](Collisions/SphereSphere) | Two moving spheres bounce off two static ones (analytic sphere/sphere test) |
 
 ## Framebuffers & Post Processing
 
