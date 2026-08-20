@@ -24,7 +24,6 @@ from ncca.ngl import (
     Mat4,
     PerspMode,
     PrimData,
-    Prims,
     Vec3,
     logger,
     look_at,
@@ -165,7 +164,11 @@ class WebGPUScene(WebGPUWidget):
         )
 
     def _create_geometry(self) -> None:
-        sphere_data = PrimData.primitive(Prims.OCTAHEDRON.value)
+        # A real generated sphere, not a baked-mesh substitute -- see
+        # BoundingBox/main_webgpu.py's _create_geometry() for the full
+        # rationale. Precision 40 matches main.py's
+        # `Primitives.create(Prims.SPHERE, "sphere", 1.0, 40)`.
+        sphere_data = PrimData.sphere(1.0, 40)
         self.sphere_vertex_buffer = self.device.create_buffer_with_data(
             data=sphere_data.tobytes(), usage=wgpu.BufferUsage.VERTEX
         )
