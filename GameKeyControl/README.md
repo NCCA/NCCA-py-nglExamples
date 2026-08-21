@@ -35,3 +35,16 @@ it's the whole reason this demo has two timers instead of one.
 - `P` : toggle playback
 - `S` / `L` : save / load a recording (`.kp` file)
 - `Esc` : quit
+
+## WebGPU version
+
+`main_webgpu.py` needs no reinterpretation for this demo's actual teaching
+point (the bitmask-indexed motion table and file-based record/playback are
+plain Python/Qt, identical on both backends) -- the only backend-specific
+work is drawing the ship and the HUD. `ncca.ngl.Obj.create_vao()` is
+GL-only, so `ship_mesh.py` replicates its interleave logic to build a numpy
+vertex buffer directly, and a small hand-rolled flat WGSL shader
+(`GameKeyControlShader.wgsl`) stands in for the OpenGL side's built-in
+`nglColourShader` equivalent. A recording saved from either backend loads
+and plays back correctly in the other -- the `.kp` format and the
+`KeyRecorder` class are shared, unmodified, from `game_controls.py`.
