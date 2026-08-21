@@ -62,6 +62,7 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 |    <a href="ShadingModels"><img src="ShadingModels/ShadingModels.png" width="220"></a>    | [ShadingModels](ShadingModels)         | Comparison of shading models       |
 |          <a href="ScreenTri"><img src="ScreenTri/ScreenTri.png" width="220"></a>          | [ScreenTri](ScreenTri)                 | Full-screen triangle technique     |
 | <a href="OpenGLPrimRestart"><img src="OpenGLPrimRestart/PrimRestart.png" width="220"></a> | [OpenGLPrimRestart](OpenGLPrimRestart) | Primitive restart index            |
+| <a href="ResetLine"><img src="ResetLine/ResetLine.png" width="220"></a> | [ResetLine](ResetLine) | Animated line field using primitive restart in OpenGL and line-list expansion in WebGPU |
 |       <a href="FrustumCull"><img src="FrustumCull/FrustumCull.png" width="220"></a>       | [FrustumCull](FrustumCull)             | View frustum culling               |
 |     <a href="FontRendering"><img src="FontRendering/FontRender.png" width="220"></a>      | [FontRendering](FontRendering)         | Text / font rendering              |
 | <a href="TexelFetch"><img src="TexelFetch/TexelFetch.png" width="220"></a> | [TexelFetch](TexelFetch) | Texture Buffer Object + texelFetch: animated height grid (OpenGL + WebGPU) |
@@ -117,6 +118,7 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 | <a href="SkeletalAnimation"><img src="SkeletalAnimation/SkeletalAnimation.png" width="220"></a> | [SkeletalAnimation](SkeletalAnimation) | Linear blend skinning vs dual-quaternion skinning, and the "candy wrapper" artefact that tells them apart (OpenGL) |
 |           <a href="MassSpring"><img src="MassSpring/MassSpring.png" width="220"></a>            | [MassSpring](MassSpring)               | Damped mass spring chain with RK4 integration, from a single spring up to a rope                                   |
 | <a href="SkinnedMeshImport"><img src="SkinnedMeshImport/SkinnedMeshImport.png" width="220"></a> | [SkinnedMeshImport](SkinnedMeshImport) | Importing a rigged mesh with impasse (Python assimp) and skinning it on the GPU (OpenGL and WebGPU)                 |
+| <a href="MorphObj"><img src="MorphObj/MorphObj.png" width="220"></a> | [MorphObj](MorphObj) | Vertex-shader blending between three OBJ poses (OpenGL + WebGPU) |
 
 ## Textures & Materials
 
@@ -177,6 +179,7 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 | <a href="Collisions/RayTriangle"><img src="Collisions/RayTriangle/RayTriangle.png" width="220"></a> | [Collisions/RayTriangle](Collisions/RayTriangle) | N triangles tested every frame against a keyboard-moved ray (Moller-Trumbore) (OpenGL + WebGPU) |
 | <a href="Collisions/SpherePlane"><img src="Collisions/SpherePlane/SpherePlane.png" width="220"></a> | [Collisions/SpherePlane](Collisions/SpherePlane) | N falling spheres collide with a tiltable plane (OpenGL + WebGPU) |
 | <a href="Collisions/BoundingBox"><img src="Collisions/BoundingBox/BoundingBox.png" width="220"></a> | [Collisions/BoundingBox](Collisions/BoundingBox) | N spheres bounce inside a cubic bounding box, optional sphere/sphere checking (OpenGL + WebGPU) |
+| <a href="OctreeAbstract"><img src="OctreeAbstract/OctreeAbstract.png" width="220"></a> | [OctreeAbstract](OctreeAbstract) | Perfect octree broad phase with instanced particle rendering (OpenGL + WebGPU) |
 
 ## Framebuffers & Post Processing
 
