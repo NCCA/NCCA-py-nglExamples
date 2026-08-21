@@ -31,7 +31,7 @@ shape: wgpu-py has no native "load a shader program from JSON" path (a
 WGSL module is one source string with both vertex and fragment entry
 points, unlike GLSL's separate compiled stages), so `shaders_webgpu/shaders.json`
 lists WGSL fragment files that get concatenated into one module source
-before `device.create_shader_module` — same "assemble a shader from
+before `device.create_shader_module` -- same "assemble a shader from
 JSON-declared files" lesson, applied to WebGPU's single-module shape. One
 intentional smoothing: the OpenGL version's `repeat` uniform has a visible
 jump on the first `1`/`2` keypress, an artifact of the C++ source setting

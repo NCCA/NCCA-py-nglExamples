@@ -11,6 +11,7 @@ attribute at all.
 import argparse
 import sys
 import traceback
+from pathlib import Path
 
 import numpy as np
 import OpenGL.GL as gl
@@ -127,7 +128,12 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glBindTexture(gl.GL_TEXTURE_BUFFER, self.tbo_texture)
         gl.glTexBuffer(gl.GL_TEXTURE_BUFFER, gl.GL_R32F, self.ypos_buffer)
 
-        ShaderLib.load_shader("TexelShader", "VertexShader.glsl", "FragmentShader.glsl")
+        shader_dir = Path(__file__).parent
+        ShaderLib.load_shader(
+            "TexelShader",
+            str(shader_dir / "VertexShader.glsl"),
+            str(shader_dir / "FragmentShader.glsl"),
+        )
         ShaderLib.use("TexelShader")
         ShaderLib.set_uniform("yPosSampler", 0)
 

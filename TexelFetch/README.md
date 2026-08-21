@@ -20,6 +20,7 @@ than going through `ShaderLib`/`Texture`.
   no edges to outline, ported anyway to match the source)
 - `f` / `n` : fullscreen / windowed
 - Left-drag : orbit, Right-drag : pan, Wheel : zoom
+- `Esc` : quit
 
 ## WebGPU version
 

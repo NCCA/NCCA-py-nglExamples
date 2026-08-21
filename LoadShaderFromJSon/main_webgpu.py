@@ -28,7 +28,16 @@ from pathlib import Path
 
 import numpy as np
 import wgpu
-from ncca.ngl import Mat4, PerspMode, PrimData, Prims, Vec3, look_at, perspective
+from ncca.ngl import (
+    Mat4,
+    PerspMode,
+    PrimData,
+    Prims,
+    Vec3,
+    logger,
+    look_at,
+    perspective,
+)
 from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication
@@ -454,6 +463,7 @@ class DebugApplication(QApplication):
 
     def __init__(self, argv):
         super().__init__(argv)
+        logger.info("Running in full debug mode")
 
     def notify(self, receiver, event):
         try:

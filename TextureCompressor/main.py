@@ -76,7 +76,12 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
         self._build_screen_quad()
 
-        ShaderLib.load_shader("Texture", "TextureVertex.glsl", "TextureFragment.glsl")
+        shader_dir = Path(__file__).parent
+        ShaderLib.load_shader(
+            "Texture",
+            str(shader_dir / "TextureVertex.glsl"),
+            str(shader_dir / "TextureFragment.glsl"),
+        )
         ShaderLib.use("Texture")
         ShaderLib.set_uniform("tex", 0)
 
