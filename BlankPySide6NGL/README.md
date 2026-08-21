@@ -1,6 +1,6 @@
 # BlankPySide6NGL / using_mixin
 
-![](BlankPySide6NGL.png)
+![](BlankPySideNGL.png)
 
 These demos are a starting point for creating a PySide6 application with NGL support.
 
