@@ -5,6 +5,7 @@
 2. remove LookAtDemos not needed now.
 3. Check View To World webgpu as it doesn't update 
 4. AffineTransforms Gizmo too big and rotation not dynamic
+5. spotlights don't transform when world transforms (perhaps have a switch to do it either way)
 
 
 WebGPUWidget checks (and in PyGNL)
