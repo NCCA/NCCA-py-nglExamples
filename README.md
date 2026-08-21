@@ -68,6 +68,7 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 | <a href="LoadShaderFromJSon"><img src="LoadShaderFromJSon/LoadShaderFromJSon.png" width="220"></a> | [LoadShaderFromJSon](LoadShaderFromJSon) | JSON-driven shader assembly: noise-shaded teapot (OpenGL + WebGPU) |
 | <a href="TextureCompressor"><img src="TextureCompressor/TextureCompressor.png" width="220"></a> | [TextureCompressor](TextureCompressor) | DXT1/S3TC compressed-texture viewer + a from-scratch Python encoder |
 | <a href="GameKeyControl"><img src="GameKeyControl/GameKeyControl.png" width="220"></a> | [GameKeyControl](GameKeyControl) | Bitmask-indexed motion table for held multi-key combos, with record/playback (OpenGL + WebGPU) |
+| <a href="ImageMaze"><img src="ImageMaze/ImageMaze.png" width="220"></a> | [ImageMaze](ImageMaze) | Image pixels turned into a coloured cube maze with collision-aware actor controls (OpenGL + WebGPU) |
 
 ## Vertex Array Objects
 
