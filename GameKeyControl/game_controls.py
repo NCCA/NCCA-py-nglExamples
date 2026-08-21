@@ -91,7 +91,7 @@ class KeyRecorder:
             self._start_position.x, self._start_position.y, self._start_position.z
         )
 
-    def save(self, path: Path) -> None:
+    def save(self, path: Path | str) -> None:
         lines = [str(len(self._frames))]
         lines.append(
             f"{self._start_position.x} {self._start_position.y} {self._start_position.z}"
@@ -99,7 +99,7 @@ class KeyRecorder:
         lines.extend(str(frame) for frame in self._frames)
         Path(path).write_text("\n".join(lines) + "\n")
 
-    def load(self, path: Path) -> None:
+    def load(self, path: Path | str) -> None:
         lines = Path(path).read_text().split()
         count = int(lines[0])
         x, y, z = float(lines[1]), float(lines[2]), float(lines[3])

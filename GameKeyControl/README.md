@@ -15,7 +15,12 @@ Space starts and stops recording every frame's bitmask to a `KeyRecorder`;
 P replays a recording back over the ship's original starting position; S/L
 save and load a recording to/from a `.kp` file. The maths and the recorder
 live in `game_controls.py`, shared with the WebGPU version of this demo --
-see that file for `move_ship()`, `ship_transform()`, and `KeyRecorder`.
+see that file for `move_ship()`, `ship_transform()`, and `KeyRecorder`. This
+`.kp` format is a Python-native text encoding (one decimal integer per
+line), not the raw byte stream the original C++ `AdvancedGameKeyControl`
+writes for each frame, so a recording made by this port won't load in the
+C++ demo or vice versa -- it's only interchangeable between this port's own
+OpenGL and WebGPU entry points.
 
 There's no mouse camera control here at all, which is unusual for this
 repo -- the C++ source never wires up a mouse handler, so this port
