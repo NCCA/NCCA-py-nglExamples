@@ -84,5 +84,7 @@ fn fragment_main(input: VertexOutput) -> @location(0) vec4<f32> {
 
     // A "hot" colormap -- cheesy but effective
     let lit = pointLight(n, input.light_dir, input.half_vector);
-    return lit * vec4<f32>(vec3<f32>(1.0, 0.5, 0.0) + vec3<f32>(n_val, n_val, n_val), 1.0);
+    var colour = lit * vec4<f32>(vec3<f32>(1.0, 0.5, 0.0) + vec3<f32>(n_val, n_val, n_val), 1.0);
+    colour.a = 1.0;
+    return colour;
 }
