@@ -66,6 +66,7 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 |     <a href="FontRendering"><img src="FontRendering/FontRender.png" width="220"></a>      | [FontRendering](FontRendering)         | Text / font rendering              |
 | <a href="TexelFetch"><img src="TexelFetch/TexelFetch.png" width="220"></a> | [TexelFetch](TexelFetch) | Texture Buffer Object + texelFetch: animated height grid |
 | <a href="LoadShaderFromJSon"><img src="LoadShaderFromJSon/LoadShaderFromJSon.png" width="220"></a> | [LoadShaderFromJSon](LoadShaderFromJSon) | JSON-driven shader assembly: noise-shaded teapot |
+| <a href="TextureCompressor"><img src="TextureCompressor/TextureCompressor.png" width="220"></a> | [TextureCompressor](TextureCompressor) | DXT1/S3TC compressed-texture viewer + a from-scratch Python encoder |
 
 ## Vertex Array Objects
 
