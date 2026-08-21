@@ -67,6 +67,7 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 | <a href="TexelFetch"><img src="TexelFetch/TexelFetch.png" width="220"></a> | [TexelFetch](TexelFetch) | Texture Buffer Object + texelFetch: animated height grid (OpenGL + WebGPU) |
 | <a href="LoadShaderFromJSon"><img src="LoadShaderFromJSon/LoadShaderFromJSon.png" width="220"></a> | [LoadShaderFromJSon](LoadShaderFromJSon) | JSON-driven shader assembly: noise-shaded teapot (OpenGL + WebGPU) |
 | <a href="TextureCompressor"><img src="TextureCompressor/TextureCompressor.png" width="220"></a> | [TextureCompressor](TextureCompressor) | DXT1/S3TC compressed-texture viewer + a from-scratch Python encoder |
+| <a href="GameKeyControl"><img src="GameKeyControl/GameKeyControl.png" width="220"></a> | [GameKeyControl](GameKeyControl) | Bitmask-indexed motion table for held multi-key combos, with record/playback (OpenGL + WebGPU) |
 
 ## Vertex Array Objects
 
