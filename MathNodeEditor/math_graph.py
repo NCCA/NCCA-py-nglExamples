@@ -1012,13 +1012,9 @@ class MathGraph:
             "    frustum, look_at, ortho, perspective,",
             ")",
             "",
-            "def _component_multiply(left, right):",
-            "    if isinstance(left, float):",
-            "        return left * right",
-            "    return type(left)(*(a * b for a, b in zip(left.to_list(), right.to_list())))",
-            "",
         ]
         emitted: set[str] = set()
+        component_multiply_emitted = False
 
         def name(node_id: str) -> str:
             return node_id.replace("-", "_")
@@ -1030,6 +1026,7 @@ class MathGraph:
             return f"{math_type.value}({values})"
 
         def emit(node_id: str, active: set[str]) -> str:
+            nonlocal component_multiply_emitted
             if node_id in emitted:
                 return name(node_id)
             if node_id in active:
@@ -1138,6 +1135,20 @@ class MathGraph:
                         expression = f"{input_names[0]}.slerp({input_names[1]}, {input_names[2]})"
                     else:
                         expression = binary_operations[node.operation]()
+                    if (
+                        node.operation is Operation.MULTIPLY
+                        and not component_multiply_emitted
+                    ):
+                        lines.extend(
+                            (
+                                "def _component_multiply(left, right):",
+                                "    if isinstance(left, float):",
+                                "        return left * right",
+                                "    return type(left)(*(a * b for a, b in zip(left.to_list(), right.to_list())))",
+                                "",
+                            )
+                        )
+                        component_multiply_emitted = True
                     lines.append(f"{node_name} = {expression}")
                 emitted.add(node_id)
                 return node_name

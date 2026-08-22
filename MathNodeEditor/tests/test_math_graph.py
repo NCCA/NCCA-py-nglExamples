@@ -100,6 +100,7 @@ def test_generate_python_preserves_transform_rotation_order_and_shared_nodes() -
         assert namespace[name].to_list() == pytest.approx(
             graph.evaluate(output).to_list()
         )
+    assert "def _component_multiply" not in generated
 
 
 def test_generate_python_keeps_valid_outputs_when_another_branch_is_incomplete() -> (
@@ -133,9 +134,11 @@ def test_generate_python_component_multiply_supports_float_values() -> None:
     graph.connect(right, multiply, 1)
     graph.connect(multiply, output, 0)
 
+    generated = graph.generate_python([output])
     namespace: dict[str, object] = {}
-    exec(graph.generate_python([output]), namespace)
+    exec(generated, namespace)
 
+    assert "def _component_multiply" in generated
     assert namespace["output_node_4"] == pytest.approx(8.0)
 
 
