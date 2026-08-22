@@ -67,6 +67,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QSplitter,
     QVBoxLayout,
     QWidget,
 )
@@ -196,7 +197,6 @@ class MathNodeWindow(QMainWindow):
         self.code_editor.setReadOnly(True)
         self.code_editor.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.code_editor.setFixedWidth(320)
-        self.code_editor.setFixedHeight(160)
         self.code_editor.setStyleSheet(
             "QPlainTextEdit {"
             " background: #111620; color: #f8f8f2; border: 0;"
@@ -207,7 +207,6 @@ class MathNodeWindow(QMainWindow):
         self.code_output.setObjectName("pythonCodeOutput")
         self.code_output.setReadOnly(True)
         self.code_output.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-        self.code_output.setFixedHeight(160)
         self.code_output.setStyleSheet(
             "QPlainTextEdit {"
             " background: #111620; color: #f8f8f2; border-top: 1px solid #44475a;"
@@ -227,8 +226,12 @@ class MathNodeWindow(QMainWindow):
         dock_layout = QVBoxLayout(dock_content)
         dock_layout.setContentsMargins(0, 0, 0, 0)
         dock_layout.setSpacing(0)
-        dock_layout.addWidget(self.code_editor, 1)
-        dock_layout.addWidget(self.code_output)
+        self.code_splitter = QSplitter(Qt.Orientation.Vertical, dock_content)
+        self.code_splitter.addWidget(self.code_editor)
+        self.code_splitter.addWidget(self.code_output)
+        self.code_splitter.setStretchFactor(0, 2)
+        self.code_splitter.setStretchFactor(1, 1)
+        dock_layout.addWidget(self.code_splitter, 1)
         dock_layout.addLayout(button_layout)
         self.code_dock.setWidget(dock_content)
         self.code_highlighter = PythonHighlighter(self.code_editor.document())
