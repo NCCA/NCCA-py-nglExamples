@@ -1088,7 +1088,7 @@ class MathGraph:
                     if 0 not in node.inputs:
                         raise GraphError("Output needs input Value")
                     source_name = emit(node.inputs[0], active)
-                    lines.append(f"{node_name} = {source_name}")
+                    lines.append(f"print({source_name})")
                 elif isinstance(node, MeshViewerNode):
                     raise GraphError("Mesh Viewer is a sink, not a Python value")
                 else:
@@ -1160,8 +1160,7 @@ class MathGraph:
             if not isinstance(node, OutputNode):
                 continue
             try:
-                output_name = emit(output_id, set())
-                lines.append(f"output_{name(output_id)} = {output_name}")
+                emit(output_id, set())
             except (GraphError, KeyError) as error:
                 lines.append(f"# Output {output_id} could not be generated: {error}")
         return "\n".join(lines).rstrip() + "\n"

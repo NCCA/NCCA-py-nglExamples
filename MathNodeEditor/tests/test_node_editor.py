@@ -128,7 +128,7 @@ def test_code_view_action_controls_a_visible_read_only_dock(
 
     assert window.code_dock.isHidden()
     assert not window.action_code_view.isChecked()
-    assert "output_node_4" in window.code_editor.toPlainText()
+    assert "print(node_3)" in window.code_editor.toPlainText()
     window.close()
 
 
@@ -144,7 +144,7 @@ def test_code_view_refreshes_when_a_graph_connection_changes(
     application.processEvents()
 
     assert "node_1 = 3.0" in window.code_editor.toPlainText()
-    assert "output_node_2 = node_2" in window.code_editor.toPlainText()
+    assert "print(node_1)" in window.code_editor.toPlainText()
     window.close()
 
 
