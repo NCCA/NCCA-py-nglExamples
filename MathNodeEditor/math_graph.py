@@ -1000,6 +1000,161 @@ class MathGraph:
         validate_mesh_arrays(vertices, faces, uvs, normals)
         return MeshViewerInputs(vertices, faces, uvs, normals, colour)
 
+    def generate_python(self, output_ids: list[str] | tuple[str, ...]) -> str:
+        """Generate runnable PyNGL Python for the requested Output nodes.
+
+        Invalid branches are represented as comments, allowing connected
+        Output nodes elsewhere in the graph to remain useful.
+        """
+        lines = [
+            "from ncca.ngl import (",
+            "    Mat2, Mat3, Mat4, Quaternion, Transform, Vec2, Vec3, Vec4,",
+            "    frustum, look_at, ortho, perspective,",
+            ")",
+            "",
+            "def _component_multiply(left, right):",
+            "    if isinstance(left, float):",
+            "        return left * right",
+            "    return type(left)(*(a * b for a, b in zip(left.to_list(), right.to_list())))",
+            "",
+        ]
+        emitted: set[str] = set()
+
+        def name(node_id: str) -> str:
+            return node_id.replace("-", "_")
+
+        def value_expression(math_type: MathType, components: tuple[float, ...]) -> str:
+            values = ", ".join(repr(float(component)) for component in components)
+            if math_type is MathType.FLOAT:
+                return values
+            return f"{math_type.value}({values})"
+
+        def emit(node_id: str, active: set[str]) -> str:
+            if node_id in emitted:
+                return name(node_id)
+            if node_id in active:
+                raise GraphError("The graph contains a cycle")
+            active.add(node_id)
+            try:
+                node = self._nodes[node_id]
+                node_name = name(node_id)
+                if isinstance(node, ValueNode):
+                    lines.append(
+                        f"{node_name} = {value_expression(node.math_type, node.components)}"
+                    )
+                elif isinstance(node, LiteralNode):
+                    if isinstance(
+                        node.value, (VertexArray, FaceArray, UVArray, NormalArray)
+                    ):
+                        raise GraphError(
+                            "mesh-array-derived outputs cannot be embedded"
+                        )
+                    lines.append(f"{node_name} = {repr(node.value)}")
+                elif isinstance(node, GeneratorNode):
+                    parameter_types = OPERATION_PARAMETER_TYPES[node.operation]
+                    parameters = [
+                        value_expression(math_type, components)
+                        for math_type, components in zip(
+                            parameter_types, node.parameters, strict=True
+                        )
+                    ]
+                    generator_expressions = {
+                        Operation.LOOK_AT: f"look_at({', '.join(parameters)})",
+                        Operation.PERSPECTIVE: f"perspective({', '.join(parameters)})",
+                        Operation.ORTHO: f"ortho({', '.join(parameters)})",
+                        Operation.FRUSTUM: f"frustum({', '.join(parameters)})",
+                        Operation.MAT4_TRANSLATE: f"Mat4.translate({', '.join(parameters)})",
+                        Operation.MAT4_SCALE: f"Mat4.scale({', '.join(parameters)})",
+                        Operation.MAT4_ROTATE_X: f"Mat4.rotate_x({parameters[0]})",
+                        Operation.MAT4_ROTATE_Y: f"Mat4.rotate_y({parameters[0]})",
+                        Operation.MAT4_ROTATE_Z: f"Mat4.rotate_z({parameters[0]})",
+                        Operation.QUATERNION_FROM_AXIS_ANGLE: (
+                            f"Quaternion.from_axis_angle({', '.join(parameters)})"
+                        ),
+                    }
+                    if node.operation is Operation.TRANSFORM:
+                        lines.extend(
+                            (
+                                f"{node_name} = Transform()",
+                                f"{node_name}.set_position({parameters[0]})",
+                                f"{node_name}.set_rotation({parameters[1]})",
+                                f"{node_name}.set_scale({parameters[2]})",
+                                f"{node_name}.set_order({node.rotation_order!r})",
+                                f"{node_name} = {node_name}.matrix()",
+                            )
+                        )
+                    else:
+                        lines.append(
+                            f"{node_name} = {generator_expressions[node.operation]}"
+                        )
+                elif isinstance(node, OutputNode):
+                    if 0 not in node.inputs:
+                        raise GraphError("Output needs input Value")
+                    source_name = emit(node.inputs[0], active)
+                    lines.append(f"{node_name} = {source_name}")
+                elif isinstance(node, MeshViewerNode):
+                    raise GraphError("Mesh Viewer is a sink, not a Python value")
+                else:
+                    input_names = []
+                    for input_index in range(OPERATION_ARITY[node.operation]):
+                        if input_index not in node.inputs:
+                            input_label = OPERATION_INPUT_NAMES[node.operation][
+                                input_index
+                            ]
+                            raise GraphError(
+                                f"{node.operation.value} needs input {input_label}"
+                            )
+                        input_names.append(emit(node.inputs[input_index], active))
+                    binary_operations = {
+                        Operation.ADD: lambda: f"{input_names[0]} + {input_names[1]}",
+                        Operation.SUBTRACT: lambda: f"{input_names[0]} - {input_names[1]}",
+                        Operation.MULTIPLY: lambda: (
+                            f"_component_multiply({input_names[0]}, {input_names[1]})"
+                        ),
+                        Operation.MATRIX_MULTIPLY: lambda: f"{input_names[0]} @ {input_names[1]}",
+                        Operation.DOT: lambda: f"float({input_names[0]}.dot({input_names[1]}))",
+                        Operation.CROSS: lambda: f"{input_names[0]}.cross({input_names[1]})",
+                        Operation.NORMALISE: lambda: f"{input_names[0]}.normalized()",
+                        Operation.TRANSPOSE: lambda: f"{input_names[0]}.transposed()",
+                        Operation.INVERSE: lambda: f"{input_names[0]}.inverse()",
+                        Operation.MAT4_TO_MAT3: lambda: f"Mat3.from_mat4({input_names[0]})",
+                        Operation.QUATERNION_PRODUCT: lambda: f"{input_names[0]} @ {input_names[1]}",
+                        Operation.QUATERNION_ROTATE_VECTOR: lambda: f"{input_names[0]} * {input_names[1]}",
+                        Operation.QUATERNION_TO_MAT4: lambda: f"{input_names[0]}.to_mat4()",
+                        Operation.MAT4_TO_QUATERNION: lambda: (
+                            f"Quaternion.from_mat4({input_names[0]})"
+                        ),
+                        Operation.QUATERNION_CONJUGATE: lambda: f"{input_names[0]}.conjugate()",
+                        Operation.QUATERNION_INVERSE: lambda: f"{input_names[0]}.inverse()",
+                    }
+                    if node.operation in {
+                        Operation.TRANSFORM_VERTICES,
+                        Operation.TRANSFORM_NORMALS,
+                    }:
+                        raise GraphError(
+                            "mesh-array-derived outputs cannot be embedded"
+                        )
+                    if node.operation is Operation.QUATERNION_SLERP:
+                        expression = f"{input_names[0]}.slerp({input_names[1]}, {input_names[2]})"
+                    else:
+                        expression = binary_operations[node.operation]()
+                    lines.append(f"{node_name} = {expression}")
+                emitted.add(node_id)
+                return node_name
+            finally:
+                active.remove(node_id)
+
+        for output_id in output_ids:
+            node = self._nodes.get(output_id)
+            if not isinstance(node, OutputNode):
+                continue
+            try:
+                output_name = emit(output_id, set())
+                lines.append(f"output_{name(output_id)} = {output_name}")
+            except (GraphError, KeyError) as error:
+                lines.append(f"# Output {output_id} could not be generated: {error}")
+        return "\n".join(lines).rstrip() + "\n"
+
     def _evaluate(self, node_id: str, active_nodes: set[str]) -> MathValue:
         """Evaluate a node whilst tracking the current recursion path."""
         if node_id in active_nodes:

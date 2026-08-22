@@ -95,6 +95,7 @@ class MathNodeScene(QGraphicsScene):
     """Graphics scene which keeps visible wires and the maths graph in sync."""
 
     modifiedChanged = Signal(bool)
+    graphChanged = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Create an empty node graph canvas."""
@@ -411,6 +412,7 @@ class MathNodeScene(QGraphicsScene):
         self._preview_connection = None
         self._insertion_index = 0
         self.mark_clean()
+        self.graphChanged.emit()
 
     def load_example(self) -> None:
         """Load the bundled Vec3 component-multiply example graph."""
@@ -607,6 +609,7 @@ class MathNodeScene(QGraphicsScene):
                     AttributeError,
                 ) as error:
                     node.show_error(str(error) or type(error).__name__)
+        self.graphChanged.emit()
 
     def output_texts(self) -> list[str]:
         """Return the current output strings in graph insertion order."""

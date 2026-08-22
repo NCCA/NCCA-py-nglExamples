@@ -110,6 +110,66 @@ def test_example_graph_displays_the_vec3_multiply_result(
     window.close()
 
 
+def test_code_view_action_controls_a_hidden_read_only_dock(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    window.show()
+    application.processEvents()
+
+    assert window.code_dock.isHidden()
+    assert window.code_editor.isReadOnly()
+    assert window.code_highlighter.document() is window.code_editor.document()
+
+    window.action_code_view.trigger()
+    application.processEvents()
+
+    assert window.code_dock.isVisible()
+    assert window.action_code_view.isChecked()
+    assert "output_node_4" in window.code_editor.toPlainText()
+    window.close()
+
+
+def test_code_view_refreshes_when_a_graph_connection_changes(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=False)
+    value = window.canvas.add_value_node(node_editor.MathType.FLOAT, components=(3.0,))
+    output = window.canvas.add_output_node()
+
+    window.canvas.connect_ports(value.output_port, output.input_ports[0])
+    application.processEvents()
+
+    assert "node_1 = 3.0" in window.code_editor.toPlainText()
+    assert "output_node_2 = node_2" in window.code_editor.toPlainText()
+    window.close()
+
+
+def test_code_view_copy_and_save_buttons_export_generated_python(
+    application: QApplication, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    expected = window.code_editor.toPlainText()
+
+    window.copy_code_button.click()
+
+    assert application.clipboard().text() == expected
+
+    destination = tmp_path / "generated_graph.py"
+    monkeypatch.setattr(
+        QFileDialog,
+        "getSaveFileName",
+        lambda *args, **kwargs: (str(destination), "Python Files (*.py)"),
+    )
+    window.save_code_button.click()
+
+    assert destination.read_text(encoding="utf-8") == expected
+    window.close()
+
+
 @pytest.mark.parametrize(
     ("button_text", "node_class_name"),
     [
