@@ -192,7 +192,7 @@ class MathNodeWindow(QMainWindow):
         self.code_editor = QPlainTextEdit(self.code_dock)
         self.code_editor.setReadOnly(True)
         self.code_editor.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-        self.code_editor.setFixedWidth(420)
+        self.code_editor.setFixedWidth(320)
         self.code_editor.setStyleSheet(
             "QPlainTextEdit {"
             " background: #111620; color: #f8f8f2; border: 0;"
@@ -217,7 +217,6 @@ class MathNodeWindow(QMainWindow):
         self.code_dock.setWidget(dock_content)
         self.code_highlighter = PythonHighlighter(self.code_editor.document())
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.code_dock)
-        self.code_dock.hide()
 
     def _copy_code(self) -> None:
         """Copy the complete generated Python script to the clipboard."""
@@ -252,6 +251,7 @@ class MathNodeWindow(QMainWindow):
         self.action_code_view = QAction("&Code View", self, checkable=True)
         self.action_code_view.toggled.connect(self.code_dock.setVisible)
         self.code_dock.visibilityChanged.connect(self.action_code_view.setChecked)
+        self.action_code_view.setChecked(True)
         view_menu.addAction(self.action_code_view)
 
     def _build_file_menu(self) -> None:

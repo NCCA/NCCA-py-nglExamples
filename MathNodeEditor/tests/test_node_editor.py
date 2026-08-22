@@ -110,7 +110,7 @@ def test_example_graph_displays_the_vec3_multiply_result(
     window.close()
 
 
-def test_code_view_action_controls_a_hidden_read_only_dock(
+def test_code_view_action_controls_a_visible_read_only_dock(
     application: QApplication,
 ) -> None:
     node_editor = _node_editor_module()
@@ -118,15 +118,16 @@ def test_code_view_action_controls_a_hidden_read_only_dock(
     window.show()
     application.processEvents()
 
-    assert window.code_dock.isHidden()
+    assert not window.code_dock.isHidden()
     assert window.code_editor.isReadOnly()
     assert window.code_highlighter.document() is window.code_editor.document()
+    assert window.action_code_view.isChecked()
 
     window.action_code_view.trigger()
     application.processEvents()
 
-    assert window.code_dock.isVisible()
-    assert window.action_code_view.isChecked()
+    assert window.code_dock.isHidden()
+    assert not window.action_code_view.isChecked()
     assert "output_node_4" in window.code_editor.toPlainText()
     window.close()
 
