@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
+import traceback
 from pathlib import Path
 
 from canvas import MathNodeScene, MathNodeView
@@ -199,6 +202,17 @@ class MathNodeWindow(QMainWindow):
             " selection-background-color: #44475a;"
             "}"
         )
+        self.code_output = QPlainTextEdit(self.code_dock)
+        self.code_output.setObjectName("pythonCodeOutput")
+        self.code_output.setReadOnly(True)
+        self.code_output.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.code_output.setFixedHeight(160)
+        self.code_output.setStyleSheet(
+            "QPlainTextEdit {"
+            " background: #111620; color: #f8f8f2; border-top: 1px solid #44475a;"
+            " selection-background-color: #44475a;"
+            "}"
+        )
         self.copy_code_button = QPushButton("Copy", self.code_dock)
         self.copy_code_button.clicked.connect(self._copy_code)
         self.save_code_button = QPushButton("Save…", self.code_dock)
@@ -213,6 +227,7 @@ class MathNodeWindow(QMainWindow):
         dock_layout.setContentsMargins(0, 0, 0, 0)
         dock_layout.setSpacing(0)
         dock_layout.addWidget(self.code_editor, 1)
+        dock_layout.addWidget(self.code_output)
         dock_layout.addLayout(button_layout)
         self.code_dock.setWidget(dock_content)
         self.code_highlighter = PythonHighlighter(self.code_editor.document())
@@ -243,7 +258,20 @@ class MathNodeWindow(QMainWindow):
             for node_id, node in self.canvas.nodes.items()
             if isinstance(node, OutputNodeItem)
         ]
-        self.code_editor.setPlainText(self.canvas.graph.generate_python(output_ids))
+        code = self.canvas.graph.generate_python(output_ids)
+        self.code_editor.setPlainText(code)
+        self.code_output.setPlainText(self._run_generated_code(code))
+
+    @staticmethod
+    def _run_generated_code(code: str) -> str:
+        """Run generated Python in this process and return its printed output."""
+        output = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(output):
+                exec(code, {})
+        except Exception:
+            return traceback.format_exc()
+        return output.getvalue()
 
     def _build_view_menu(self) -> None:
         """Build the View menu action controlling the generated-code dock."""

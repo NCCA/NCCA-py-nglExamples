@@ -132,6 +132,20 @@ def test_code_view_action_controls_a_visible_read_only_dock(
     window.close()
 
 
+def test_code_view_displays_the_generated_script_output(
+    application: QApplication,
+) -> None:
+    node_editor = _node_editor_module()
+    window = node_editor.MathNodeWindow(load_example=True)
+    window.show()
+    application.processEvents()
+
+    assert window.code_output.isReadOnly()
+    assert window.code_output.toPlainText() == "[4.0, 10.0, 18.0]\n"
+    assert window.code_output.geometry().top() > window.code_editor.geometry().top()
+    window.close()
+
+
 def test_code_view_refreshes_when_a_graph_connection_changes(
     application: QApplication,
 ) -> None:
@@ -145,6 +159,7 @@ def test_code_view_refreshes_when_a_graph_connection_changes(
 
     assert "node_1 = 3.0" in window.code_editor.toPlainText()
     assert "print(node_1)" in window.code_editor.toPlainText()
+    assert window.code_output.toPlainText() == "3.0\n"
     window.close()
 
 
