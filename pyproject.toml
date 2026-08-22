@@ -36,3 +36,7 @@ ncca-ngl = [
 dev = [
     "pytest>=8.4.2",
 ]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+pythonpath = ["PBR/HDRIBaker"]
