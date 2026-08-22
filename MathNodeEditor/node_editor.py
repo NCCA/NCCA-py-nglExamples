@@ -54,14 +54,20 @@ from palette import (
 from PySide6.QtCore import QSettings, Qt, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
+    QApplication,
+    QDockWidget,
     QFileDialog,
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
+    QPlainTextEdit,
+    QPushButton,
     QScrollArea,
     QSizePolicy,
+    QVBoxLayout,
     QWidget,
 )
+from python_highlighter import PythonHighlighter
 
 __all__ = [
     "GENERIC_PORT_COLOUR",
@@ -163,15 +169,90 @@ class MathNodeWindow(QMainWindow):
         central_layout.addWidget(self.palette_scroll)
         central_layout.addWidget(self.view, 1)
         self.setCentralWidget(central_widget)
+        self._build_code_dock()
         self.statusBar().showMessage(
             "Press Tab to add a node; edit values and wire nodes together"
         )
         self._build_file_menu()
         self.canvas.modifiedChanged.connect(lambda _modified: self._update_title())
+        self.canvas.graphChanged.connect(self._update_code_view)
         if load_example:
             self._load_startup_graph()
             QTimer.singleShot(0, self.view.frame_all)
         self._update_title()
+        self._update_code_view()
+
+    def _build_code_dock(self) -> None:
+        """Create the hidden dock which displays generated PyNGL Python."""
+        self.code_dock = QDockWidget("Python Code", self)
+        self.code_dock.setObjectName("pythonCodeDock")
+        self.code_dock.setAllowedAreas(
+            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
+        )
+        self.code_editor = QPlainTextEdit(self.code_dock)
+        self.code_editor.setReadOnly(True)
+        self.code_editor.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.code_editor.setFixedWidth(320)
+        self.code_editor.setStyleSheet(
+            "QPlainTextEdit {"
+            " background: #111620; color: #f8f8f2; border: 0;"
+            " selection-background-color: #44475a;"
+            "}"
+        )
+        self.copy_code_button = QPushButton("Copy", self.code_dock)
+        self.copy_code_button.clicked.connect(self._copy_code)
+        self.save_code_button = QPushButton("Save…", self.code_dock)
+        self.save_code_button.clicked.connect(self._save_code)
+        button_layout = QHBoxLayout()
+        button_layout.setContentsMargins(6, 6, 6, 6)
+        button_layout.addStretch()
+        button_layout.addWidget(self.copy_code_button)
+        button_layout.addWidget(self.save_code_button)
+        dock_content = QWidget(self.code_dock)
+        dock_layout = QVBoxLayout(dock_content)
+        dock_layout.setContentsMargins(0, 0, 0, 0)
+        dock_layout.setSpacing(0)
+        dock_layout.addWidget(self.code_editor, 1)
+        dock_layout.addLayout(button_layout)
+        self.code_dock.setWidget(dock_content)
+        self.code_highlighter = PythonHighlighter(self.code_editor.document())
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.code_dock)
+
+    def _copy_code(self) -> None:
+        """Copy the complete generated Python script to the clipboard."""
+        QApplication.clipboard().setText(self.code_editor.toPlainText())
+
+    def _save_code(self) -> None:
+        """Save the complete generated Python script to a chosen file."""
+        path, _name_filter = QFileDialog.getSaveFileName(
+            self, "Save Python Code", "", "Python Files (*.py)"
+        )
+        if not path:
+            return
+        try:
+            Path(path).write_text(self.code_editor.toPlainText(), encoding="utf-8")
+        except OSError as error:
+            QMessageBox.warning(
+                self, "Save Python Code", f"Could not save code: {error}"
+            )
+
+    def _update_code_view(self) -> None:
+        """Regenerate the Python preview for every regular Output node."""
+        output_ids = [
+            node_id
+            for node_id, node in self.canvas.nodes.items()
+            if isinstance(node, OutputNodeItem)
+        ]
+        self.code_editor.setPlainText(self.canvas.graph.generate_python(output_ids))
+
+    def _build_view_menu(self) -> None:
+        """Build the View menu action controlling the generated-code dock."""
+        view_menu = self.menuBar().addMenu("&View")
+        self.action_code_view = QAction("&Code View", self, checkable=True)
+        self.action_code_view.toggled.connect(self.code_dock.setVisible)
+        self.code_dock.visibilityChanged.connect(self.action_code_view.setChecked)
+        self.action_code_view.setChecked(True)
+        view_menu.addAction(self.action_code_view)
 
     def _build_file_menu(self) -> None:
         """Build the File menu's New/Open/Save/Save As/Quit actions."""
@@ -203,6 +284,7 @@ class MathNodeWindow(QMainWindow):
         self.action_quit.setShortcut(QKeySequence.StandardKey.Quit)
         self.action_quit.triggered.connect(self.close)
         file_menu.addAction(self.action_quit)
+        self._build_view_menu()
 
     def _update_title(self) -> None:
         """Show the current file name and an unsaved-changes marker in the title bar."""

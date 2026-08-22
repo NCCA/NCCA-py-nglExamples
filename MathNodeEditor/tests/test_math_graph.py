@@ -56,6 +56,92 @@ def test_vec3_multiply_is_component_wise() -> None:
     assert result.to_list() == pytest.approx([4.0, 10.0, 18.0])
 
 
+def test_generate_python_recreates_connected_output_values() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    left = graph.add_value(graph_module.MathType.VEC3, (1.0, 2.0, 3.0))
+    right = graph.add_value(graph_module.MathType.VEC3, (4.0, 5.0, 6.0))
+    multiply = graph.add_operation(graph_module.Operation.MULTIPLY)
+    output = graph.add_output()
+    graph.connect(left, multiply, 0)
+    graph.connect(right, multiply, 1)
+    graph.connect(multiply, output, 0)
+
+    generated = graph.generate_python([output])
+    namespace: dict[str, object] = {}
+    exec(generated, namespace)
+
+    assert "from ncca.ngl import" in generated
+    assert namespace[f"output_{output.replace('-', '_')}"].to_list() == pytest.approx(
+        graph.evaluate(output).to_list()
+    )
+
+
+def test_generate_python_preserves_transform_rotation_order_and_shared_nodes() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    transform = graph.add_generator(
+        graph_module.Operation.TRANSFORM,
+        ((1.0, 2.0, 3.0), (10.0, 20.0, 30.0), (2.0, 3.0, 4.0)),
+        rotation_order="zyx",
+    )
+    first_output = graph.add_output()
+    second_output = graph.add_output()
+    graph.connect(transform, first_output, 0)
+    graph.connect(transform, second_output, 0)
+
+    generated = graph.generate_python([second_output, first_output])
+    namespace: dict[str, object] = {}
+    exec(generated, namespace)
+
+    assert generated.count("Transform()") == 1
+    for output in (first_output, second_output):
+        name = f"output_{output.replace('-', '_')}"
+        assert namespace[name].to_list() == pytest.approx(
+            graph.evaluate(output).to_list()
+        )
+    assert "def _component_multiply" not in generated
+
+
+def test_generate_python_keeps_valid_outputs_when_another_branch_is_incomplete() -> (
+    None
+):
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    value = graph.add_value(graph_module.MathType.FLOAT, (2.0,))
+    valid_output = graph.add_output()
+    invalid_operation = graph.add_operation(graph_module.Operation.ADD)
+    invalid_output = graph.add_output()
+    graph.connect(value, valid_output, 0)
+    graph.connect(invalid_operation, invalid_output, 0)
+
+    generated = graph.generate_python([invalid_output, valid_output])
+    namespace: dict[str, object] = {}
+    exec(generated, namespace)
+
+    assert "# Output node-4 could not be generated:" in generated
+    assert namespace["output_node_2"] == pytest.approx(2.0)
+
+
+def test_generate_python_component_multiply_supports_float_values() -> None:
+    graph_module = _math_graph_module()
+    graph = graph_module.MathGraph()
+    left = graph.add_value(graph_module.MathType.FLOAT, (2.0,))
+    right = graph.add_value(graph_module.MathType.FLOAT, (4.0,))
+    multiply = graph.add_operation(graph_module.Operation.MULTIPLY)
+    output = graph.add_output()
+    graph.connect(left, multiply, 0)
+    graph.connect(right, multiply, 1)
+    graph.connect(multiply, output, 0)
+
+    generated = graph.generate_python([output])
+    namespace: dict[str, object] = {}
+    exec(generated, namespace)
+
+    assert "def _component_multiply" in generated
+    assert namespace["output_node_4"] == pytest.approx(8.0)
+
+
 @pytest.mark.parametrize(
     ("type_name", "value_class", "components"),
     [
