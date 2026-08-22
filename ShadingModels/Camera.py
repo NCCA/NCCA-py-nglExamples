@@ -1,5 +1,3 @@
-import math
-
 from ncca.ngl import Mat4, Vec3, look_at, perspective
 from PySide6.QtCore import Qt
 

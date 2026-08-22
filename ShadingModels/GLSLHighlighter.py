@@ -1,5 +1,4 @@
 import re
-from typing import List, Tuple
 
 from PySide6.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat
 

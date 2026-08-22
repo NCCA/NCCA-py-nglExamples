@@ -12,7 +12,7 @@ def _():
 @app.cell
 def _():
     import numpy as np
-    from ncca.ngl import Mat4, Vec3, Vec4, look_at, perspective
+    from ncca.ngl import Mat4, Vec3, look_at, perspective
 
     return Mat4, Vec3, look_at, np, perspective
 

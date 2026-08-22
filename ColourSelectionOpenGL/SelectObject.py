@@ -1,4 +1,4 @@
-from ncca.ngl import Mat3, Mat4, Transform, Vec3
+from ncca.ngl import Mat3, Transform
 from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib
 
 

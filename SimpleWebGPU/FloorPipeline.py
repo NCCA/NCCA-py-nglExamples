@@ -1,6 +1,6 @@
 import numpy as np
 import wgpu
-from ncca.ngl import Mat4, PrimData, Prims, Transform, Vec3
+from ncca.ngl import PrimData, Transform, Vec3
 
 
 class FloorPipeline:

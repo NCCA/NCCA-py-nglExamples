@@ -6,12 +6,9 @@ from MeshData import MeshData
 from ncca.ngl import (
     FirstPersonCamera,
     Mat4,
-    PerspMode,
     PrimData,
     Prims,
     Vec3,
-    look_at,
-    perspective,
 )
 
 _FLOAT_SIZE = np.dtype(np.float32).itemsize
