@@ -196,7 +196,6 @@ class MathNodeWindow(QMainWindow):
         self.code_editor = QPlainTextEdit(self.code_dock)
         self.code_editor.setReadOnly(True)
         self.code_editor.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-        self.code_editor.setFixedWidth(320)
         self.code_editor.setStyleSheet(
             "QPlainTextEdit {"
             " background: #111620; color: #f8f8f2; border: 0;"

@@ -146,6 +146,14 @@ def test_code_view_displays_the_generated_script_output(
     splitter_sizes = window.code_splitter.sizes()
     assert splitter_sizes[0] >= splitter_sizes[1] * 1.9
     assert splitter_sizes[0] <= splitter_sizes[1] * 2.1
+
+    window.code_dock.setFloating(True)
+    window.code_dock.resize(640, 600)
+    application.processEvents()
+
+    assert window.code_editor.width() == window.code_splitter.width()
+    assert window.code_output.width() == window.code_splitter.width()
+    assert window.code_editor.maximumWidth() > 640
     window.close()
 
 
