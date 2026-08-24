@@ -64,5 +64,5 @@ uv run main.py
 diffuse shader (no PBR) and a primitive selector limited to the baked mesh
 set (`PrimData.primitive` has no sphere/cylinder/cone/disk/plane/torus data
 — those are GL-only runtime tessellations). It omits the axis gizmo and the
-geometry-shader normal visualization; WebGPU has no geometry-shader stage
+geometry-shader normal visualisation; WebGPU has no geometry-shader stage
 at all, which is why that feature is GL-only in the first place.

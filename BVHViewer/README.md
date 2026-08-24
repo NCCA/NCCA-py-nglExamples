@@ -1,5 +1,7 @@
 # BVHViewer
 
+![](BVHViewer.png)
+
 This is a PyNGL / PySide6 port of the C++ NGL BVH viewer. It plays `.bvh`
 motion-capture files as a skeleton of spheres and cylinders, with a GUI much
 closer to the animation tools I normally use in Maya or Houdini.
@@ -35,7 +37,7 @@ without changing the motion data.
 
 | Key | Does |
 | --- | --- |
-| Space | play / pause, or maximize the pane under the mouse in Four Views |
+| Space | play / pause, or maximise the pane under the mouse in Four Views |
 | Home / End | first / last frame |
 | ← / → | previous / next frame |
 | T | toggle trace mode (draw a different coloured motion path for each joint) |
@@ -48,7 +50,7 @@ field of view. Four Views in the View menu splits the viewport into the usual
 Maya layout: the left mouse still only rotates the Perspective pane, but each
 of Top, Front and Side now has its own zoom and pan -- wheel over a pane to
 zoom just that one, middle-drag to pan it, or right-drag with a mouse. A
-two-finger click and drag does the same thing on a Mac trackpad. Space maximizes
+two-finger click and drag does the same thing on a Mac trackpad. Space maximises
 whichever pane the mouse is over to fill the window, and space again puts the
 four-way layout back; move the mouse over the timeline first if you actually
 want play/pause.

@@ -15,6 +15,6 @@ sampled curve (white), its control polygon "hull" (red), and control points
 
 ## References
 
-- [A Primer on Bézier Curves (Pomax)](https://pomax.github.io/bezierinfo/) — a comprehensive, interactive treatment of Bézier maths: Bernstein form, de Casteljau, splitting, arc length and more.
+- [A Primer on Bézier Curves (Pomax)](https://pomax.github.io/bezierinfo/) — an interactive walk through Bézier maths: Bernstein form, de Casteljau, splitting, arc length and more.
 - [Bézier curves (Paul Bourke)](https://paulbourke.net/geometry/bezier/) — concise notes and code for the curve evaluation used here.
 - G. Farin, _Curves and Surfaces for CAGD: A Practical Guide_, 5th ed., Morgan Kaufmann 2002 — the standard text on Bézier/B-spline theory.

@@ -74,7 +74,7 @@ pixels of it:
 | Rotation ring       | 48-point circle, projected      | `point_polyline_distance` (closed) |
 | Centre cube         | projected pivot point           | plain 2D distance                  |
 
-The center cube is tested first (all three shafts meet there), then the
+The centre cube is tested first (all three shafts meet there), then the
 nearest axis under the tolerance wins. This is how real DCCs hit-test their
 gizmos, and it makes the click tolerance a clean DPI-independent radius so
 the colour-ID version needed a 9x9 block of readback pixels to get the same
