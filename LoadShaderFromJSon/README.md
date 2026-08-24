@@ -34,6 +34,6 @@ lists WGSL fragment files that get concatenated into one module source
 before `device.create_shader_module` -- same "assemble a shader from
 JSON-declared files" lesson, applied to WebGPU's single-module shape. One
 intentional smoothing: the OpenGL version's `repeat` uniform has a visible
-jump on the first `1`/`2` keypress, an artifact of the C++ source setting
+jump on the first `1`/`2` keypress, an artefact of the C++ source setting
 its initial value in two disconnected places; this version starts `repeat`
-at `0.1` cleanly since there's no equivalent second initialization site here.
+at `0.1` cleanly since there's no equivalent second initialisation site here.

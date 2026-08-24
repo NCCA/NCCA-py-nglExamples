@@ -68,10 +68,10 @@ Dragging works in _screen space_:
   dotted with the projected axis direction and divided by its pixels-per-
   world-unit length, giving a world-space delta along the axis.
 - **Scale** :- the same projected motion drives a per-axis multiply factor.
-- **Free translate** (center cube) :- mouse motion is converted to a world
+- **Free translate** (centre cube) :- mouse motion is converted to a world
   delta in the camera's screen plane, using the model-view basis vectors that
   map to screen right / up at the pivot, so the selection tracks the cursor.
-- **Uniform scale** (center cube) :- the change in the mouse's distance from
+- **Uniform scale** (centre cube) :- the change in the mouse's distance from
   the projected pivot drives a single factor applied equally to all axes.
 - **Rotate** :- the angle of the mouse around the projected gizmo centre is
   tracked (`atan2`), and its per-event change is applied around the handle

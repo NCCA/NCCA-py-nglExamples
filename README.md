@@ -119,6 +119,7 @@ To quickly run all the demos use the [smoketest_all.py](smoketest_all.py) script
 |           <a href="MassSpring"><img src="MassSpring/MassSpring.png" width="220"></a>            | [MassSpring](MassSpring)               | Damped mass spring chain with RK4 integration, from a single spring up to a rope                                   |
 | <a href="SkinnedMeshImport"><img src="SkinnedMeshImport/SkinnedMeshImport.png" width="220"></a> | [SkinnedMeshImport](SkinnedMeshImport) | Importing a rigged mesh with impasse (Python assimp) and skinning it on the GPU (OpenGL and WebGPU)                 |
 | <a href="MorphObj"><img src="MorphObj/MorphObj.png" width="220"></a> | [MorphObj](MorphObj) | Vertex-shader blending between three OBJ poses (OpenGL + WebGPU) |
+| <a href="BVHViewer"><img src="BVHViewer/BVHViewer.png" width="220"></a> | [BVHViewer](BVHViewer) | BVH motion-capture player with a scrubbable timeline, playback range and Four Views layout (OpenGL + WebGPU) |
 
 ## Textures & Materials
 

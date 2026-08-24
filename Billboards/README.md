@@ -15,7 +15,7 @@ Camera-facing quads: the trick behind particles, sprites, impostors and HUD mark
 ## The three modes
 
 1. **Fixed world-space** — the quad's right/up vectors never change. Orbit the scene and at some angles you're looking at the sprite edge-on: it thins to a sliver and vanishes. This is what "just draw a textured quad" gets you without billboarding at all — the whole point of the demo is to show why the other two modes exist.
-2. **Cylindrical** — `up` is locked to world +y (trees, lampposts, anything that should stay upright), `right` is rebuilt from the camera direction every frame. Robust to orbiting sideways; drag vertically to pitch the view and it visibly tips, because a cylindrical billboard has no sensible answer for "which way is sideways" when you're looking straight down its locked axis.
+2. **Cylindrical** — `up` is locked to world +y (trees, lampposts, anything that should stay upright), `right` is rebuilt from the camera direction every frame. Holds up when you orbit sideways; drag vertically to pitch the view and it visibly tips, because a cylindrical billboard has no sensible answer for "which way is sideways" when you're looking straight down its locked axis.
 3. **Spherical** — both `right` and `up` are rebuilt from the camera every frame. Always face-on, from any angle. This is the one particle systems and impostors actually use.
 
 ## The maths (`billboard_maths.py`)
