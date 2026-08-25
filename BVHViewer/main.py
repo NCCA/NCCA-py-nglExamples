@@ -8,6 +8,7 @@ import sys
 import traceback
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import ClassVar
 
 import OpenGL.GL as gl
 from bvh import Bvh, BvhParseError
@@ -149,7 +150,7 @@ class OrthoView:
 class BvhViewport(QOpenGLWindow):
     """The OpenGL viewport used by the main application window."""
 
-    _MOVE_KEYS = {Qt.Key.Key_W, Qt.Key.Key_A, Qt.Key.Key_S, Qt.Key.Key_D}
+    _MOVE_KEYS: ClassVar = {Qt.Key.Key_W, Qt.Key.Key_A, Qt.Key.Key_S, Qt.Key.Key_D}
     _DIVIDER_WIDTH = 2
 
     def __init__(self) -> None:

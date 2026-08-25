@@ -10,6 +10,7 @@ It is designed to be a starting point for more complex OpenGL applications.
 import argparse
 import sys
 import traceback
+from typing import ClassVar
 
 import numpy as np
 import OpenGL.GL as gl
@@ -254,9 +255,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             self.update()
 
     # Arrow keys drive the first-person camera (see _process_movement).
-    _MOVE_KEYS = {Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down}
+    _MOVE_KEYS: ClassVar = {Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down}
     # S removes the voxel under the cursor, Z/X change its texture index.
-    _EDIT_KEYS = {Qt.Key_S, Qt.Key_Z, Qt.Key_X}
+    _EDIT_KEYS: ClassVar = {Qt.Key_S, Qt.Key_Z, Qt.Key_X}
 
     def _process_movement(self) -> None:
         """

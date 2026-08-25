@@ -1,4 +1,5 @@
 import os
+from typing import ClassVar
 
 import OpenGL.GL as gl
 from ncca.ngl.opengl import Texture
@@ -44,7 +45,7 @@ class TexturePack:
     A class to manage texture packs loaded from a JSON file.
     """
 
-    s_textures = {}
+    s_textures: ClassVar = {}
 
     @staticmethod
     def load_json(filename):

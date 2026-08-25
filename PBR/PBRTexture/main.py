@@ -14,6 +14,7 @@ import math
 import random
 import sys
 import traceback
+from typing import ClassVar
 
 import numpy as np
 import OpenGL.GL as gl
@@ -173,7 +174,7 @@ class MainWindow(QOpenGLWindow):
             self.update()
 
     # Arrow keys drive the first-person camera (see _update_camera_movement).
-    _MOVE_KEYS = {Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down}
+    _MOVE_KEYS: ClassVar = {Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down}
 
     def _update_camera_movement(self) -> None:
         """Calculates and applies camera movement based on currently pressed keys."""

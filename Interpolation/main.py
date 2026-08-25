@@ -8,6 +8,7 @@ start and end points, to visually compare the resulting spacing/timing.
 import argparse
 import sys
 import traceback
+from typing import ClassVar
 
 import OpenGL.GL as gl
 from easing import cubic_interp, trig_interp
@@ -27,7 +28,7 @@ class MainWindow(QOpenGLWindow):
     It handles user input (mouse, keyboard) for camera control and manages the OpenGL context.
     """
 
-    MATERIALS = {
+    MATERIALS: ClassVar = {
         "gold": (
             Vec3(0.274725, 0.1995, 0.0745),
             Vec3(0.75164, 0.60648, 0.22648),

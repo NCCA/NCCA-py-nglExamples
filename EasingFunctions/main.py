@@ -11,6 +11,7 @@ import argparse
 import sys
 import traceback
 from pathlib import Path
+from typing import ClassVar
 
 import numpy as np
 import OpenGL.GL as gl
@@ -44,7 +45,7 @@ class GLWidget(QOpenGLWidget):
     Standard arcball-style camera: LMB rotate, RMB pan, wheel zoom.
     """
 
-    MATERIALS = {
+    MATERIALS: ClassVar = {
         "gold": (
             Vec3(0.274725, 0.1995, 0.0745),
             Vec3(0.75164, 0.60648, 0.22648),
@@ -64,7 +65,7 @@ class GLWidget(QOpenGLWidget):
     # the two never overlap; in "X and Y" both share the exact same path,
     # starting from the same position and separating as the easing diverges
     # from linear.
-    MOTION_PATHS = {
+    MOTION_PATHS: ClassVar = {
         "X only": (Vec3(-8.0, 2.0, 0.0), Vec3(8.0, 2.0, 0.0), Vec3(0.0, -4.0, 0.0)),
         "X and Y": (Vec3(-8.0, -5.0, 0.0), Vec3(8.0, 5.0, 0.0), Vec3(0.0, 0.0, 0.0)),
     }

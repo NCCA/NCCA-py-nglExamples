@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import ClassVar
 
 import wgpu
 from bvh_scene_webgpu import BvhWebGPUScene
@@ -58,7 +59,7 @@ class WebGPUOrthoView(OrthoView):
 class BvhWebGPUViewport(WebGPUWidget):
     """The WebGPU viewport used by the BVH application window."""
 
-    _MOVE_KEYS = {Qt.Key.Key_W, Qt.Key.Key_A, Qt.Key.Key_S, Qt.Key.Key_D}
+    _MOVE_KEYS: ClassVar = {Qt.Key.Key_W, Qt.Key.Key_A, Qt.Key.Key_S, Qt.Key.Key_D}
     _DIVIDER_WIDTH = 2
 
     def __init__(self) -> None:

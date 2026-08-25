@@ -15,6 +15,7 @@ import argparse
 import sys
 import traceback
 from pathlib import Path
+from typing import ClassVar
 
 import numpy as np
 import wgpu
@@ -74,7 +75,7 @@ class WebGPUScene(WebGPUWidget):
     # application order. Since points transform as matrix @ point, the
     # rightmost term acts on the object first -- see README.md for the
     # worked-through reasoning.
-    _ORDERS = [
+    _ORDERS: ClassVar = [
         ("Rotate -> Translate -> Scale", "RTS"),
         ("Translate -> Rotate -> Scale", "TRS"),
         ("Translate -> Axis-Angle -> Scale", "TAxisS"),

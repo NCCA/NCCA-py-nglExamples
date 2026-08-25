@@ -10,6 +10,7 @@ from __future__ import annotations
 import math
 import sys
 from pathlib import Path
+from typing import ClassVar
 
 import wgpu
 from main import (
@@ -65,7 +66,7 @@ class SkinWebGPUViewport(WebGPUWidget):
     subclassing it.
     """
 
-    _MOVE_KEYS = {Qt.Key.Key_W, Qt.Key.Key_A, Qt.Key.Key_S, Qt.Key.Key_D}
+    _MOVE_KEYS: ClassVar = {Qt.Key.Key_W, Qt.Key.Key_A, Qt.Key.Key_S, Qt.Key.Key_D}
     _DIVIDER_WIDTH = 2
 
     def __init__(self, model_path: Path) -> None:
