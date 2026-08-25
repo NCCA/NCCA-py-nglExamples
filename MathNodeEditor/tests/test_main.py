@@ -85,7 +85,7 @@ def test_demo_modules_do_not_use_package_relative_imports() -> None:
     relative_imports = [
         f"{path.name}:{node.lineno}"
         for path in DEMO_DIR.glob("*.py")
-        for node in ast.walk(ast.parse(path.read_text()))
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
         if isinstance(node, ast.ImportFrom) and node.level > 0
     ]
 

@@ -317,7 +317,7 @@ class DemoRunner(QMainWindow):
         try:
             readme_path = Path(path) / "README.md"
             # The QTextBrowser widget can render Markdown
-            self.demo_text.setMarkdown(readme_path.read_text())
+            self.demo_text.setMarkdown(readme_path.read_text(encoding="utf-8"))
         except FileNotFoundError:
             # If no README is found, clear the text display
             self.demo_text.clear()
