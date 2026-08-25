@@ -3,18 +3,19 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ship_mesh import load_ship_vertex_data
+from ncca.ngl import Obj
 
 _SHIP_PATH = Path(__file__).parent.parent / "models" / "SpaceShip.obj"
 
 
-def test_load_ship_vertex_data_returns_interleaved_float32():
-    data, vertex_count = load_ship_vertex_data(_SHIP_PATH)
+def test_obj_returns_interleaved_float32_ship_data():
+    data = Obj.from_file(str(_SHIP_PATH)).triangle_vertex_data()
+    vertex_count = data.size // 8
     assert data.dtype.name == "float32"
     assert vertex_count > 0
     assert data.shape == (vertex_count * 8,)
 
 
-def test_load_ship_vertex_data_is_a_multiple_of_a_triangle():
-    _, vertex_count = load_ship_vertex_data(_SHIP_PATH)
+def test_obj_ship_data_is_a_multiple_of_a_triangle():
+    vertex_count = Obj.from_file(str(_SHIP_PATH)).triangle_vertex_data().size // 8
     assert vertex_count % 3 == 0

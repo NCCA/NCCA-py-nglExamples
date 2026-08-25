@@ -5,8 +5,8 @@ The WebGPU counterpart to main.py -- same bitmask-indexed motion table, same
 record/playback via `KeyRecorder`, same two-timer split between input
 sampling and redraw rate. `game_controls.py` is shared unmodified between
 both backends, so this file's only genuinely new code is drawing the ship:
-`ship_mesh.py` replicates `Obj.create_vao()`'s interleave logic (GL-only, no
-numpy accessor) to build a vertex buffer directly, and
+`WebGPUMesh` uploads the parser-only OBJ data using the same vertex layout as
+the OpenGL version, and
 `GameKeyControlShader.wgsl` is a hand-rolled flat/unlit shader standing in
 for the OpenGL side's `nglColourShader`.
 
@@ -23,12 +23,11 @@ from pathlib import Path
 import numpy as np
 import wgpu
 from game_controls import GameControls, KeyRecorder, move_ship, ship_transform
-from ncca.ngl import PerspMode, Vec3, logger, look_at, perspective
-from ncca.ngl.webgpu import WebGPUWidget
+from ncca.ngl import Obj, PerspMode, Vec3, logger, look_at, perspective
+from ncca.ngl.webgpu import WebGPUMesh, WebGPUWidget, standard_mesh_vertex_layout
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication, QFileDialog
-from ship_mesh import load_ship_vertex_data
 from wgpu.utils import get_default_device
 
 MODELS_DIR = Path(__file__).parent / "models"
@@ -116,25 +115,7 @@ class WebGPUScene(WebGPUWidget):
             vertex={
                 "module": shader_module,
                 "entry_point": "vertex_main",
-                "buffers": [
-                    {
-                        "array_stride": 8 * 4,
-                        "step_mode": "vertex",
-                        "attributes": [
-                            {"format": "float32x3", "offset": 0, "shader_location": 0},
-                            {
-                                "format": "float32x3",
-                                "offset": 12,
-                                "shader_location": 1,
-                            },
-                            {
-                                "format": "float32x2",
-                                "offset": 24,
-                                "shader_location": 2,
-                            },
-                        ],
-                    }
-                ],
+                "buffers": [standard_mesh_vertex_layout()],
             },
             fragment={
                 "module": shader_module,
@@ -158,11 +139,12 @@ class WebGPUScene(WebGPUWidget):
     # scene
     # ------------------------------------------------------------------
     def _create_scene(self) -> None:
-        data, vertex_count = load_ship_vertex_data(MODELS_DIR / "SpaceShip.obj")
-        self.ship_vertex_count = vertex_count
-        self.ship_buffer = self.device.create_buffer_with_data(
-            data=data, usage=wgpu.BufferUsage.VERTEX
+        self.ship = WebGPUMesh(
+            self.device,
+            Obj.from_file(str(MODELS_DIR / "SpaceShip.obj")),
+            flip_v=True,
         )
+        self.ship.upload()
 
         # Single ship, single draw call per frame -- no per-draw
         # uniform-buffer pool needed here.
@@ -242,8 +224,7 @@ class WebGPUScene(WebGPUWidget):
         )
         render_pass.set_pipeline(self.pipeline)
         render_pass.set_bind_group(0, self.bind_group, [], 0, 999999)
-        render_pass.set_vertex_buffer(0, self.ship_buffer)
-        render_pass.draw(self.ship_vertex_count)
+        self.ship.draw(render_pass)
         render_pass.end()
         self.device.queue.submit([command_encoder.finish()])
         self._update_colour_buffer()
@@ -316,6 +297,7 @@ class WebGPUScene(WebGPUWidget):
     def closeEvent(self, event) -> None:
         self.ship_timer.stop()
         self.redraw_timer.stop()
+        self.ship.cleanup()
         super().closeEvent(event)
 
 

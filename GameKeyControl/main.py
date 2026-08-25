@@ -27,7 +27,7 @@ from pathlib import Path
 import OpenGL.GL as gl
 from game_controls import GameControls, KeyRecorder, move_ship, ship_transform
 from ncca.ngl import Mat4, Obj, Vec3, logger, look_at, perspective
-from ncca.ngl.opengl import DefaultShader, ShaderLib, Text
+from ncca.ngl.opengl import DefaultShader, OpenGLMesh, ShaderLib, Text
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QCloseEvent, QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
@@ -68,8 +68,8 @@ class MainWindow(QOpenGLWindow):
         ShaderLib.use(DefaultShader.COLOUR)
         ShaderLib.set_uniform("Colour", 1.0, 1.0, 0.0, 1.0)
 
-        self.ship = Obj.from_file(str(MODELS_DIR / "SpaceShip.obj"))
-        self.ship.create_vao()
+        self.ship = OpenGLMesh(Obj.from_file(str(MODELS_DIR / "SpaceShip.obj")))
+        self.ship.upload()
         self.ship_pos = Vec3(0.0, 0.0, 0.0)
         self.ship_rotation = 0.0
 
@@ -182,6 +182,8 @@ class MainWindow(QOpenGLWindow):
     def closeEvent(self, event: QCloseEvent) -> None:
         self.ship_timer.stop()
         self.redraw_timer.stop()
+        self.makeCurrent()
+        self.ship.cleanup()
         super().closeEvent(event)
 
 

@@ -46,9 +46,8 @@ it's the whole reason this demo has two timers instead of one.
 `main_webgpu.py` needs no reinterpretation for this demo's actual teaching
 point (the bitmask-indexed motion table and file-based record/playback are
 plain Python/Qt, identical on both backends) -- the only backend-specific
-work is drawing the ship and the HUD. `ncca.ngl.Obj.create_vao()` is
-GL-only, so `ship_mesh.py` replicates its interleave logic to build a numpy
-vertex buffer directly, and a small hand-rolled flat WGSL shader
+work is drawing the ship and the HUD. `ncca.ngl.WebGPUMesh` uploads the same
+parser-only OBJ data used by the OpenGL version, and a small hand-rolled flat WGSL shader
 (`GameKeyControlShader.wgsl`) stands in for the OpenGL side's built-in
 `nglColourShader` equivalent. A recording saved from either backend loads
 and plays back correctly in the other -- the `.kp` format and the

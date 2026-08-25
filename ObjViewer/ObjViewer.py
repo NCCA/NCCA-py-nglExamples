@@ -12,7 +12,7 @@ import traceback
 
 import OpenGL.GL as gl
 from ncca.ngl import Mat4, Obj, Vec3, logger, look_at, perspective
-from ncca.ngl.opengl import ShaderLib
+from ncca.ngl.opengl import OpenGLMesh, ShaderLib, Texture
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
@@ -89,7 +89,11 @@ class MainWindow(QOpenGLWindow):
             self.close()
         ShaderLib.use(TEXTURE_SHADER)
         # Mesh needs to be created when we have OpenGL context as using VAO
-        self.mesh = Obj.obj_with_vao(self.mesh_name, self.texture_name)
+        texture = Texture(self.texture_name)
+        self.mesh = OpenGLMesh(
+            Obj.from_file(self.mesh_name), texture_id=texture.set_texture_gl()
+        )
+        self.mesh.upload()
 
     def loadMatricesToShader(self) -> None:
         """

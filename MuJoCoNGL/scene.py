@@ -13,6 +13,7 @@ import OpenGL.GL as gl
 from ncca.ngl import Mat3, Mat4, Obj, Prims, Vec3, look_at, perspective
 from ncca.ngl.opengl import (
     DefaultShader,
+    OpenGLMesh,
     Primitives,
     PySideEventHandlingMixin,
     ShaderLib,
@@ -40,7 +41,7 @@ class MuJoCoScene(PySideEventHandlingMixin, QOpenGLWidget):
         self.wireframe = False
         self.window_width = self.width()
         self.window_height = self.height()
-        self._meshes: dict[str, Obj] = {}
+        self._meshes: dict[str, OpenGLMesh] = {}
         self.setup_event_handling(
             rotation_sensitivity=0.5,
             translation_sensitivity=0.05,
@@ -84,7 +85,9 @@ class MuJoCoScene(PySideEventHandlingMixin, QOpenGLWidget):
 
         # High-res meshes for drawing; the low-res ones went to MuJoCo.
         for name in ("teapot", "apple"):
-            self._meshes[name] = Obj.obj_with_vao(f"{self._model_dir}/{name}.obj")
+            mesh = OpenGLMesh(Obj.from_file(f"{self._model_dir}/{name}.obj"))
+            mesh.upload()
+            self._meshes[name] = mesh
 
     def resizeGL(self, w: int, h: int) -> None:
         self.window_width = int(w * self.devicePixelRatio())

@@ -13,7 +13,12 @@ from __future__ import annotations
 import OpenGL.GL as gl
 from math_graph import MeshViewerInputs, obj_from_arrays
 from ncca.ngl import Mat3, Mat4, Obj, Vec3, look_at, perspective
-from ncca.ngl.opengl import DefaultShader, PySideEventHandlingMixin, ShaderLib
+from ncca.ngl.opengl import (
+    DefaultShader,
+    OpenGLMesh,
+    PySideEventHandlingMixin,
+    ShaderLib,
+)
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
@@ -100,6 +105,7 @@ class MeshRenderMixin:
         self.window_height = 1
         self._built_version = -1
         self._obj: Obj | None = None
+        self._mesh: OpenGLMesh | None = None
 
     def _gl_setup(self) -> None:
         """Set the GL state every Mesh Viewer view starts with."""
@@ -111,14 +117,18 @@ class MeshRenderMixin:
         """Rebuild this view's own Obj/VAO if the shared mesh data changed."""
         if self._built_version == self.state.version:
             return
+        if self._mesh is not None:
+            self._mesh.cleanup()
         self._obj = None
+        self._mesh = None
         inputs = self.state.mesh_inputs
         if inputs is None or not inputs.vertices.values or not inputs.faces.triangles:
             self._built_version = self.state.version
             return
         obj = obj_from_arrays(inputs.vertices, inputs.faces, inputs.uvs, inputs.normals)
-        obj.create_vao()
         self._obj = obj
+        self._mesh = OpenGLMesh(obj)
+        self._mesh.upload()
         self._built_version = self.state.version
 
     def _draw_mesh(self) -> None:
@@ -155,7 +165,7 @@ class MeshRenderMixin:
         gl.glPolygonMode(
             gl.GL_FRONT_AND_BACK, gl.GL_LINE if self.state.wireframe else gl.GL_FILL
         )
-        self._obj.draw()
+        self._mesh.draw()
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
 
     def _resize_mesh_view(self, width: int, height: int) -> None:
