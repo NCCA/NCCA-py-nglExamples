@@ -66,4 +66,4 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          uv run pytest --ignore=SkeletalAnimation/tests/test_skinning_maths.py
+          uv run pytest --ignore=SkinnedMeshImport/tests/test_mesh_maths.py
