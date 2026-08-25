@@ -6,12 +6,14 @@ This script demonstrates how to use OpenGL and Qt to render a simple 3D object (
 It sets up a window, handles user input for rotation/translation/zoom, and manages OpenGL resources.
 """
 
+import argparse
 import sys
 import traceback
 
 import OpenGL.GL as gl
-from ncca.ngl import Mat4, Obj, ShaderLib, Vec3, logger, look_at, perspective
-from PySide6.QtCore import Qt
+from ncca.ngl import Mat4, Obj, Vec3, logger, look_at, perspective
+from ncca.ngl.opengl import ShaderLib
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -36,8 +38,8 @@ class MainWindow(QOpenGLWindow):
         self.window_width: int = 1024
         self.window_height: int = 720
         self.setTitle("OBJ Viewer")
-        self.view: Mat4 = Mat4()  # View matrix
-        self.project: Mat4 = Mat4()  # Projection matrix
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
         self.model_position: Vec3 = Vec3()  # Position of the model in world space
 
         self.mesh_name = mesh_name
@@ -122,9 +124,12 @@ class MainWindow(QOpenGLWindow):
         """
         Handle window resizing and update the projection matrix.
 
-        Args:
-            w: New window width.
-            h: New window height.
+        Parameters
+        ----------
+            w : int
+                New window width.
+            h : int
+                New window height.
         """
 
         self.window_width = int(w * self.devicePixelRatio())
@@ -156,8 +161,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse movement events for camera control.
 
-        Args:
-            event: The QMouseEvent object containing the new mouse position.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
         if self.rotate and event.buttons() == Qt.LeftButton:
@@ -184,8 +191,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse button press events to initiate rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object.
         """
         position = event.position()
         # Left button initiates rotation
@@ -203,8 +212,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse button release events to stop rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object.
         """
         # Stop rotating when the left button is released
         if event.button() == Qt.LeftButton:
@@ -217,8 +228,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse wheel events for zooming.
 
-        Args:
-            event: The QWheelEvent object.
+        Parameters
+        ----------
+            event
+                The QWheelEvent object.
         """
         num_pixels = event.angleDelta()
         # Zoom in or out by adjusting the Z position of the model
@@ -259,22 +272,38 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
-    # Set up Qt application and OpenGL format
-    # Check for a "--debug" command-line argument to run the DebugApplication
-    if "--debug" in sys.argv:
-        app = DebugApplication(sys.argv)
-        sys.argv.remove("--debug")
-    else:
-        app = QApplication(sys.argv)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    parser.add_argument(
+        "model",
+        nargs="?",
+        default=None,
+        help="path to an OBJ model (default: models/Helix.obj)",
+    )
+    parser.add_argument(
+        "texture",
+        nargs="?",
+        default=None,
+        help="path to a texture image (default: textures/ratGrid.png, or the helix texture with the default model)",
+    )
+    args = parser.parse_args()
 
-    # now remove --debug from command line args
-    # check to see if we are passing a file and texture name.
-    if len(sys.argv) == 3:
-        oname = sys.argv[1]
-        tname = sys.argv[2]
-    elif len(sys.argv) == 2:
-        oname = sys.argv[1]
-        tname = "textures/ratGrid.png"
+    if args.model is not None:
+        oname = args.model
+        tname = args.texture if args.texture is not None else "textures/ratGrid.png"
     else:
         oname = "models/Helix.obj"
         tname = "textures/helix_base.tif"
@@ -287,8 +316,17 @@ if __name__ == "__main__":
     format.setDepthBufferSize(24)
     QSurfaceFormat.setDefaultFormat(format)
 
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
     window = MainWindow(oname, tname)
     window.setFormat(format)
     window.resize(1024, 720)
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())

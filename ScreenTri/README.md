@@ -1,8 +1,10 @@
-# ScreenTri 
+# ScreenTri
+
+![](ScreenTri.png)
 
 This demo shows how we can generate a full screen rendering area by using a simple triangle.
 
-The triangle will be much larger than the viewport area but only a part of it will be visible as the rest will be clipped.  This is a very efficient way of rendering what used to be called a "Screen Quad"
+The triangle will be much larger than the viewport area but only a part of it will be visible as the rest will be clipped. This is a very efficient way of rendering what used to be called a "Screen Quad"
 
 There is a good article [here](https://rauwendaal.net/2014/06/14/rendering-a-screen-covering-triangle-in-opengl/) showing this and this demo is a good starting point for any project that requires rendering some form of buffer / texture to the screen.
 
@@ -18,6 +20,11 @@ In this demo we will fill a buffer with values then bind to a texture to render 
 ## Keys
 
 - Space : reset the canvas to white
-- a : toggle animation 
+- a : toggle animation
 - p : draw points mode
 - l : draw lines mode
+
+## References
+
+- [Rendering a Screen-Covering Triangle in OpenGL (Rauwendaal)](https://rauwendaal.net/2014/06/14/rendering-a-screen-covering-triangle-in-opengl/) — why one clipped triangle beats a two-triangle quad.
+- [OpenGL Wiki — Built-in Variable (GLSL): gl_VertexID](<https://www.khronos.org/opengl/wiki/Built-in_Variable_(GLSL)>) — the attributeless-rendering trick of generating positions from the vertex index.

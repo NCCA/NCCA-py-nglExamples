@@ -4,23 +4,15 @@ A template for creating a PySide6 application with an OpenGL viewport using py-n
 
 """
 
+import argparse
 import sys
 import traceback
 
 import numpy as np
 import OpenGL.GL as gl
-from ncca.ngl import (
-    Mat4,
-    ShaderLib,
-    Text,
-    VAOFactory,
-    VAOType,
-    Vec3,
-    VertexData,
-    logger,
-    ortho,
-)
-from PySide6.QtCore import QEvent, QObject, Qt, QTimerEvent
+from ncca.ngl import Mat4, Vec3, logger, ortho
+from ncca.ngl.opengl import ShaderLib, Text, VAOFactory, VAOType, VertexData
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, QTimerEvent
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QSurfaceFormat, QWheelEvent
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -40,9 +32,6 @@ class MainWindow(QOpenGLWindow):
     """
 
     def __init__(self, parent: object = None) -> None:
-        """
-        Initializes the main window and sets up default scene parameters.
-        """
         super().__init__()
         self.project: Mat4 = ortho(
             -SIM_WIDTH / 2, SIM_WIDTH / 2, -SIM_HEIGHT / 2, SIM_HEIGHT / 2, 0, 100
@@ -103,8 +92,10 @@ class MainWindow(QOpenGLWindow):
         - self.directions: A 2D array storing the (dx, dy) velocity vector for each point.
         - self.colours: A 2D array storing the (r, g, b) colour of each point.
 
-        Args:
-            num_points: The number of points to generate.
+        Parameters
+        ----------
+            num_points : int
+                The number of points to generate.
 
         """
         # generate positions in 2D space the size of the simulation with 0,0 the center
@@ -142,7 +133,6 @@ class MainWindow(QOpenGLWindow):
         self.makeCurrent()
         # Set the viewport to cover the entire window
         gl.glViewport(0, 0, self.window_width, self.window_height)
-        # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         # The shader is rendering the points as circles so set the point size
         gl.glPointSize(10)
@@ -184,8 +174,10 @@ class MainWindow(QOpenGLWindow):
         Here, it updates the positions of the points and makes them bounce
         off the edges of the simulation area.
 
-        Args:
-            event: The QTimerEvent object, not used in this method but required by the API.
+        Parameters
+        ----------
+            event : QTimerEvent
+                The QTimerEvent object, not used in this method but required by the API.
 
 
         """
@@ -229,9 +221,12 @@ class MainWindow(QOpenGLWindow):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            w: The new width of the window.
-            h: The new height of the window.
+        Parameters
+        ----------
+            w : int
+                The new width of the window.
+            h : int
+                The new height of the window.
         """
         # Update the stored width and height, considering high-DPI displays
         self.window_width = int(w * self.ratio)
@@ -242,12 +237,14 @@ class MainWindow(QOpenGLWindow):
         """
         Handles keyboard press events.
 
-        Args:
-            event: The QKeyEvent object containing information about the key press.
+        Parameters
+        ----------
+            event : QKeyEvent
+                The QKeyEvent object containing information about the key press.
         """
         key = event.key()
         if key == Qt.Key_Escape:
-            self.close()  # Exit the application
+            self.close()
         elif key == Qt.Key_A:
             self.animate = not self.animate
         elif key == Qt.Key_Space:
@@ -266,15 +263,16 @@ class MainWindow(QOpenGLWindow):
             self.wind[0] += 0.1
         # Trigger a redraw to apply changes
         self.update()
-        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         """
         Handles mouse movement events for camera control.
 
-        Args:
-            event: The QMouseEvent object containing the new mouse position.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
         if event.buttons() == Qt.LeftButton:
@@ -303,8 +301,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse button press events to initiate rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The QMouseEvent object.
         """
         # store the mouse position for drag operations
         try:
@@ -424,9 +424,25 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # --- Application Entry Point ---
 
-    # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)
@@ -443,17 +459,19 @@ if __name__ == "__main__":
     # Apply this format to all new OpenGL contexts
     QSurfaceFormat.setDefaultFormat(format)
 
-    # Check for a "--debug" command-line argument to run the DebugApplication
-    if len(sys.argv) > 1 and "--debug" in sys.argv:
+    if args.debug:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
 
-    # Create the main window
     window = MainWindow()
     # Set the initial window size
     window.resize(1024, 720)
     # Show the window
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     # Start the application's event loop
     sys.exit(app.exec())

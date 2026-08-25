@@ -64,11 +64,15 @@ def _(np, wgpu):
         """
         Create a vertex buffer.
 
-        Args:
-            device (wgpu.GPUDevice): The GPU device.
+        Parameters
+        ----------
+            device : wgpu.GPUDevice
+                The GPU device.
 
-        Returns:
-            wgpu.GPUBuffer: The created vertex buffer.
+        Returns
+        -------
+            wgpu.GPUBuffer
+                The created vertex buffer.
         """
         vertices = np.array(
             [
@@ -157,11 +161,15 @@ def _(wgpu):
         """
         Create a render pipeline.
 
-        Args:
-            device (wgpu.GPUDevice): The GPU device.
+        Parameters
+        ----------
+            device : wgpu.GPUDevice
+                The GPU device.
 
-        Returns:
-            wgpu.GPURenderPipeline: The created render pipeline.
+        Returns
+        -------
+            wgpu.GPURenderPipeline
+                The created render pipeline.
         """
         vertex_shader_code = """
         struct VertexIn {
@@ -244,15 +252,23 @@ def _(wgpu):
         """
         Render a triangle to a texture.
 
-        Args:
-            device (wgpu.GPUDevice): The GPU device.
-            pipeline (wgpu.GPURenderPipeline): The render pipeline.
-            vertex_buffer (wgpu.GPUBuffer): The vertex buffer.
-            width (int): The width of the texture.
-            height (int): The height of the texture.
+        Parameters
+        ----------
+            device : wgpu.GPUDevice
+                The GPU device.
+            pipeline : wgpu.GPURenderPipeline
+                The render pipeline.
+            vertex_buffer : wgpu.GPUBuffer
+                The vertex buffer.
+            width : int
+                The width of the texture.
+            height : int
+                The height of the texture.
 
-        Returns:
-            wgpu.GPUTexture: The rendered texture.
+        Returns
+        -------
+            wgpu.GPUTexture
+                The rendered texture.
         """
         texture = device.create_texture(
             size=(width, height, 1),
@@ -300,14 +316,21 @@ def _(np, wgpu):
         """
         Copy the texture to a buffer and return it as a NumPy array.
 
-        Args:
-            device (wgpu.GPUDevice): The GPU device.
-            texture (wgpu.GPUTexture): The texture to copy.
-            width (int): The width of the texture.
-            height (int): The height of the texture.
+        Parameters
+        ----------
+            device : wgpu.GPUDevice
+                The GPU device.
+            texture : wgpu.GPUTexture
+                The texture to copy.
+            width : int
+                The width of the texture.
+            height : int
+                The height of the texture.
 
-        Returns:
-            np.ndarray: The texture data as a NumPy array.
+        Returns
+        -------
+            np.ndarray
+                The texture data as a NumPy array.
         """
         buffer_size = width * height * 4
         readback_buffer = device.create_buffer(

@@ -1,5 +1,7 @@
 #!/usr/bin/env -S uv run --script
+import argparse
 import sys
+import traceback
 from typing import List, Set, Tuple
 
 import wgpu
@@ -11,11 +13,11 @@ from ncca.ngl import (
     Vec3,
     Vec4,
 )
+from ncca.ngl.webgpu import WebGPUWidget
 from Pipeline import Pipeline
-from PySide6.QtCore import QElapsedTimer, Qt
+from PySide6.QtCore import QElapsedTimer, Qt, QTimer
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 
@@ -100,69 +102,69 @@ class WebGPUScene(WebGPUWidget):
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(-1.0, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("buddah", tx.get_matrix(), (1, 0, 0, 1)))
+        scene_objects.append(("buddah", tx.matrix(), (1, 0, 0, 1)))
 
         tx.reset()
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(-2.0, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("bunny", tx.get_matrix(), (1, 0, 1, 1)))
+        scene_objects.append(("bunny", tx.matrix(), (1, 0, 1, 1)))
 
         tx.reset()
         tx.set_position(0.0, 0.0, 0.0)  # Move it to the right
-        scene_objects.append(("teapot", tx.get_matrix(), (0, 1, 0, 1)))
+        scene_objects.append(("teapot", tx.matrix(), (0, 1, 0, 1)))
 
         tx.reset()
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(1.5, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("dragon", tx.get_matrix(), (1, 1, 0, 1)))
+        scene_objects.append(("dragon", tx.matrix(), (1, 1, 0, 1)))
 
         tx.reset()
         tx.set_position(0.0, 0.1, 1.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("troll", tx.get_matrix(), (0, 0.2, 1, 1)))
+        scene_objects.append(("troll", tx.matrix(), (0, 0.2, 1, 1)))
         tx.reset()
         tx.set_position(-1.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, 0, 0)
-        scene_objects.append(("icosahedron", tx.get_matrix(), (0.2, 0.2, 0.8, 1)))
+        scene_objects.append(("icosahedron", tx.matrix(), (0.2, 0.2, 0.8, 1)))
         tx.reset()
         tx.set_position(-2.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("dodecahedron", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("dodecahedron", tx.matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(2.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("football", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("football", tx.matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(1.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("tetrahedron", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("tetrahedron", tx.matrix(), (0.8, 0.2, 0.2, 1)))
 
         tx.reset()
         tx.set_position(1.0, 0.0, -1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("octahedron", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("octahedron", tx.matrix(), (0.8, 0.2, 0.2, 1)))
 
         tx.reset()
         tx.set_position(0.0, 0.0, -1.0)
         tx.set_scale(0.5, 0.5, 0.5)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("cube", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("cube", tx.matrix(), (0.8, 0.2, 0.2, 1)))
 
         tx.reset()
         tx.set_position(0, -0.5, 0)
-        scene_objects.append(("floor", tx.get_matrix(), (1, 1, 1, 1)))
+        scene_objects.append(("floor", tx.matrix(), (1, 1, 1, 1)))
 
         ## Render single light
         tx.reset()
         tx.set_position(rotated_light_1.x, rotated_light_1.y, rotated_light_1.z)
-        scene_objects.append(("light1", tx.get_matrix(), (1, 1, 1, 1)))
+        scene_objects.append(("light1", tx.matrix(), (1, 1, 1, 1)))
 
         # 2. Pass the entire scene to the pipeline to be rendered
         self.pipeline.render(
@@ -272,14 +274,45 @@ class WebGPUScene(WebGPUWidget):
         self.update()
 
 
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
 def main():
     """
     Main function to run the application.
     """
-    app = QApplication(sys.argv)
+    parser = argparse.ArgumentParser(description="PCF Shadows WebGPU demo")
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
+    app = DebugApplication(sys.argv) if args.debug else QApplication(sys.argv)
     win = WebGPUScene()
     win.resize(1024, 720)
     win.show()
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
     sys.exit(app.exec())
 
 

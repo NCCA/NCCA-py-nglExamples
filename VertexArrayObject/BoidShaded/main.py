@@ -6,24 +6,29 @@ This script demonstrates how to use OpenGL and Qt to render a simple 3D object (
 It sets up a window, handles user input for rotation/translation/zoom, and manages OpenGL resources.
 """
 
+import argparse
 import sys
+import traceback
 
 import OpenGL.GL as gl
 from ncca.ngl import (
     Mat3,
     Mat4,
-    PySideEventHandlingMixin,
-    ShaderLib,
-    VAOFactory,
-    VAOType,
     Vec3,
     Vec3Array,
     Vec4,
-    VertexData,
     calc_normal,
     look_at,
     perspective,
 )
+from ncca.ngl.opengl import (
+    PySideEventHandlingMixin,
+    ShaderLib,
+    VAOFactory,
+    VAOType,
+    VertexData,
+)
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -51,8 +56,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.window_height: int = 720
         self.setTitle("Boid")
         self.model_position: Vec3 = Vec3()  # Model position in world space
-        self.view: Mat4 = Mat4()  # View matrix
-        self.project: Mat4 = Mat4()  # Projection matrix
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
 
     def initializeGL(self) -> None:
         """
@@ -145,7 +150,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         MV = self.view @ self.mouse_global_tx
         mvp = self.project @ MV
         normal_matrix = Mat3.from_mat4(MV)
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", mvp)
         ShaderLib.set_uniform("normalMatrix", normal_matrix)
         ShaderLib.set_uniform("M", self.mouse_global_tx)
@@ -176,18 +181,49 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         """
         Handle window resizing and update the projection matrix.
 
-        Args:
-            w: New window width.
-            h: New window height.
+        Parameters
+        ----------
+            w : int
+                New window width.
+            h : int
+                New window height.
         """
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
         self.project = perspective(45.0, float(w) / h, 0.1, 350.0)
 
 
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # Set up Qt application and OpenGL format
-    app = QApplication(sys.argv)
     format = QSurfaceFormat()
     format.setSamples(4)
     format.setMajorVersion(4)
@@ -196,7 +232,16 @@ if __name__ == "__main__":
     format.setDepthBufferSize(24)
     QSurfaceFormat.setDefaultFormat(format)
 
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
     window = MainWindow()
     window.resize(1024, 720)
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())

@@ -10,8 +10,8 @@ from ncca.ngl import (
     look_at,
     perspective,
 )
+from ncca.ngl.webgpu import WebGPUWidget
 from PySide6.QtCore import Qt, Slot
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 
@@ -310,13 +310,11 @@ class WebGPUScene(WebGPUWidget):
         self.mouse_global_tx[3, 1] = self.model_position.y
         self.mouse_global_tx[3, 2] = self.model_position.z
         # Update transform UBO
-        model_view = (
-            self.view @ self.model_transform.get_matrix() @ self.mouse_global_tx
-        )
+        model_view = self.view @ self.model_transform.matrix() @ self.mouse_global_tx
         self.transform_uniforms["M"] = model_view.to_numpy()
         self.transform_uniforms["MVP"] = (self.project @ model_view).to_numpy()
         normal_matrix = model_view.copy()
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         self.transform_uniforms["normal_matrix"] = normal_matrix.to_numpy()
         self.device.queue.write_buffer(
             self.transform_buffer, 0, self.transform_uniforms.tobytes()
@@ -397,8 +395,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles mouse movement events for camera control.
 
-        Args:
-            event: The QMouseEvent object containing the new mouse position.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
         if self.rotate and event.buttons() == Qt.LeftButton:
@@ -425,8 +425,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles mouse button press events to initiate rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object.
         """
         position = event.position()
         # Left button initiates rotation
@@ -444,8 +446,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles mouse button release events to stop rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object.
         """
         # Stop rotating when the left button is released
         if event.button() == Qt.LeftButton:
@@ -458,8 +462,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles mouse wheel events for zooming.
 
-        Args:
-            event: The QWheelEvent object.
+        Parameters
+        ----------
+            event
+                The QWheelEvent object.
         """
         num_pixels = event.angleDelta()
         # Zoom in or out by adjusting the Z position of the model

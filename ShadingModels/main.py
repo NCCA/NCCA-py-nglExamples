@@ -1,5 +1,6 @@
 #!/usr/bin/env -S uv run  --script
 
+import argparse
 import sys
 import traceback
 from pathlib import Path
@@ -16,8 +17,8 @@ from ncca.ngl.widgets import (
     Vec4Widget,
 )
 from PyNGLScene import PyNGLScene
-from PySide6.QtCore import QEvent, QFile, QObject, Qt
-from PySide6.QtGui import QFont, QKeyEvent, QSurfaceFormat
+from PySide6.QtCore import QEvent, QFile, QObject, Qt, QTimer
+from PySide6.QtGui import QFont, QSurfaceFormat
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
@@ -41,13 +42,19 @@ class Loader(QUiLoader):
         """
         Create a custom widget by name.
 
-        Args:
-            class_name: The name of the class to create.
-            parent: The parent widget.
-            name: The name of the widget.
+        Parameters
+        ----------
+            class_name : str
+                The name of the class to create.
+            parent : QWidget | None
+                The parent widget.
+            name : str
+                The name of the widget.
 
-        Returns:
-            The created widget.
+        Returns
+        -------
+            QWidget
+                The created widget.
         """
         if class_name == "RGBColourWidget":
             return RGBColourWidget(parent)
@@ -158,12 +165,17 @@ class MainWindow(QMainWindow):
         """
         Filter events to catch double-clicks on editor viewports.
 
-        Args:
-            obj: The object that sent the event.
-            event: The event.
+        Parameters
+        ----------
+            obj : QObject
+                The object that sent the event.
+            event : QEvent
+                The event.
 
-        Returns:
-            True if the event was handled, False otherwise.
+        Returns
+        -------
+            bool
+                True if the event was handled, False otherwise.
         """
         if (
             event.type() == QEvent.Type.Wheel
@@ -316,11 +328,16 @@ class MainWindow(QMainWindow):
         """
         Add a widget to the UI for a uniform variable using a factory pattern.
 
-        Args:
-            name: The name of the uniform.
-            data_type: The type of the uniform.
-            vrange: The range of the uniform value.
-            value: The value of the uniform.
+        Parameters
+        ----------
+            name : str
+                The name of the uniform.
+            data_type : str
+                The type of the uniform.
+            vrange : Any
+                The range of the uniform value.
+            value : Any
+                The value of the uniform.
         """
         creator_func = self._widget_factory.get(data_type.lower())
         if creator_func:
@@ -342,8 +359,10 @@ class MainWindow(QMainWindow):
         """
         Generate the UI layout for the shader.
 
-        Args:
-            file_path: The path to the shader file.
+        Parameters
+        ----------
+            file_path : str
+                The path to the shader file.
         """
         # Clear existing widgets from the form layout
         while self.uniform_layout.count():
@@ -437,8 +456,10 @@ class DebugApplication(QApplication):
         """
         Initialize the DebugApplication.
 
-        Args:
-            argv: The command line arguments.
+        Parameters
+        ----------
+            argv : list[str]
+                The command line arguments.
         """
         super().__init__(argv)
         logger.info("Running in full debug mode")
@@ -458,9 +479,25 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # --- Application Entry Point ---
 
-    # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)
@@ -477,18 +514,20 @@ if __name__ == "__main__":
     # Apply this format to all new OpenGL contexts
     QSurfaceFormat.setDefaultFormat(format)
 
-    # Check for a "--debug" command-line argument to run the DebugApplication
-    if len(sys.argv) > 1 and "--debug" in sys.argv:
+    if args.debug:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
 
-    # Create the main window
     window = MainWindow()
     # Set the initial window size
     window.resize(1024, 720)
     # Show the window
     window.show()
     window.generate_ui_layout("shaders/Constant.json")
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     # Start the application's event loop
     sys.exit(app.exec())

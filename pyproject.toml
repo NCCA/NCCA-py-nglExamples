@@ -18,7 +18,10 @@ dependencies = [
     "wgpu",
     "marimo>=0.17.2",
     "matplotlib>=3.10.7",
-    "ncca-ngl>=0.5.0",
+    "ncca-ngl>=1.0.0",
+    "openexr>=3.4.13",
+    "impasse>=5.4.2",
+    "mujoco>=3.12.0",
 ]
 
 
@@ -26,6 +29,7 @@ dependencies = [
 members=["*"]
 exclude=["*"]
 [tool.uv.sources]
+# used for local development only
 # ncca-ngl = [
 #  { path = "/Users/jmacey/teaching/Code/PyNGL", editable=true}
 #  ]
@@ -34,3 +38,7 @@ exclude=["*"]
 dev = [
     "pytest>=8.4.2",
 ]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+pythonpath = ["PBR/HDRIBaker"]

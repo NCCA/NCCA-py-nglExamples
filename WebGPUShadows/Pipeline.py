@@ -413,7 +413,7 @@ class Pipeline:
 
     def _update_mesh_storage_buffer(self, name: str, model, colour) -> None:
         normal_matrix = model.copy()
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         self.mesh_data.update_mesh_data(name, model, normal_matrix, colour)
 
     def _render_mesh(self, pass_encoder, name: str) -> None:

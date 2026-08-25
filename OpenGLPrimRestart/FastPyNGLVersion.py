@@ -7,30 +7,22 @@ standard mouse and keyboard controls for interacting with a 3D scene (rotate, pa
 It is designed to be a starting point for more complex OpenGL applications.
 """
 
-import ctypes
-import math
+import argparse
 import random
 import sys
 import traceback
 
 import numpy as np
 import OpenGL.GL as gl
-from ncca.ngl import (
+from ncca.ngl import Mat4, Random, Vec3, Vec3Array, logger, look_at, perspective
+from ncca.ngl.opengl import (
     IndexVertexData,
-    Mat4,
     PySideEventHandlingMixin,
-    Random,
     ShaderLib,
     VAOFactory,
     VAOType,
-    Vec3,
-    Vec3Array,
-    lerp,
-    logger,
-    look_at,
-    perspective,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -38,9 +30,6 @@ from PySide6.QtWidgets import QApplication
 
 class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
     def __init__(self, parent: object = None) -> None:
-        """
-        Initializes the main window and sets up default scene parameters.
-        """
         super().__init__()
         self.setup_event_handling(
             rotation_sensitivity=0.5,
@@ -48,10 +37,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             zoom_sensitivity=0.1,
             initial_position=Vec3(0, 0, 0),
         )  # --- Camera and Transformation Attributes ---
-        self.view: Mat4 = Mat4()  # View matrix (camera's position and orientation)
-        self.project: Mat4 = (
-            Mat4()
-        )  # Projection matrix (defines the camera's viewing frustum)
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
 
         # --- Window and UI Attributes ---
         self.window_width: int = 1024  # Window width¦
@@ -187,7 +174,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.makeCurrent()
         # Set the viewport to cover the entire window
         gl.glViewport(0, 0, self.window_width, self.window_height)
-        # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         rot_x = Mat4().rotate_x(self.spin_x_face)
         rot_y = Mat4().rotate_y(self.spin_y_face)
@@ -280,8 +266,24 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # --- Application Entry Point ---
-    # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)
@@ -298,17 +300,19 @@ if __name__ == "__main__":
     # Apply this format to all new OpenGL contexts
     QSurfaceFormat.setDefaultFormat(format)
 
-    # Check for a "--debug" command-line argument to run the DebugApplication
-    if len(sys.argv) > 1 and "--debug" in sys.argv:
+    if args.debug:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
 
-    # Create the main window
     window = MainWindow()
     # Set the initial window size
     window.resize(1024, 720)
     # Show the window
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     # Start the application's event loop
     sys.exit(app.exec())

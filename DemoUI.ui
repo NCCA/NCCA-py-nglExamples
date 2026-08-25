@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <ui version="4.0">
  <class>Form</class>
  <widget class="QWidget" name="Form">
@@ -19,7 +19,7 @@
      <property name="title">
       <string>Demo</string>
      </property>
-     <layout class="QVBoxLayout" name="demo_vertical_layout"/>
+     <layout class="QVBoxLayout" name="demo_vertical_layout" />
     </widget>
    </item>
    <item>
@@ -27,7 +27,7 @@
      <property name="title">
       <string>Description</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout" stretch="0,2,1">
+     <layout class="QVBoxLayout" name="verticalLayout" stretch="0,2,1,0">
       <item>
        <widget class="QLabel" name="image_label">
         <property name="text">
@@ -39,7 +39,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QTextEdit" name="demo_text"/>
+       <widget class="QTextEdit" name="demo_text" />
       </item>
       <item>
        <widget class="QPushButton" name="run_demo">
@@ -48,11 +48,36 @@
         </property>
        </widget>
       </item>
+      <item>
+       <layout class="QHBoxLayout" name="smoketest_layout">
+        <item>
+         <widget class="QPushButton" name="smoketest_all">
+          <property name="text">
+           <string>Run All</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="smoketest_time_label">
+          <property name="text">
+           <string>Run Time (ms):</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="smoketest_time">
+          <property name="text">
+           <string>200</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
      </layout>
     </widget>
    </item>
   </layout>
  </widget>
- <resources/>
- <connections/>
+ <resources />
+ <connections />
 </ui>

@@ -7,6 +7,7 @@ standard mouse and keyboard controls for interacting with a 3D scene (rotate, pa
 It is designed to be a starting point for more complex OpenGL applications.
 """
 
+import argparse
 import sys
 import traceback
 
@@ -14,10 +15,7 @@ import OpenGL.GL as gl
 from ncca.ngl import (
     Mat3,
     Mat4,
-    Primitives,
     Prims,
-    PySideEventHandlingMixin,
-    ShaderLib,
     Transform,
     Vec3,
     Vec4,
@@ -25,6 +23,8 @@ from ncca.ngl import (
     look_at,
     perspective,
 )
+from ncca.ngl.opengl import Primitives, PySideEventHandlingMixin, ShaderLib
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -44,9 +44,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
     """
 
     def __init__(self, parent: object = None) -> None:
-        """
-        Initializes the main window and sets up default scene parameters.
-        """
         super().__init__()
         self.setup_event_handling(
             rotation_sensitivity=0.5,
@@ -54,10 +51,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             zoom_sensitivity=0.1,
             initial_position=Vec3(0, 0, 0),
         )  # --- Camera and Transformation Attributes ---
-        self.view: Mat4 = Mat4()  # View matrix (camera's position and orientation)
-        self.project: Mat4 = (
-            Mat4()
-        )  # Projection matrix (defines the camera's viewing frustum)
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
 
         # --- Window and UI Attributes ---
         self.window_width: int = 1024  # Window width¦
@@ -78,7 +73,6 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glEnable(gl.GL_DEPTH_TEST)
         # Enable multisampling for anti-aliasing, which smooths jagged edges
         gl.glEnable(gl.GL_MULTISAMPLE)
-        # Set up the camera's view matrix.
         self.view = look_at(Vec3(2, 2, 2), Vec3(0, 0, 0), Vec3(0, 1, 0))
         self.projection = perspective(
             45.0, self.window_width / self.window_height, 0.1, 100.0
@@ -225,10 +219,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Primitives.draw("plane")
         self.transform.set_position(0, 1, 0)
         MVP = (
-            self.projection
-            @ self.view
-            @ self.mouse_global_tx
-            @ self.transform.get_matrix()
+            self.projection @ self.view @ self.mouse_global_tx @ self.transform.matrix()
         )
         ShaderLib.set_uniform("MVP", MVP)
         Primitives.draw("sphere")
@@ -238,11 +229,11 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Load transformation matrices to the shader uniforms.
         """
         ShaderLib.use(PHONG_SHADER)
-        M = self.transform.get_matrix()
+        M = self.transform.matrix()
         MV = self.view @ M
         mvp = self.project @ MV
         normal_matrix = Mat3.from_mat4(MV)
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", mvp)
         ShaderLib.set_uniform("MV", MV)
         ShaderLib.set_uniform("M", M)
@@ -253,15 +244,16 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            w: The new width of the window.
-            h: The new height of the window.
+        Parameters
+        ----------
+            w : int
+                The new width of the window.
+            h : int
+                The new height of the window.
         """
         # Update the stored width and height, considering high-DPI displays
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
-        # Update the projection matrix to match the new aspect ratio.
-        # This creates a perspective projection with a 45-degree field of view.
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
 
     def timerEvent(self, event):
@@ -299,9 +291,25 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # --- Application Entry Point ---
 
-    # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)
@@ -318,17 +326,19 @@ if __name__ == "__main__":
     # Apply this format to all new OpenGL contexts
     QSurfaceFormat.setDefaultFormat(format)
 
-    # Check for a "--debug" command-line argument to run the DebugApplication
-    if len(sys.argv) > 1 and "--debug" in sys.argv:
+    if args.debug:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
 
-    # Create the main window
     window = MainWindow()
     # Set the initial window size
     window.resize(1024, 720)
     # Show the window
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     # Start the application's event loop
     sys.exit(app.exec())

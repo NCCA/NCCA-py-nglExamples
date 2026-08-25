@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 import numpy as np
 import wgpu
@@ -19,8 +19,10 @@ class MeshData:
         """
         Initializes the MeshData manager.
 
-        Args:
-            device (wgpu.GPUDevice): The WebGPU device used for buffer creation.
+        Parameters
+        ----------
+            device : wgpu.GPUDevice
+                The WebGPU device used for buffer creation.
         """
         self.device: wgpu.GPUDevice = device
         # Maps instance name to mesh_name
@@ -45,9 +47,12 @@ class MeshData:
 
         This data will be consolidated into a single vertex buffer later.
 
-        Args:
-            mesh_name (str): The unique name for this geometry (e.g., 'sphere', 'cube').
-            prim_data (PrimData): The primitive data containing vertices and other attributes.
+        Parameters
+        ----------
+            mesh_name : str
+                The unique name for this geometry (e.g., 'sphere', 'cube').
+            prim_data : PrimData
+                The primitive data containing vertices and other attributes.
         """
         if mesh_name in self._raw_geometries:
             print(
@@ -62,13 +67,18 @@ class MeshData:
         Each instance can have its own unique transformation and material properties,
         while sharing the underlying vertex data with other instances of the same geometry.
 
-        Args:
-            name (str): The unique name for this specific instance (e.g., 'light1', 'player_character').
-            mesh_name (str): The name of the geometry to use for this instance, which must
+        Parameters
+        ----------
+            name : str
+                The unique name for this specific instance (e.g., 'light1', 'player_character').
+            mesh_name : str
+                The name of the geometry to use for this instance, which must
                              have been previously added via `add_geometry`.
 
-        Raises:
-            ValueError: If the specified `mesh_name` does not correspond to any loaded geometry.
+        Raises
+        ------
+            ValueError
+                If the specified `mesh_name` does not correspond to any loaded geometry.
         """
         if name in self._raw_meshes:
             print(f"Warning: Instance with name '{name}' already exists.")
@@ -166,11 +176,16 @@ class MeshData:
         This updates the host-side NumPy array. `write_buffers` must be called
         to upload the changes to the GPU.
 
-        Args:
-            name (str): The name of the mesh instance to update.
-            model (Mat4): The new model transformation matrix.
-            normal_matrix (Mat4): The new normal matrix.
-            colour (tuple): The new color as a tuple of floats (r, g, b, a).
+        Parameters
+        ----------
+            name : str
+                The name of the mesh instance to update.
+            model : Mat4
+                The new model transformation matrix.
+            normal_matrix : Mat4
+                The new normal matrix.
+            colour : tuple
+                The new color as a tuple of floats (r, g, b, a).
         """
         if name not in self._mesh_info or self.storage_data is None:
             return
@@ -197,11 +212,15 @@ class MeshData:
         This metadata includes the vertex offset, vertex count, and instance index
         required for a draw call.
 
-        Args:
-            name (str): The name of the mesh instance.
+        Parameters
+        ----------
+            name : str
+                The name of the mesh instance.
 
-        Returns:
-            Optional[Dict[str, int]]: A dictionary with rendering info, or None if not found.
+        Returns
+        -------
+            Optional[Dict[str, int]]
+                Optional[Dict[str, int]]: A dictionary with rendering info, or None if not found.
         """
         return self._mesh_info.get(name)
 

@@ -8,6 +8,7 @@ can be toggled on and off. The scene features a floor and uses a first-person ca
 for navigation.
 """
 
+import argparse
 import logging
 import math
 import random
@@ -17,21 +18,19 @@ import traceback
 import numpy as np
 import OpenGL.GL as gl
 from ncca.ngl import (
-    DefaultShader,
     FirstPersonCamera,
     Mat2,
     Mat3,
     Mat4,
-    Primitives,
     Prims,
     Random,
-    ShaderLib,
     Transform,
     Vec3,
     Vec3Array,
     logger,
 )
-from PySide6.QtCore import QElapsedTimer, Qt
+from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib
+from PySide6.QtCore import QElapsedTimer, Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -168,8 +167,25 @@ class MainWindow(QOpenGLWindow):
         self._render_lights()
         self._render_scene()
 
+        # Keep repainting while an arrow key is held so movement is continuous
+        # and frame-rate paced, rather than a single step per key event.
+        if self.keys_pressed & self._MOVE_KEYS:
+            self.update()
+
+    # Arrow keys drive the first-person camera (see _update_camera_movement).
+    _MOVE_KEYS = {Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down}
+
     def _update_camera_movement(self) -> None:
         """Calculates and applies camera movement based on currently pressed keys."""
+        # Advance the frame clock every call, not just while a key is held.
+        # If we only updated last_frame inside the movement block it would go
+        # stale between key presses, and the next press would produce a delta
+        # spanning the whole idle gap - giving a large initial jump. Clamping
+        # guards against any remaining gap (e.g. the first press after startup).
+        current_frame = self.timer.elapsed() * 0.001
+        delta_time = min(current_frame - self.last_frame, 0.05)
+        self.last_frame = current_frame
+
         x_direction = 0.0
         y_direction = 0.0
         for key in self.keys_pressed:
@@ -183,9 +199,6 @@ class MainWindow(QOpenGLWindow):
                 x_direction = -1.0
 
         if x_direction != 0.0 or y_direction != 0.0:
-            current_frame = self.timer.elapsed() * 0.001
-            delta_time = current_frame - self.last_frame
-            self.last_frame = current_frame
             self.camera.move(x_direction, y_direction, delta_time)
 
     def _render_lights(self) -> None:
@@ -239,12 +252,14 @@ class MainWindow(QOpenGLWindow):
         """
         Calculates and sends the required matrices and uniforms to the PBR shader.
         """
-        M = self.transform.get_matrix()
-        MV = self.camera.view @ M
+        M = self.transform.matrix()
         MVP = self.camera.get_vp() @ M
 
-        normal_matrix = Mat3.from_mat4(MV)
-        normal_matrix.inverse().transpose()
+        # PBRFragment.glsl lights in world space (V = camPos - WorldPos), so
+        # the normal matrix comes from the model alone -- MV would drag the
+        # normals into view space and the shading would rotate with the camera.
+        normal_matrix = Mat3.from_mat4(M)
+        normal_matrix = normal_matrix.inverse().transposed()
 
         ShaderLib.use(PBR_SHADER)
         ShaderLib.set_uniform("MVP", MVP)
@@ -263,7 +278,7 @@ class MainWindow(QOpenGLWindow):
         """
         Calculates and sends the MVP matrix to the simple colour shader.
         """
-        M = self.mouse_global_tx @ self.transform.get_matrix()
+        M = self.mouse_global_tx @ self.transform.matrix()
         MVP = self.camera.get_vp() @ M
         ShaderLib.use(DefaultShader.COLOUR)
         ShaderLib.set_uniform("MVP", MVP)
@@ -302,8 +317,10 @@ class MainWindow(QOpenGLWindow):
         """
         Toggles a light on or off and updates the corresponding shader uniform.
 
-        Args:
-            light_index: The index of the light to toggle (0-3).
+        Parameters
+        ----------
+            light_index : int
+                The index of the light to toggle (0-3).
         """
         self.light_on[light_index] ^= True
         ShaderLib.use(PBR_SHADER)
@@ -387,7 +404,23 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
-    # --- Application Entry Point ---
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     logging.basicConfig(level=logging.INFO)
 
     format = QSurfaceFormat()
@@ -398,7 +431,7 @@ if __name__ == "__main__":
     format.setDepthBufferSize(24)
     QSurfaceFormat.setDefaultFormat(format)
 
-    if "--debug" in sys.argv:
+    if args.debug:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
@@ -406,4 +439,8 @@ if __name__ == "__main__":
     window = MainWindow()
     window.resize(1024, 720)
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())

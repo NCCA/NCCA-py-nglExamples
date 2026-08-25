@@ -1,12 +1,26 @@
 #!/usr/bin/env -S uv run --script
+import argparse
 import sys
+import traceback
 
 from ncca.ngl import Vec3
-from PySide6.QtCore import QFile, Qt, Signal
+from PySide6.QtCore import QFile, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QKeyEvent
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import QApplication, QColorDialog, QMainWindow, QWidget
 from WebGPUScene import WebGPUScene
+
+
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
 
 
 class MainWindow(QMainWindow):
@@ -17,9 +31,12 @@ class MainWindow(QMainWindow):
     widget, and connects UI signals (e.g., button clicks, slider changes)
     to the corresponding slots in the WebGPU scene to manipulate the 3D object.
 
-    Attributes:
-        colour_update (Signal): A signal that emits RGB float values when a new color is selected.
-        scene (WebGPUScene): The WebGPU widget where the 3D scene is rendered.
+    Attributes
+    ----------
+        colour_update : Signal
+            A signal that emits RGB float values when a new color is selected.
+        scene : WebGPUScene
+            The WebGPU widget where the 3D scene is rendered.
     """
 
     colour_update = Signal(float, float, float)
@@ -126,10 +143,36 @@ class MainWindow(QMainWindow):
 
 def main():
     """Main application entry point."""
-    app = QApplication(sys.argv)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
     try:
         window = MainWindow()
         window.show()
+
+        if args.smoketest is not None:
+            QTimer.singleShot(
+                args.smoketest, lambda: (print("SMOKETEST OK"), app.quit())
+            )
+
         sys.exit(app.exec())
     except Exception as e:
         print(f"Application error: {e}")

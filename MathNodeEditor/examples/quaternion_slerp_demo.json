@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "nodes": [
+    {
+      "id": "node-1",
+      "name": "Start Orientation",
+      "x": -860.0,
+      "y": -260.0,
+      "kind": "value",
+      "math_type": "QUATERNION",
+      "components": [1.0, 0.0, 0.0, 0.0]
+    },
+    {
+      "id": "node-2",
+      "name": "End Orientation",
+      "x": -860.0,
+      "y": 20.0,
+      "kind": "generator",
+      "operation": "QUATERNION_FROM_AXIS_ANGLE",
+      "parameters": [[0.0, 1.0, 0.0], [180.0]]
+    },
+    {
+      "id": "node-3",
+      "name": "Blend Factor",
+      "x": -860.0,
+      "y": 360.0,
+      "kind": "value",
+      "math_type": "FLOAT",
+      "components": [0.5]
+    },
+    {
+      "id": "node-4",
+      "name": "Halfway Orientation",
+      "x": -430.0,
+      "y": 20.0,
+      "kind": "operation",
+      "operation": "QUATERNION_SLERP"
+    },
+    {
+      "id": "node-5",
+      "name": "X Direction",
+      "x": -430.0,
+      "y": 360.0,
+      "kind": "value",
+      "math_type": "VEC3",
+      "components": [1.0, 0.0, 0.0]
+    },
+    {
+      "id": "node-6",
+      "name": "Rotate by Halfway Orientation",
+      "x": 0.0,
+      "y": 180.0,
+      "kind": "operation",
+      "operation": "QUATERNION_ROTATE_VECTOR"
+    },
+    {
+      "id": "node-7",
+      "name": "Halfway Quaternion Result",
+      "x": 0.0,
+      "y": -100.0,
+      "kind": "output"
+    },
+    {
+      "id": "node-8",
+      "name": "Halfway Direction Result",
+      "x": 430.0,
+      "y": 180.0,
+      "kind": "output"
+    }
+  ],
+  "connections": [
+    {"source": "node-1", "target": "node-4", "input": 0},
+    {"source": "node-2", "target": "node-4", "input": 1},
+    {"source": "node-3", "target": "node-4", "input": 2},
+    {"source": "node-4", "target": "node-6", "input": 0},
+    {"source": "node-5", "target": "node-6", "input": 1},
+    {"source": "node-4", "target": "node-7", "input": 0},
+    {"source": "node-6", "target": "node-8", "input": 0}
+  ]
+}

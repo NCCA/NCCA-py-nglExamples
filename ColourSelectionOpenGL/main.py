@@ -7,28 +7,21 @@ standard mouse and keyboard controls for interacting with a 3D scene (rotate, pa
 It is designed to be a starting point for more complex OpenGL applications.
 """
 
+import argparse
 import sys
 import traceback
-from dataclasses import dataclass
 
-import numpy as np
 import OpenGL.GL as gl
 from ncca.ngl import (
-    DefaultShader,
-    Mat3,
     Mat4,
-    Primitives,
-    Prims,
     Random,
-    ShaderLib,
-    Transform,
     Vec3,
-    Vec4,
     logger,
     look_at,
     perspective,
 )
-from PySide6.QtCore import Qt
+from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -46,18 +39,13 @@ class MainWindow(QOpenGLWindow):
     """
 
     def __init__(self, parent: object = None) -> None:
-        """
-        Initializes the main window and sets up default scene parameters.
-        """
         super().__init__()
         # --- Camera and Transformation Attributes ---
         self.mouse_global_tx: Mat4 = (
             Mat4()
         )  # Global transformation matrix controlled by the mouse
-        self.view: Mat4 = Mat4()  # View matrix (camera's position and orientation)
-        self.project: Mat4 = (
-            Mat4()
-        )  # Projection matrix (defines the camera's viewing frustum)
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
         self.model_position: Vec3 = Vec3()  # Position of the model in world space
         self.setTitle("Colour Selection OpenGL")
         # --- Window and UI Attributes ---
@@ -102,7 +90,6 @@ class MainWindow(QOpenGLWindow):
         gl.glEnable(gl.GL_DEPTH_TEST)
         # Enable multisampling for anti-aliasing, which smooths jagged edges
         gl.glEnable(gl.GL_MULTISAMPLE)
-        # Set up the camera's view matrix.
         # It looks from (0, 1, 4) towards (0, 0, 0) with the 'up' direction along the Y-axis.
         self.view = look_at(Vec3(0, 15, 25), Vec3(0, 0, 0), Vec3(0, 1, 0))
 
@@ -121,7 +108,6 @@ class MainWindow(QOpenGLWindow):
         self.makeCurrent()
         # Set the viewport to cover the entire window
         gl.glViewport(0, 0, self.window_width, self.window_height)
-        # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         # Apply rotation based on user input
         rot_x: Mat4 = Mat4().rotate_x(self.spin_x_face)
@@ -138,7 +124,6 @@ class MainWindow(QOpenGLWindow):
     def do_selection(self, x: int, y: int) -> None:
         # Set the viewport to cover the entire window
         gl.glViewport(0, 0, self.window_width, self.window_height)
-        # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         # Apply rotation based on user input
         rot_x: Mat4 = Mat4().rotate_x(self.spin_x_face)
@@ -179,37 +164,36 @@ class MainWindow(QOpenGLWindow):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            w: The new width of the window.
-            h: The new height of the window.
+        Parameters
+        ----------
+            w : int
+                The new width of the window.
+            h : int
+                The new height of the window.
         """
         # Update the stored width and height, considering high-DPI displays
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
-        # Update the projection matrix to match the new aspect ratio.
-        # This creates a perspective projection with a 45-degree field of view.
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
 
     def keyPressEvent(self, event) -> None:
         """
         Handles keyboard press events.
 
-        Args:
-            event: The QKeyEvent object containing information about the key press.
+        Parameters
+        ----------
+            event
+                The QKeyEvent object containing information about the key press.
         """
         key = event.key()
         if key == Qt.Key_Escape:
-            self.close()  # Exit the application
+            self.close()
         elif key == Qt.Key_M:
             self.mode = not self.mode
         elif key == Qt.Key_W:
-            gl.glPolygonMode(
-                gl.GL_FRONT_AND_BACK, gl.GL_LINE
-            )  # Switch to wireframe rendering
+            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
         elif key == Qt.Key_S:
-            gl.glPolygonMode(
-                gl.GL_FRONT_AND_BACK, gl.GL_FILL
-            )  # Switch to solid fill rendering
+            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
         elif key == Qt.Key_Space:
             # Reset camera rotation and position
             self.spinXFace = 0
@@ -217,15 +201,16 @@ class MainWindow(QOpenGLWindow):
             self.model_position.set(0, 0, 0)
         # Trigger a redraw to apply changes
         self.update()
-        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:
         """
         Handles mouse movement events for camera control.
 
-        Args:
-            event: The QMouseEvent object containing the new mouse position.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
         if self.rotate and event.buttons() == Qt.LeftButton:
@@ -252,8 +237,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse button press events to initiate rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object.
         """
         position = event.position()
         # Left button initiates rotation
@@ -272,8 +259,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse button release events to stop rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object.
         """
         # Stop rotating when the left button is released
         if event.button() == Qt.LeftButton:
@@ -286,15 +275,20 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse wheel events for zooming.
 
-        Args:
-            event: The QWheelEvent object.
+        Parameters
+        ----------
+            event
+                The QWheelEvent object.
         """
-        num_pixels = event.angleDelta()
-        # Zoom in or out by adjusting the Z position of the model
-        if num_pixels.x() > 0:
-            self.model_position.z += self.ZOOM
-        elif num_pixels.x() < 0:
-            self.model_position.z -= self.ZOOM
+        # Use the vertical wheel delta (angleDelta().y()) -- .x() is only
+        # populated by horizontal scroll gestures, which left plain vertical
+        # wheel/trackpad scrolling doing almost nothing and made stray
+        # horizontal trackpad noise cause small unintended zoom jumps.
+        # Scaling by the delta magnitude (120 = one standard wheel notch)
+        # instead of a fixed step also makes fast scrolling zoom
+        # proportionally rather than being capped to one step per event.
+        delta = event.angleDelta().y()
+        self.model_position.z += self.ZOOM * (delta / 120.0)
         self.update()
 
 
@@ -328,9 +322,25 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # --- Application Entry Point ---
 
-    # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)
@@ -347,17 +357,19 @@ if __name__ == "__main__":
     # Apply this format to all new OpenGL contexts
     QSurfaceFormat.setDefaultFormat(format)
 
-    # Check for a "--debug" command-line argument to run the DebugApplication
-    if len(sys.argv) > 1 and "--debug" in sys.argv:
+    if args.debug:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
 
-    # Create the main window
     window = MainWindow()
     # Set the initial window size
     window.resize(1024, 720)
     # Show the window
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     # Start the application's event loop
     sys.exit(app.exec())

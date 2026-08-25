@@ -1,24 +1,26 @@
 #!/usr/bin/env -S uv run --script
+import argparse
 import sys
+import traceback
 
 import numpy as np
 import wgpu
 from FloorPipeline import FloorPipeline
 from ncca.ngl import (
-    Mat3,
     Mat4,
     PerspMode,
     PrimData,
     Prims,
     Vec3,
-    Vec4,
     look_at,
     perspective,
 )
-from PySide6.QtCore import Qt, Slot
+from ncca.ngl.webgpu import WebGPUWidget
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication
 from TeapotPipeline import TeapotPipeline
-from WebGPUWidget import WebGPUWidget
+
+# from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 
@@ -86,7 +88,7 @@ class WebGPUScene(WebGPUWidget):
             self._create_render_buffer()
             self._init_buffers()
             self._create_render_pipeline()
-            self.startTimer(16)
+            self.start_update_timer(16)
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
             exit(1)
@@ -170,8 +172,10 @@ class WebGPUScene(WebGPUWidget):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            event: The resize event object.
+        Parameters
+        ----------
+            event
+                The resize event object.
         """
         # Update the stored width and height, considering high-DPI displays
         # Update projection matrix
@@ -179,12 +183,6 @@ class WebGPUScene(WebGPUWidget):
             45.0, width / height if height > 0 else 1, 0.1, 350.0, PerspMode.WebGPU
         )
 
-        # Recreate render buffers for the new window size
-        self._create_render_buffer()
-
-        # Resize the numpy buffer to match new window dimensions
-        if self.frame_buffer is not None:
-            self.frame_buffer = np.zeros([height, width, 4], dtype=np.uint8)
         for pipeline in self.pipelines:
             pipeline.width = width
             pipeline.height = height
@@ -195,13 +193,15 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles keyboard press events.
 
-        Args:
-            event: The QKeyEvent object containing information about the key press.
+        Parameters
+        ----------
+            event
+                The QKeyEvent object containing information about the key press.
         """
         key = event.key()
 
         if key == Qt.Key_Escape:
-            self.close()  # Exit the application
+            self.close()
         elif key == Qt.Key_Space:
             # Reset camera rotation and position
             self.spin_x_face = 0
@@ -209,15 +209,16 @@ class WebGPUScene(WebGPUWidget):
             self.model_position.set(0, 0, 0)
 
         self.update()
-        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:
         """
         Handles mouse movement events for camera control.
 
-        Args:
-            event: The QMouseEvent object containing the new mouse position.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
         if self.rotate and event.buttons() == Qt.LeftButton:
@@ -244,8 +245,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles mouse button press events to initiate rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object.
         """
         position = event.position()
         # Left button initiates rotation
@@ -263,8 +266,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles mouse button release events to stop rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object.
         """
         # Stop rotating when the left button is released
         if event.button() == Qt.LeftButton:
@@ -277,16 +282,30 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles mouse wheel events for zooming.
 
-        Args:
-            event: The QWheelEvent object.
+        Parameters
+        ----------
+            event
+                The QWheelEvent object.
         """
         num_pixels = event.angleDelta()
         # Zoom in or out by adjusting the Z position of the model
-        if num_pixels.x() > 0:
+        if num_pixels.y() > 0:
             self.model_position.z += self.ZOOM
-        elif num_pixels.x() < 0:
+        elif num_pixels.y() < 0:
             self.model_position.z -= self.ZOOM
         self.update()
+
+
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
 
 
 def main():
@@ -294,10 +313,35 @@ def main():
     Main function to run the application.
     Parses command line arguments and initializes the WebGPUScene.
     """
-    app = QApplication(sys.argv)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
     win = WebGPUScene()
     win.resize(1024, 720)
     win.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())
 
 

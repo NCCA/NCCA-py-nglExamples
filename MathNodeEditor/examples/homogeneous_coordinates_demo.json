@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "nodes": [
+    {
+      "id": "node-1",
+      "name": "Translation Matrix",
+      "x": -760.0,
+      "y": -300.0,
+      "kind": "generator",
+      "operation": "MAT4_TRANSLATE",
+      "parameters": [[5.0], [-2.0], [1.0]]
+    },
+    {
+      "id": "node-2",
+      "name": "Homogeneous Point (w=1)",
+      "x": -760.0,
+      "y": 40.0,
+      "kind": "value",
+      "math_type": "VEC4",
+      "components": [1.0, 2.0, 3.0, 1.0]
+    },
+    {
+      "id": "node-3",
+      "name": "Homogeneous Direction (w=0)",
+      "x": -760.0,
+      "y": 300.0,
+      "kind": "value",
+      "math_type": "VEC4",
+      "components": [1.0, 2.0, 3.0, 0.0]
+    },
+    {
+      "id": "node-4",
+      "name": "Transform Point",
+      "x": -250.0,
+      "y": -20.0,
+      "kind": "operation",
+      "operation": "MATRIX_MULTIPLY"
+    },
+    {
+      "id": "node-5",
+      "name": "Transform Direction",
+      "x": -250.0,
+      "y": 260.0,
+      "kind": "operation",
+      "operation": "MATRIX_MULTIPLY"
+    },
+    {
+      "id": "node-6",
+      "name": "Translated Point Result",
+      "x": 150.0,
+      "y": -20.0,
+      "kind": "output"
+    },
+    {
+      "id": "node-7",
+      "name": "Unchanged Direction Result",
+      "x": 150.0,
+      "y": 260.0,
+      "kind": "output"
+    }
+  ],
+  "connections": [
+    {"source": "node-2", "target": "node-4", "input": 0},
+    {"source": "node-1", "target": "node-4", "input": 1},
+    {"source": "node-3", "target": "node-5", "input": 0},
+    {"source": "node-1", "target": "node-5", "input": 1},
+    {"source": "node-4", "target": "node-6", "input": 0},
+    {"source": "node-5", "target": "node-7", "input": 0}
+  ]
+}

@@ -7,12 +7,14 @@ standard mouse and keyboard controls for interacting with a 3D scene (rotate, pa
 It is designed to be a starting point for more complex OpenGL applications.
 """
 
+import argparse
 import sys
 import traceback
 
 import OpenGL.GL as gl
-from ncca.ngl import ShaderLib, VAOFactory, VAOType, VertexData, logger, perspective
-from PySide6.QtCore import Qt
+from ncca.ngl import logger, perspective
+from ncca.ngl.opengl import ShaderLib, VAOFactory, VAOType, VertexData
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -29,9 +31,6 @@ class MainWindow(QOpenGLWindow):
     """
 
     def __init__(self, parent: object = None) -> None:
-        """
-        Initializes the main window and sets up default scene parameters.
-        """
         super().__init__()
 
         # --- Window and UI Attributes ---
@@ -153,7 +152,6 @@ class MainWindow(QOpenGLWindow):
         self.makeCurrent()
         # Set the viewport to cover the entire window
         gl.glViewport(0, 0, self.window_width, self.window_height)
-        # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         # draw to our FBO first
         ShaderLib.use(SCREEN_QUAD)
@@ -237,15 +235,16 @@ class MainWindow(QOpenGLWindow):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            w: The new width of the window.
-            h: The new height of the window.
+        Parameters
+        ----------
+            w : int
+                The new width of the window.
+            h : int
+                The new height of the window.
         """
         # Update the stored width and height, considering high-DPI displays
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
-        # Update the projection matrix to match the new aspect ratio.
-        # This creates a perspective projection with a 45-degree field of view.
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
 
     def keyPressEvent(self, event) -> None:
@@ -268,7 +267,6 @@ class MainWindow(QOpenGLWindow):
         if key in mapping:
             self.buffer_index = mapping[key]
         self.update()
-        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
 
@@ -302,9 +300,25 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # --- Application Entry Point ---
 
-    # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)
@@ -321,17 +335,19 @@ if __name__ == "__main__":
     # Apply this format to all new OpenGL contexts
     QSurfaceFormat.setDefaultFormat(format)
 
-    # Check for a "--debug" command-line argument to run the DebugApplication
-    if len(sys.argv) > 1 and "--debug" in sys.argv:
+    if args.debug:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
 
-    # Create the main window
     window = MainWindow()
     # Set the initial window size
     window.resize(1024, 720)
     # Show the window
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     # Start the application's event loop
     sys.exit(app.exec())

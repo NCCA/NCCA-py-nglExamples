@@ -5,9 +5,9 @@ import traceback
 
 import numpy as np
 import wgpu
-from ncca.ngl import Mat4, PerspMode, Vec3, look_at, perspective
+from ncca.ngl import Mat4, PerspMode, PrimData, Vec3, look_at, perspective
 from ncca.ngl.webgpu import PipelineFactory, PipelineType, WebGPUWidget
-from PySide6.QtCore import QElapsedTimer, Qt, QTimerEvent
+from PySide6.QtCore import QElapsedTimer, Qt, QTimer, QTimerEvent
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
 from wgpu.utils import get_default_device
@@ -16,7 +16,12 @@ SIM_WIDTH = 800
 SIM_HEIGHT = 800
 SIM_DEPTH = 800
 GRID_CELL_SIZE = 50.0
-PARTICLE_RADIUS = 1.0
+PARTICLE_RADIUS = 8.0
+# The rendered sphere mesh uses the same radius as the physics collision
+# radius so collisions and wall bounces happen exactly when spheres appear
+# to touch.
+SPHERE_RENDER_RADIUS = PARTICLE_RADIUS
+SPHERE_PRECISION = 40
 
 
 class WebGPUScene3D(WebGPUWidget):
@@ -42,7 +47,7 @@ class WebGPUScene3D(WebGPUWidget):
         self.last_time = 0.0
 
         # 3D camera controls
-        self.camera_distance = 500.0  # Much closer for debugging
+        self.camera_distance = 1500.0  # far enough to fit the 800-unit sim cube in view
         self.rotation_x = 30.0
         self.rotation_y = 45.0
         self.is_rotating = False
@@ -87,11 +92,17 @@ class WebGPUScene3D(WebGPUWidget):
         self.grid_lines = np.array(grid_lines, dtype=np.float32)
 
     def gen_points(self, num_points: int, distribution: str = "random") -> None:
+        # WGSL vec3 fields in storage buffers are 16-byte aligned, so the
+        # Particle struct has a 32-byte stride - pad each vec3 to 16 bytes to
+        # match, otherwise the shader reads one particle's velocity from the
+        # next particle's position.
         self.particle_data = np.zeros(
             num_points,
             dtype=[
                 ("pos", "float32", 3),
+                ("_pad0", "float32"),
                 ("vel", "float32", 3),
+                ("_pad1", "float32"),
             ],
         )
 
@@ -145,16 +156,15 @@ class WebGPUScene3D(WebGPUWidget):
             self._init_buffers()
             self._create_compute_pipeline()
 
-            # Try basic points pipeline
-            print(
-                f"DEBUG: Available pipeline types: {[attr for attr in dir(PipelineType) if not attr.startswith('_')]}"
-            )
-            self.point_pipeline = PipelineFactory.create_pipeline(
+            self.sphere_pipeline = PipelineFactory.create_pipeline(
                 self.device,
-                PipelineType.MULTI_COLOURED_POINTS,
-                stride=24,  # Position data (3 floats = 12 bytes)
+                PipelineType.MULTI_COLOURED_INSTANCED_GEOMETRY,
             )
-            print(f"DEBUG: Point pipeline created: {self.point_pipeline}")
+            self.sphere_pipeline.set_data(
+                positions=self.particle_buffer,
+                colours=self.colour_buffer,
+                geometry_data=self.sphere_geometry_buffer,
+            )
 
             self.line_pipeline = PipelineFactory.create_pipeline(
                 self.device,
@@ -190,37 +200,30 @@ class WebGPUScene3D(WebGPUWidget):
             | wgpu.BufferUsage.VERTEX
             | wgpu.BufferUsage.COPY_DST,
         )
-        print(
-            f"DEBUG: Position data shape: {position_data.shape}, min: {position_data.min()}, max: {position_data.max()}"
-        )
-        print(
-            f"DEBUG: Position extents - X: [{position_data[:, 0].min():.2f}, {position_data[:, 0].max():.2f}]"
-        )
-        print(
-            f"DEBUG: Position extents - Y: [{position_data[:, 1].min():.2f}, {position_data[:, 1].max():.2f}]"
-        )
-        print(
-            f"DEBUG: Position extents - Z: [{position_data[:, 2].min():.2f}, {position_data[:, 2].max():.2f}]"
-        )
-        print(
-            f"DEBUG: Simulation bounds: width={SIM_WIDTH}, height={SIM_HEIGHT}, depth={SIM_DEPTH}"
-        )
-        print(f"DEBUG: Grid cell size: {GRID_CELL_SIZE}")
-        print(f"DEBUG: Particle radius: {PARTICLE_RADIUS}")
+        # print(
+        #     f"DEBUG: Position data shape: {position_data.shape}, min: {position_data.min()}, max: {position_data.max()}"
+        # )
+        # print(f"DEBUG: Position extents - X: [{position_data[:, 0].min():.2f}, {position_data[:, 0].max():.2f}]")
+        # print(f"DEBUG: Position extents - Y: [{position_data[:, 1].min():.2f}, {position_data[:, 1].max():.2f}]")
+        # print(f"DEBUG: Position extents - Z: [{position_data[:, 2].min():.2f}, {position_data[:, 2].max():.2f}]")
+        # print(f"DEBUG: Simulation bounds: width={SIM_WIDTH}, height={SIM_HEIGHT}, depth={SIM_DEPTH}")
+        # print(f"DEBUG: Grid cell size: {GRID_CELL_SIZE}")
+        # print(f"DEBUG: Particle radius: {PARTICLE_RADIUS}")
 
-        padded_colours = np.zeros((self.num_points, 4), dtype=np.float32)
-        padded_colours[:, :3] = self.colours
-
+        # Instanced sphere geometry pipeline expects per-instance colour as a
+        # tightly packed Vec3 (no padding), unlike the old points pipeline.
         self.colour_buffer = self.device.create_buffer_with_data(
-            data=padded_colours.tobytes(),
+            data=self.colours.astype(np.float32).tobytes(),
             usage=wgpu.BufferUsage.VERTEX,
         )
 
-        padded_colours = np.zeros((self.num_points, 4), dtype=np.float32)
-        padded_colours[:, :3] = self.colours
-
-        self.colour_buffer = self.device.create_buffer_with_data(
-            data=padded_colours.tobytes(),
+        # Sphere geometry shared by every particle instance, sized for visibility
+        # (see SPHERE_RENDER_RADIUS) rather than the tiny physics collision radius
+        sphere_data = PrimData.sphere(
+            radius=SPHERE_RENDER_RADIUS, precision=SPHERE_PRECISION
+        )
+        self.sphere_geometry_buffer = self.device.create_buffer_with_data(
+            data=sphere_data.tobytes(),
             usage=wgpu.BufferUsage.VERTEX,
         )
 
@@ -234,9 +237,7 @@ class WebGPUScene3D(WebGPUWidget):
             data=self.grid_lines.tobytes(),
             usage=wgpu.BufferUsage.VERTEX,
         )
-        print(
-            f"Grid: {self.grid_width}x{self.grid_height}x{self.grid_depth} = {self.total_cells} cells"
-        )
+        # print(f"Grid: {self.grid_width}x{self.grid_height}x{self.grid_depth} = {self.total_cells} cells")
 
         self.cell_particle_count_buffer = self.device.create_buffer(
             size=self.total_cells * 4,
@@ -360,7 +361,7 @@ class WebGPUScene3D(WebGPUWidget):
         )
         self.colour_buffer_texture_view = self.colour_buffer_texture.create_view()
 
-        print(f"Textures initialized: {self.texture_size}")
+        # print(f"Textures initialized: {self.texture_size}")
 
     def _create_compute_pipeline(self) -> None:
         with open("CollisionCompute3D.wgsl", "r") as f:
@@ -393,6 +394,11 @@ class WebGPUScene3D(WebGPUWidget):
                 },
                 {
                     "binding": 4,
+                    "visibility": wgpu.ShaderStage.COMPUTE,
+                    "buffer": {"type": wgpu.BufferBindingType.storage},
+                },
+                {
+                    "binding": 5,
                     "visibility": wgpu.ShaderStage.COMPUTE,
                     "buffer": {"type": wgpu.BufferBindingType.storage},
                 },
@@ -496,6 +502,14 @@ class WebGPUScene3D(WebGPUWidget):
                         "size": self.total_cells * 4,
                     },
                 },
+                {
+                    "binding": 5,
+                    "resource": {
+                        "buffer": self.particle_buffer,
+                        "offset": 0,
+                        "size": self.particle_buffer.size,
+                    },
+                },
             ],
         )
 
@@ -504,9 +518,12 @@ class WebGPUScene3D(WebGPUWidget):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            w: The new width of the window.
-            h: The new height of the window.
+        Parameters
+        ----------
+            w
+                The new width of the window.
+            h
+                The new height of the window.
         """
 
         # Update texture size to match window dimensions
@@ -524,58 +541,56 @@ class WebGPUScene3D(WebGPUWidget):
             command_encoder = self.device.create_command_encoder()
 
             if self.animate:
-                print("DEBUG: Running compute pass")
+                # print("DEBUG: Running compute pass")
                 self.update_simulation_params()
 
                 particle_workgroups = (self.num_points + 63) // 64
                 cell_workgroups = (self.total_cells + 63) // 64
-                print(
-                    f"DEBUG: Workgroups - particles: {particle_workgroups}, cells: {cell_workgroups}"
-                )
+                # print(f"DEBUG: Workgroups - particles: {particle_workgroups}, cells: {cell_workgroups}")
 
-                print("DEBUG: Clear grid")
+                # print("DEBUG: Clear grid")
                 compute_pass = command_encoder.begin_compute_pass()
                 compute_pass.set_pipeline(self.clear_grid_pipeline)
                 compute_pass.set_bind_group(0, self.compute_bind_group, [], 0, 999999)
                 compute_pass.dispatch_workgroups(cell_workgroups, 1, 1)
                 compute_pass.end()
 
-                print("DEBUG: Count particles")
+                # print("DEBUG: Count particles")
                 compute_pass = command_encoder.begin_compute_pass()
                 compute_pass.set_pipeline(self.count_particles_pipeline)
                 compute_pass.set_bind_group(0, self.compute_bind_group, [], 0, 999999)
                 compute_pass.dispatch_workgroups(particle_workgroups, 1, 1)
                 compute_pass.end()
 
-                print("DEBUG: Build offsets")
+                # print("DEBUG: Build offsets")
                 compute_pass = command_encoder.begin_compute_pass()
                 compute_pass.set_pipeline(self.build_offsets_pipeline)
                 compute_pass.set_bind_group(0, self.compute_bind_group, [], 0, 999999)
                 compute_pass.dispatch_workgroups(1, 1, 1)
                 compute_pass.end()
 
-                print("DEBUG: Fill grid")
+                # print("DEBUG: Fill grid")
                 compute_pass = command_encoder.begin_compute_pass()
                 compute_pass.set_pipeline(self.fill_grid_pipeline)
                 compute_pass.set_bind_group(0, self.compute_bind_group, [], 0, 999999)
                 compute_pass.dispatch_workgroups(particle_workgroups, 1, 1)
                 compute_pass.end()
 
-                print("DEBUG: Detect collisions")
+                # print("DEBUG: Detect collisions")
                 compute_pass = command_encoder.begin_compute_pass()
                 compute_pass.set_pipeline(self.detect_collisions_pipeline)
                 compute_pass.set_bind_group(0, self.compute_bind_group, [], 0, 999999)
                 compute_pass.dispatch_workgroups(particle_workgroups, 1, 1)
                 compute_pass.end()
 
-                print("DEBUG: Update physics")
+                # print("DEBUG: Update physics")
                 compute_pass = command_encoder.begin_compute_pass()
                 compute_pass.set_pipeline(self.update_physics_pipeline)
                 compute_pass.set_bind_group(0, self.compute_bind_group, [], 0, 999999)
                 compute_pass.dispatch_workgroups(particle_workgroups, 1, 1)
                 compute_pass.end()
 
-                print("DEBUG: Compute pass completed")
+                # print("DEBUG: Compute pass completed")
             self.device.queue.submit([command_encoder.finish()])
         except Exception as e:
             print(f"Failed to run compute pass: {e}")
@@ -620,23 +635,20 @@ class WebGPUScene3D(WebGPUWidget):
             if self.show_grid:
                 self.line_pipeline.set_data(positions=self.grid_buffer)
                 self.line_pipeline.render(render_pass=render_pass)
-            # Single colour pipeline only needs positions
-            self.point_pipeline.set_data(positions=self.particle_buffer)
-            self.point_pipeline.render(render_pass=render_pass)
+            # particle_buffer is mutated in place by the compute pass, and set_data
+            # was already bound once in _initialize_web_gpu; re-calling it here with
+            # the same GPUBuffer objects would destroy them (pipeline.set_data
+            # destroys any previously bound buffer before rebinding).
+            self.sphere_pipeline.render(
+                render_pass=render_pass, num_instances=self.num_points
+            )
 
             render_pass.end()
-            # Update position buffer for rendering from compute results
-            if self.animate:
-                command_encoder2 = self.device.create_command_encoder()
-                command_encoder2.copy_buffer_to_buffer(
-                    self.compute_particle_buffer,
-                    0,
-                    self.particle_buffer,
-                    0,
-                    self.particle_buffer.size,
-                )
-                self.device.queue.submit([command_encoder2.finish()])
-
+            # No copy-back needed: the update_physics compute pass writes the
+            # packed render positions straight into particle_buffer (binding 5).
+            # A direct copy from compute_particle_buffer would be wrong anyway -
+            # its Particle stride is 32 bytes (padded vec3s) while the render
+            # vertex buffer is tightly packed 12-byte positions.
             self.device.queue.submit([command_encoder.finish()])
         except Exception as e:
             print(f"Failed to paint WebGPU content: {e}")
@@ -645,7 +657,7 @@ class WebGPUScene3D(WebGPUWidget):
             traceback.print_exc()
 
     def paintWebGPU(self) -> None:
-        print("Painting WebGPU content")
+        # print("Painting WebGPU content")
         current_time = self.timer.elapsed() / 1000.0
         self.dt = current_time - self.last_time
         self.last_time = current_time
@@ -653,16 +665,9 @@ class WebGPUScene3D(WebGPUWidget):
         self.render_text(
             10,
             25,
-            f" Points {self.num_points}  Wind [{self.wind[0]:.02f}, {self.wind[1]:.02f}, {self.wind[2]:.02f}] dt: {self.dt:.4f} FPS: {1.0 / self.dt if self.dt > 0 else 0:.2f}",
+            f" Spheres {self.num_points}  Wind [{self.wind[0]:.02f}, {self.wind[1]:.02f}, {self.wind[2]:.02f}] dt: {self.dt:.4f} FPS: {1.0 / self.dt if self.dt > 0 else 0:.2f}",
             size=20,
             colour=Qt.yellow,
-        )
-        self.render_text(
-            10,
-            50,
-            f" Camera: Distance={self.camera_distance:.0f} RotX={self.rotation_x:.0f}° RotY={self.rotation_y:.0f}°",
-            size=16,
-            colour=Qt.cyan,
         )
 
         self._compute_pass()
@@ -688,16 +693,6 @@ class WebGPUScene3D(WebGPUWidget):
         )
 
     def update_uniform_buffers(self) -> None:
-        # Simple orthographic projection for testing
-        half_w = SIM_WIDTH
-        half_h = SIM_HEIGHT
-
-        # Simple view matrix
-
-        # Create rotation matrices
-        rot_y_rad = Mat4.rotate_y(self.rotation_y)
-        rot_x_rad = Mat4.rotate_x(self.rotation_x)
-
         # Calculate camera position based on distance and rotation
         eye_x = (
             self.camera_distance
@@ -717,26 +712,22 @@ class WebGPUScene3D(WebGPUWidget):
             Vec3(0, 1, 0),
         )
 
-        # For proper billboarding, create MVP without camera rotation
-        # The view matrix should only contain translation, no rotation
-        view_translation_only = Mat4.identity()
-        view_translation_only.m[3][0] = self.view.m[3][0]  # X translation
-        view_translation_only.m[3][1] = self.view.m[3][1]  # Y translation
-        view_translation_only.m[3][2] = self.view.m[3][2]  # Z translation
+        # Spheres are real 3D geometry (not billboarded sprites), so use the
+        # full camera view/projection directly.
+        self.mvp_matrix = (self.project @ self.view).to_numpy().astype(np.float32)
+        self.view_matrix = self.view.to_numpy().astype(np.float32)
 
-        # MVP matrix for points (with billboarding - no view rotation)
-        self.mvp_matrix = (
-            (self.project @ view_translation_only @ rot_y_rad @ rot_x_rad)
+        # point_size doubles as a sphere scale multiplier (6.0 == neutral, no rescale)
+        sphere_scale = self.point_size / 6.0
+        instance_transform = (
+            Mat4.scale(sphere_scale, sphere_scale, sphere_scale)
             .to_numpy()
             .astype(np.float32)
         )
-        # View matrix for other elements (grid lines) - keep full view transform
-        self.view_matrix = self.view.to_numpy().astype(np.float32)
-
-        self.point_pipeline.update_uniforms(
+        self.sphere_pipeline.update_uniforms(
             mvp=self.mvp_matrix,
             view_matrix=self.view_matrix,
-            point_size=self.point_size,
+            instance_transform=instance_transform,
         )
         self.line_pipeline.update_uniforms(mvp=self.mvp_matrix)
 
@@ -831,7 +822,7 @@ class WebGPUScene3D(WebGPUWidget):
             self.update()
 
     def timerEvent(self, event: QTimerEvent) -> None:
-        print("Update")
+        # print("Update")
         self.update()
 
 
@@ -877,20 +868,29 @@ def main():
         help="Equispaced point distribution.",
     )
     parser.add_argument(
-        "-d", "--debug", action="store_true", help="Run in full debug mode"
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
     )
     parser.set_defaults(distribution="random")
     args = parser.parse_args()
 
-    if args.debug:
-        print("Running in debug mode")
-        app = DebugApplication(sys.argv)
-    else:
-        app = QApplication(sys.argv)
+    app = DebugApplication(sys.argv) if args.debug else QApplication(sys.argv)
 
     win = WebGPUScene3D(num_points=args.points, distribution=args.distribution)
     win.resize(1024, 720)
     win.show()
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
     sys.exit(app.exec())
 
 

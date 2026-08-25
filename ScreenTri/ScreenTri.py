@@ -4,27 +4,17 @@ A template for creating a PySide6 application with an OpenGL viewport using py-n
 
 """
 
-import random
+import argparse
 import sys
 import traceback
 from enum import Enum
 
 import numpy as np
 import OpenGL.GL as gl
-from aiohttp.hdrs import TE
-from ncca.ngl import (
-    Mat4,
-    ShaderLib,
-    Text,
-    VAOFactory,
-    VAOType,
-    Vec3,
-    VertexData,
-    logger,
-    ortho,
-)
-from PySide6.QtCore import QEvent, QObject, Qt, QTimerEvent
-from PySide6.QtGui import QKeyEvent, QMouseEvent, QSurfaceFormat, QWheelEvent
+from ncca.ngl import logger
+from ncca.ngl.opengl import ShaderLib
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, QTimerEvent
+from PySide6.QtGui import QMouseEvent, QSurfaceFormat, QWheelEvent
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 
@@ -46,9 +36,6 @@ class MainWindow(QOpenGLWindow):
     """
 
     def __init__(self, parent: object = None) -> None:
-        """
-        Initializes the main window and sets up default scene parameters.
-        """
         super().__init__()
         self.ratio = self.devicePixelRatio()
         # A constant vector to simulate wind, pushing all particles.
@@ -164,16 +151,6 @@ class MainWindow(QOpenGLWindow):
             self.set_pixel(x, y, r, g, b)
         self.update_texture_buffer()
 
-    def random_pixels(self):
-        r = self.random_int(self.colour_dist)
-        g = self.random_int(self.colour_dist)
-        b = self.random_int(self.colour_dist)
-        for _ in range(1000):
-            x = self.random_int(self.width_dist)
-            y = self.random_int(self.height_dist)
-            self.set_pixel(x, y, r, g, b)
-        self.update_texture_buffer()
-
     def random_lines(self):
         self.clear_buffer()
         for _ in range(1000):
@@ -195,7 +172,6 @@ class MainWindow(QOpenGLWindow):
         self.makeCurrent()
         # Set the viewport to cover the entire window
         gl.glViewport(0, 0, self.window_width, self.window_height)
-        # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         gl.glBindVertexArray(self.vao)
         # bind texture
@@ -213,8 +189,10 @@ class MainWindow(QOpenGLWindow):
         Here, it updates the positions of the points and makes them bounce
         off the edges of the simulation area.
 
-        Args:
-            event: The QTimerEvent object, not used in this method but required by the API.
+        Parameters
+        ----------
+            event : QTimerEvent
+                The QTimerEvent object, not used in this method but required by the API.
 
 
         """
@@ -232,9 +210,12 @@ class MainWindow(QOpenGLWindow):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            w: The new width of the window.
-            h: The new height of the window.
+        Parameters
+        ----------
+            w : int
+                The new width of the window.
+            h : int
+                The new height of the window.
         """
         # Update the stored width and height, considering high-DPI displays
         self.window_width = int(w * self.ratio)
@@ -267,8 +248,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse movement events for camera control.
 
-        Args:
-            event: The QMouseEvent object containing the new mouse position.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
         if event.buttons() == Qt.LeftButton:
@@ -281,8 +264,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse button press events to initiate rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The QMouseEvent object.
         """
         event.position()
         # Left button initiates rotation
@@ -291,8 +276,10 @@ class MainWindow(QOpenGLWindow):
         """
         Handles mouse wheel events for zooming.
 
-        Args:
-            event: The QWheelEvent object.
+        Parameters
+        ----------
+            event : QWheelEvent
+                The QWheelEvent object.
         """
         num_pixels = event.angleDelta()
         # Zoom in or out by adjusting the Z position of the model
@@ -334,9 +321,25 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # --- Application Entry Point ---
 
-    # Create a QSurfaceFormat object to request a specific OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)
@@ -353,17 +356,19 @@ if __name__ == "__main__":
     # Apply this format to all new OpenGL contexts
     QSurfaceFormat.setDefaultFormat(format)
 
-    # Check for a "--debug" command-line argument to run the DebugApplication
-    if len(sys.argv) > 1 and "--debug" in sys.argv:
+    if args.debug:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
 
-    # Create the main window
     window = MainWindow()
     # Set the initial window size
     window.resize(1024, 720)
     # Show the window
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     # Start the application's event loop
     sys.exit(app.exec())

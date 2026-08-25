@@ -1,4 +1,5 @@
-from ncca.ngl import DefaultShader, Mat3, Mat4, Primitives, ShaderLib, Transform, Vec3
+from ncca.ngl import Mat3, Transform
+from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib
 
 
 def color_id_generator():
@@ -39,11 +40,11 @@ class SelectObject:
 
     def load_matrices_to_shader(self, local_tx, global_tx, view, project):
         ShaderLib.use(DefaultShader.DIFFUSE)
-        model_matrix = global_tx @ local_tx.get_matrix()
+        model_matrix = global_tx @ local_tx.matrix()
         MV = view @ model_matrix
         mvp = project @ MV
         normal_matrix = Mat3.from_mat4(MV)
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", mvp)
         ShaderLib.set_uniform("MV", MV)
         ShaderLib.set_uniform("normalMatrix", normal_matrix)
@@ -57,7 +58,7 @@ class SelectObject:
             self.colour_id[2] / 255.0,
             1.0,
         )
-        model_matrix = global_tx @ local_tx.get_matrix()
+        model_matrix = global_tx @ local_tx.matrix()
         MV = view @ model_matrix
         mvp = project @ MV
         ShaderLib.set_uniform("MVP", mvp)

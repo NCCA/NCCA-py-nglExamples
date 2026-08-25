@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "nodes": [
+    {
+      "id": "node-1",
+      "name": "Perspective Projection",
+      "x": -700.0,
+      "y": -320.0,
+      "kind": "generator",
+      "operation": "PERSPECTIVE",
+      "parameters": [[60.0], [1.7777778], [0.1], [100.0]]
+    },
+    {
+      "id": "node-2",
+      "name": "Orthographic Projection",
+      "x": -700.0,
+      "y": 20.0,
+      "kind": "generator",
+      "operation": "ORTHO",
+      "parameters": [[-5.0], [5.0], [-3.0], [3.0], [0.1], [100.0]]
+    },
+    {
+      "id": "node-3",
+      "name": "Asymmetric Frustum",
+      "x": -700.0,
+      "y": 440.0,
+      "kind": "generator",
+      "operation": "FRUSTUM",
+      "parameters": [[-0.08], [0.12], [-0.06], [0.06], [0.1], [100.0]]
+    },
+    {
+      "id": "node-4",
+      "name": "Perspective Matrix Result",
+      "x": -220.0,
+      "y": -320.0,
+      "kind": "output"
+    },
+    {
+      "id": "node-5",
+      "name": "Orthographic Matrix Result",
+      "x": -220.0,
+      "y": 20.0,
+      "kind": "output"
+    },
+    {
+      "id": "node-6",
+      "name": "Frustum Matrix Result",
+      "x": -220.0,
+      "y": 440.0,
+      "kind": "output"
+    }
+  ],
+  "connections": [
+    {"source": "node-1", "target": "node-4", "input": 0},
+    {"source": "node-2", "target": "node-5", "input": 0},
+    {"source": "node-3", "target": "node-6", "input": 0}
+  ]
+}

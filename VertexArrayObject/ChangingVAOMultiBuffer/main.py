@@ -7,25 +7,22 @@ The vertex data changes over time, showing how to update a Vertex Array Object (
 User input allows for interactive rotation, translation, and zoom.
 """
 
+import argparse
 import logging
 import sys
+import traceback
 
 import OpenGL.GL as gl
-from ncca.ngl import (
-    Mat4,
+from ncca.ngl import Mat4, Random, Vec3, Vec4Array, look_at, perspective
+from ncca.ngl.opengl import (
     PySideEventHandlingMixin,
-    Random,
     ShaderLib,
     Text,
     VAOFactory,
     VAOType,
-    Vec3,
-    Vec4Array,
     VertexData,
-    look_at,
-    perspective,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -56,8 +53,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.window_width: int = 1024
         self.window_height: int = 720
         self.setTitle("Changing VAO")
-        self.view: Mat4 = Mat4()  # View matrix
-        self.project: Mat4 = Mat4()  # Projection matrix
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
         self.data: list[float] = []  # Dynamic vertex data
 
     def initializeGL(self) -> None:
@@ -153,9 +150,12 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         """
         Handle window resizing and update the projection matrix.
 
-        Args:
-            w: New window width.
-            h: New window height.
+        Parameters
+        ----------
+            w : int
+                New window width.
+            h : int
+                New window height.
         """
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
@@ -198,9 +198,37 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.update()
 
 
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # Set up Qt application and OpenGL format
-    app = QApplication(sys.argv)
     format = QSurfaceFormat()
     format.setSamples(4)
     format.setMajorVersion(4)
@@ -209,8 +237,17 @@ if __name__ == "__main__":
     format.setDepthBufferSize(24)
     QSurfaceFormat.setDefaultFormat(format)
 
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
     window = MainWindow()
     window.setFormat(format)
     window.resize(1024, 720)
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())

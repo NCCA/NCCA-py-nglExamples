@@ -1,17 +1,6 @@
 import OpenGL.GL as gl
-from ncca.ngl import (
-    DefaultShader,
-    Mat3,
-    Mat4,
-    Primitives,
-    Prims,
-    ShaderLib,
-    Transform,
-    Vec3,
-    Vec4,
-    look_at,
-    perspective,
-)
+from ncca.ngl import Mat3, Mat4, Prims, Vec3, Vec4, look_at, perspective
+from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib
 from PySide6.QtCore import Slot
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
@@ -104,7 +93,6 @@ class PyNGLScene(QOpenGLWidget):
         gl.glEnable(gl.GL_DEPTH_TEST)
         # Enable multisampling for anti-aliasing, which smooths jagged edges
         gl.glEnable(gl.GL_MULTISAMPLE)
-        # Set up the camera's view matrix.
         # It looks from (0, 1, 4) towards (0, 0, 0) with the 'up' direction along the Y-axis.
         self.view = look_at(Vec3(0, 1, 4), Vec3(0, 0, 0), Vec3(0, 1, 0))
         self.project = perspective(45.0, self.width() / self.height(), 0.1, 100.0)
@@ -123,7 +111,7 @@ class PyNGLScene(QOpenGLWidget):
         MV = self.view @ self._model_transform
         mvp = self.project @ MV
         normal_matrix = Mat3.from_mat4(MV)
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", mvp)
         ShaderLib.set_uniform("MV", MV)
         ShaderLib.set_uniform("normalMatrix", normal_matrix)
@@ -136,7 +124,6 @@ class PyNGLScene(QOpenGLWidget):
         self.makeCurrent()
         # Set the viewport to cover the entire window
         gl.glViewport(0, 0, self.window_width, self.window_height)
-        # Clear the color and depth buffers from the previous frame
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         # Apply translation
         ShaderLib.use(DefaultShader.DIFFUSE)
@@ -159,13 +146,14 @@ class PyNGLScene(QOpenGLWidget):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            w: The new width of the window.
-            h: The new height of the window.
+        Parameters
+        ----------
+            w : int
+                The new width of the window.
+            h : int
+                The new height of the window.
         """
         # Update the stored width and height, considering high-DPI displays
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
-        # Update the projection matrix to match the new aspect ratio.
-        # This creates a perspective projection with a 45-degree field of view.
         self.project = perspective(self.fov, float(w) / h, self.near, self.far)

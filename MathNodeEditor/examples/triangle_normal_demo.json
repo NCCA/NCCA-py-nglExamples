@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "nodes": [
+    {
+      "id": "node-1",
+      "name": "Point A",
+      "x": -800.0,
+      "y": -260.0,
+      "kind": "value",
+      "math_type": "VEC3",
+      "components": [0.0, 0.0, 0.0]
+    },
+    {
+      "id": "node-2",
+      "name": "Point B",
+      "x": -800.0,
+      "y": -40.0,
+      "kind": "value",
+      "math_type": "VEC3",
+      "components": [0.0, 0.0, 3.0]
+    },
+    {
+      "id": "node-3",
+      "name": "Point C",
+      "x": -800.0,
+      "y": 180.0,
+      "kind": "value",
+      "math_type": "VEC3",
+      "components": [2.0, 0.0, 0.0]
+    },
+    {
+      "id": "node-4",
+      "name": "Edge AB",
+      "x": -460.0,
+      "y": -170.0,
+      "kind": "operation",
+      "operation": "SUBTRACT"
+    },
+    {
+      "id": "node-5",
+      "name": "Edge AC",
+      "x": -460.0,
+      "y": 100.0,
+      "kind": "operation",
+      "operation": "SUBTRACT"
+    },
+    {
+      "id": "node-6",
+      "name": "AB Cross AC",
+      "x": -100.0,
+      "y": -30.0,
+      "kind": "operation",
+      "operation": "CROSS"
+    },
+    {
+      "id": "node-7",
+      "name": "Unit Face Normal",
+      "x": 240.0,
+      "y": 130.0,
+      "kind": "operation",
+      "operation": "NORMALISE"
+    },
+    {
+      "id": "node-8",
+      "name": "Cross Product Result",
+      "x": 240.0,
+      "y": -160.0,
+      "kind": "output"
+    },
+    {
+      "id": "node-9",
+      "name": "Unit Normal Result",
+      "x": 570.0,
+      "y": 130.0,
+      "kind": "output"
+    }
+  ],
+  "connections": [
+    {"source": "node-2", "target": "node-4", "input": 0},
+    {"source": "node-1", "target": "node-4", "input": 1},
+    {"source": "node-3", "target": "node-5", "input": 0},
+    {"source": "node-1", "target": "node-5", "input": 1},
+    {"source": "node-4", "target": "node-6", "input": 0},
+    {"source": "node-5", "target": "node-6", "input": 1},
+    {"source": "node-6", "target": "node-7", "input": 0},
+    {"source": "node-6", "target": "node-8", "input": 0},
+    {"source": "node-7", "target": "node-9", "input": 0}
+  ]
+}

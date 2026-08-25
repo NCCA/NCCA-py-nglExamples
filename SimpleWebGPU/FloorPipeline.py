@@ -1,6 +1,6 @@
 import numpy as np
 import wgpu
-from ncca.ngl import Mat4, PrimData, Prims, Transform, Vec3
+from ncca.ngl import PrimData, Transform, Vec3
 
 
 class FloorPipeline:
@@ -173,10 +173,10 @@ class FloorPipeline:
         """
         tx = Transform()
         tx.set_position(0, -0.45, 0)
-        model_view = self.view @ model @ tx.get_matrix()
+        model_view = self.view @ model @ tx.matrix()
         MVP = self.project @ model_view
         normal_matrix = model.copy()
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
 
         self.transform_uniforms["MVP"] = MVP.to_numpy()
         self.transform_uniforms["normal_matrix"] = normal_matrix.to_numpy()

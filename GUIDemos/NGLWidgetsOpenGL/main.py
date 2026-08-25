@@ -1,14 +1,33 @@
 #!/usr/bin/env -S uv run  --script
 
+import argparse
 import sys
+import traceback
 
 from ncca.ngl import Vec3
-from ncca.ngl.widgets import LookAtWidget, RGBColourWidget, TransformWidget
+from ncca.ngl.widgets import (
+    LookAtWidget,
+    PerspectiveWidget,
+    RGBColourWidget,
+    TransformWidget,
+)
 from PyNGLScene import PyNGLScene
-from PySide6.QtCore import QFile, Qt, Signal
+from PySide6.QtCore import QFile, Qt, QTimer
 from PySide6.QtGui import QKeyEvent, QSurfaceFormat
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtWidgets import QApplication, QColorDialog, QMainWindow, QWidget
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget
+
+
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
 
 
 class Loader(QUiLoader):
@@ -19,6 +38,8 @@ class Loader(QUiLoader):
             return TransformWidget(parent)
         elif class_name == "LookAtWidget":
             return LookAtWidget(parent)
+        elif class_name == "PerspectiveWidget":
+            return PerspectiveWidget(parent)
         return super().createWidget(class_name, parent, name)
 
 
@@ -30,9 +51,12 @@ class MainWindow(QMainWindow):
     OpenGL widget, and connects UI signals (e.g., button clicks, slider changes)
     to the corresponding slots in the OpenGL scene to manipulate the 3D object.
 
-    Attributes:
-        colour_update (Signal): A signal that emits RGB float values when a new color is selected.
-        scene (PyNGLScene): The OpenGL widget where the 3D scene is rendered.
+    Attributes
+    ----------
+        colour_update : Signal
+            A signal that emits RGB float values when a new color is selected.
+        scene : PyNGLScene
+            The OpenGL widget where the 3D scene is rendered.
     """
 
     # signal to emit when the colour is changed
@@ -49,6 +73,7 @@ class MainWindow(QMainWindow):
         self.lookat_widget.set_eye(Vec3(0.0, 1.0, 4.0))
         self.lookat_widget.set_name("Look At")
         self.transform_widget.set_name("Model Transform")
+        self.perspective_widget.set_name("Perspective")
         self.scene = PyNGLScene()
         self.centralWidget().layout().addWidget(self.scene, 0, 0, 6, 1)
 
@@ -62,14 +87,19 @@ class MainWindow(QMainWindow):
         self.transform_widget.valueChanged.connect(self.scene.set_transform)
         self.lookat_widget.valueChanged.connect(self.scene.set_camera)
         self.colour.colourChanged.connect(self.scene.set_colour)
-        self.fov.valueChanged.connect(self.update_perspective)
-        self.near.valueChanged.connect(self.update_perspective)
-        self.far.valueChanged.connect(self.update_perspective)
+        self.perspective_widget.valueChanged.connect(self.update_perspective)
 
     def update_perspective(self) -> None:
-        """Update the perspective projection matrix."""
+        """Update the perspective projection matrix.
+
+        Aspect always comes from the scene's own size (PyNGLScene.resizeGL),
+        not the PerspectiveWidget, so the view is never distorted by it -
+        only fov/near/far are read here.
+        """
         self.scene.update_perspective(
-            self.fov.value(), self.near.value(), self.far.value()
+            self.perspective_widget.get_fov(),
+            self.perspective_widget.get_near(),
+            self.perspective_widget.get_far(),
         )
         self.update()
 
@@ -103,9 +133,27 @@ class MainWindow(QMainWindow):
 
 def main():
     """Main application entry point."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
 
-    app = QApplication(sys.argv)
-    # Create a QSurfaceFormat object to request a specific OpenGL context
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
     format: QSurfaceFormat = QSurfaceFormat()
     # Request 4x multisampling for anti-aliasing
     format.setSamples(4)
@@ -125,6 +173,12 @@ def main():
     try:
         window = MainWindow()
         window.show()
+
+        if args.smoketest is not None:
+            QTimer.singleShot(
+                args.smoketest, lambda: (print("SMOKETEST OK"), app.quit())
+            )
+
         sys.exit(app.exec())
     except Exception as e:
         print(f"Application error: {e}")

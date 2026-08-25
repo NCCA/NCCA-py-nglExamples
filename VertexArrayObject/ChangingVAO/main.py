@@ -7,25 +7,22 @@ The vertex data changes over time, showing how to update a Vertex Array Object (
 User input allows for interactive rotation, translation, and zoom.
 """
 
+import argparse
 import sys
 import traceback
 
 import OpenGL.GL as gl
-from ncca.ngl import (
+from ncca.ngl import Mat4, Random, Vec3, logger, look_at, perspective
+from ncca.ngl.opengl import (
     DefaultShader,
-    Mat4,
     PySideEventHandlingMixin,
-    Random,
     ShaderLib,
     Text,
     VAOFactory,
     VAOType,
-    Vec3,
     VertexData,
-    logger,
-    look_at,
-    perspective,
 )
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -54,8 +51,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.window_height: int = 720
         self.setTitle("Changing VAO")
         self.modelPos: Vec3 = Vec3()  # Model position in world space
-        self.view: Mat4 = Mat4()  # View matrix
-        self.project: Mat4 = Mat4()  # Projection matrix
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
         self.data: list[float] = []  # Dynamic vertex data
 
     def initializeGL(self) -> None:
@@ -132,9 +129,12 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         """
         Handle window resizing and update the projection matrix.
 
-        Args:
-            w: New window width.
-            h: New window height.
+        Parameters
+        ----------
+            w : int
+                New window width.
+            h : int
+                New window height.
         """
         self.window_width = int(w * self.devicePixelRatio())
         self.window_height = int(h * self.devicePixelRatio())
@@ -188,8 +188,28 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # Set up Qt application and OpenGL format
-    app = DebugApplication(sys.argv)
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
 
     format = QSurfaceFormat()
     format.setSamples(4)
@@ -203,4 +223,8 @@ if __name__ == "__main__":
     window.setFormat(format)
     window.resize(1024, 720)
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())

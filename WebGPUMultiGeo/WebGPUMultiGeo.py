@@ -1,28 +1,23 @@
 #!/usr/bin/env -S uv run --script
+import argparse
 import sys
+import traceback
 from typing import List, Set, Tuple
 
-import numpy as np
 import wgpu
 from ncca.ngl import (
     FirstPersonCamera,
     Mat4,
     PerspMode,
-    PrimData,
-    Prims,
     Transform,
     Vec3,
-    Vec4,
-    look_at,
-    perspective,
 )
-from PySide6.QtCore import QElapsedTimer, Qt
+from ncca.ngl.webgpu import WebGPUWidget
+from Pipeline import Pipeline
+from PySide6.QtCore import QElapsedTimer, Qt, QTimer
 from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
 from wgpu.utils import get_default_device
-
-from Pipeline import Pipeline
-from WebGPUWidget import WebGPUWidget
 
 
 class WebGPUScene(WebGPUWidget):
@@ -96,67 +91,69 @@ class WebGPUScene(WebGPUWidget):
         delta_time = current_frame - self.last_frame
         self.last_frame = current_frame
         self._update_camera_movement(delta_time)
-        self.pipeline.update_lights(self.light_one_state, self.light_two_state, self.light_three_state)
+        self.pipeline.update_lights(
+            self.light_one_state, self.light_two_state, self.light_three_state
+        )
         scene_objects: List[Tuple[str, Mat4, Tuple[float, float, float, float]]] = []
 
         tx = Transform()
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(-1.0, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("buddah", tx.get_matrix(), (1, 0, 0, 1)))
+        scene_objects.append(("buddah", tx.matrix(), (1, 0, 0, 1)))
         tx.reset()
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(-2.0, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("bunny", tx.get_matrix(), (0.1, 0.2, 1, 1)))
+        scene_objects.append(("bunny", tx.matrix(), (0.1, 0.2, 1, 1)))
         tx.reset()
         tx.set_position(0.0, 0.0, 0.0)
-        scene_objects.append(("teapot", tx.get_matrix(), (0, 1, 0, 1)))
+        scene_objects.append(("teapot", tx.matrix(), (0, 1, 0, 1)))
         tx.reset()
         tx.set_scale(0.1, 0.1, 0.1)
         tx.set_position(1.5, -0.5, 0.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("dragon", tx.get_matrix(), (1, 1, 0, 1)))
+        scene_objects.append(("dragon", tx.matrix(), (1, 1, 0, 1)))
         tx.reset()
         tx.set_position(0.0, 0.1, 1.0)
         tx.set_rotation(0, -90, 0)
-        scene_objects.append(("troll", tx.get_matrix(), (0, 0.2, 1, 1)))
+        scene_objects.append(("troll", tx.matrix(), (0, 0.2, 1, 1)))
         tx.reset()
         tx.set_position(-1.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
-        scene_objects.append(("icosahedron", tx.get_matrix(), (0.2, 0.2, 0.8, 1)))
+        scene_objects.append(("icosahedron", tx.matrix(), (0.2, 0.2, 0.8, 1)))
         tx.reset()
         tx.set_position(-2.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
-        scene_objects.append(("dodecahedron", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("dodecahedron", tx.matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(2.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
-        scene_objects.append(("football", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("football", tx.matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(1.0, 0.0, 1.0)
         tx.set_scale(0.5, 0.5, 0.5)
-        scene_objects.append(("tetrahedron", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("tetrahedron", tx.matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(1.0, 0.0, -1.0)
         tx.set_scale(0.5, 0.5, 0.5)
-        scene_objects.append(("octahedron", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("octahedron", tx.matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(0.0, 0.0, -1.0)
         tx.set_scale(0.5, 0.5, 0.5)
-        scene_objects.append(("cube", tx.get_matrix(), (0.8, 0.2, 0.2, 1)))
+        scene_objects.append(("cube", tx.matrix(), (0.8, 0.2, 0.2, 1)))
         tx.reset()
         tx.set_position(0, -0.5, 0)
-        scene_objects.append(("floor", tx.get_matrix(), (1, 1, 1, 1)))
+        scene_objects.append(("floor", tx.matrix(), (1, 1, 1, 1)))
 
         tx.reset()
         tx.set_position(0.0, 1.0, 1.0)
-        scene_objects.append(("light1", tx.get_matrix(), (1, 1, 1, 1)))
+        scene_objects.append(("light1", tx.matrix(), (1, 1, 1, 1)))
         tx.reset()
         tx.set_position(-1.0, 1.0, -1.0)
-        scene_objects.append(("light2", tx.get_matrix(), (1, 1, 1, 1)))
+        scene_objects.append(("light2", tx.matrix(), (1, 1, 1, 1)))
         tx.set_position(1.0, 1.0, -1.0)
-        scene_objects.append(("light3", tx.get_matrix(), (1, 1, 1, 1)))
+        scene_objects.append(("light3", tx.matrix(), (1, 1, 1, 1)))
 
         self.pipeline.render(
             self.colour_buffer_texture_view,
@@ -266,14 +263,45 @@ class WebGPUScene(WebGPUWidget):
         self.update()
 
 
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
 def main() -> None:
     """
     Main function to create and run the QApplication.
     """
-    app = QApplication(sys.argv)
+    parser = argparse.ArgumentParser(description="Multi-geometry WebGPU scene")
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
+    app = DebugApplication(sys.argv) if args.debug else QApplication(sys.argv)
     win = WebGPUScene()
     win.resize(1024, 720)
     win.show()
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
     sys.exit(app.exec())
 
 

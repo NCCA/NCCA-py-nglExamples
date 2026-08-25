@@ -51,14 +51,6 @@ class FrameBufferObject:
         READ = gl.GL_READ_FRAMEBUFFER
 
     def __init__(self, width: int, height: int, num_attachments: int = 8):
-        """
-        Initializes the FrameBufferObject.
-
-        Args:
-            width: The width of the framebuffer.
-            height: The height of the framebuffer.
-            num_attachments: The number of color attachments to support.
-        """
         self._id = gl.glGenFramebuffers(1)
         self._width = int(width)
         self._height = int(height)
@@ -73,13 +65,19 @@ class FrameBufferObject:
         """
         Factory method to create a new FrameBufferObject instance.
 
-        Args:
-            width: The width of the framebuffer.
-            height: The height of the framebuffer.
-            num_attachments: The number of color attachments to support.
+        Parameters
+        ----------
+            width : int
+                The width of the framebuffer.
+            height : int
+                The height of the framebuffer.
+            num_attachments : int
+                The number of color attachments to support.
 
-        Returns:
-            A new instance of FrameBufferObject.
+        Returns
+        -------
+            FrameBufferObject
+                A new instance of FrameBufferObject.
         """
         return cls(width, height, num_attachments)
 
@@ -106,16 +104,25 @@ class FrameBufferObject:
         """
         Adds a depth buffer to the FBO using a texture attachment.
 
-        Args:
-            format: The format for the depth component.
-            min_filter: The minification filter mode.
-            mag_filter: The magnification filter mode.
-            swrap: The texture wrap mode in s.
-            twrap: The texture wrap mode in t.
-            immutable: Whether to use immutable storage (glTexStorage2D).
+        Parameters
+        ----------
+            format : GLTextureDepthFormats
+                The format for the depth component.
+            min_filter : GLTextureMinFilter
+                The minification filter mode.
+            mag_filter : GLTextureMagFilter
+                The magnification filter mode.
+            swrap : GLTextureWrap
+                The texture wrap mode in s.
+            twrap : GLTextureWrap
+                The texture wrap mode in t.
+            immutable : bool
+                Whether to use immutable storage (glTexStorage2D).
 
-        Returns:
-            True if successful, False otherwise.
+        Returns
+        -------
+            bool
+                True if successful, False otherwise.
         """
         if not self._bound:
             logger.error("Trying to add depthbuffer to unbound Framebuffer")
@@ -167,20 +174,33 @@ class FrameBufferObject:
         """
         Adds a color attachment to the FBO.
 
-        Args:
-            name: The name of the attachment.
-            attachment: The attachment point.
-            format: The format of the texture.
-            iformat: The internal format of the texture.
-            type: The data type of the texture.
-            min_filter: The minification filter.
-            mag_filter: The magnification filter.
-            swrap: The texture wrap mode in s.
-            twrap: The texture wrap mode in t.
-            immutable: Whether to use immutable storage.
+        Parameters
+        ----------
+            name : str
+                The name of the attachment.
+            attachment : GLAttachment
+                The attachment point.
+            format : GLTextureFormat
+                The format of the texture.
+            iformat : GLTextureInternalFormat
+                The internal format of the texture.
+            type : GLTextureDataType
+                The data type of the texture.
+            min_filter : GLTextureMinFilter
+                The minification filter.
+            mag_filter : GLTextureMagFilter
+                The magnification filter.
+            swrap : GLTextureWrap
+                The texture wrap mode in s.
+            twrap : GLTextureWrap
+                The texture wrap mode in t.
+            immutable : bool
+                Whether to use immutable storage.
 
-        Returns:
-            True if successful, False otherwise.
+        Returns
+        -------
+            bool
+                True if successful, False otherwise.
         """
         if not self._bound:
             gl.NGLMessage.addError("Trying to add attachment to unbound Framebuffer")
@@ -244,11 +264,15 @@ class FrameBufferObject:
         """
         Gets the texture ID of a bound attachment by name.
 
-        Args:
-            name: The name of the texture attachment.
+        Parameters
+        ----------
+            name : str
+                The name of the texture attachment.
 
-        Returns:
-            The texture ID if found, otherwise 0.
+        Returns
+        -------
+            int
+                The texture ID if found, otherwise 0.
         """
         for attachment in self._attachments:
             if attachment.name == name:
@@ -259,11 +283,15 @@ class FrameBufferObject:
         """
         Checks if the framebuffer is complete.
 
-        Args:
-            target: The framebuffer target to check.
+        Parameters
+        ----------
+            target : Target
+                The framebuffer target to check.
 
-        Returns:
-            True if the framebuffer is complete, False otherwise.
+        Returns
+        -------
+            bool
+                True if the framebuffer is complete, False otherwise.
         """
         result = gl.glCheckFramebufferStatus(target.value)
         return result == gl.GL_FRAMEBUFFER_COMPLETE

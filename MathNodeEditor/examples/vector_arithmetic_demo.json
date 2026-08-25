@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "nodes": [
+    {
+      "id": "node-1",
+      "name": "Object Position",
+      "x": -760.0,
+      "y": -260.0,
+      "kind": "value",
+      "math_type": "VEC3",
+      "components": [2.0, 1.0, -3.0]
+    },
+    {
+      "id": "node-2",
+      "name": "Frame Movement",
+      "x": -760.0,
+      "y": -60.0,
+      "kind": "value",
+      "math_type": "VEC3",
+      "components": [0.5, 0.0, -1.0]
+    },
+    {
+      "id": "node-3",
+      "name": "Moved Position",
+      "x": -340.0,
+      "y": -190.0,
+      "kind": "operation",
+      "operation": "ADD"
+    },
+    {
+      "id": "node-4",
+      "name": "Moved Position Result",
+      "x": 20.0,
+      "y": -190.0,
+      "kind": "output"
+    },
+    {
+      "id": "node-5",
+      "name": "Target Position",
+      "x": -760.0,
+      "y": 220.0,
+      "kind": "value",
+      "math_type": "VEC3",
+      "components": [5.0, 5.0, 1.0]
+    },
+    {
+      "id": "node-6",
+      "name": "Target - Position",
+      "x": -340.0,
+      "y": 150.0,
+      "kind": "operation",
+      "operation": "SUBTRACT"
+    },
+    {
+      "id": "node-7",
+      "name": "Displacement Result",
+      "x": 20.0,
+      "y": 80.0,
+      "kind": "output"
+    },
+    {
+      "id": "node-8",
+      "name": "Squared Distance",
+      "x": 20.0,
+      "y": 300.0,
+      "kind": "operation",
+      "operation": "DOT"
+    },
+    {
+      "id": "node-9",
+      "name": "Squared Distance Result",
+      "x": 380.0,
+      "y": 300.0,
+      "kind": "output"
+    },
+    {
+      "id": "node-10",
+      "name": "Unit Direction",
+      "x": 20.0,
+      "y": 500.0,
+      "kind": "operation",
+      "operation": "NORMALISE"
+    },
+    {
+      "id": "node-11",
+      "name": "Unit Direction Result",
+      "x": 380.0,
+      "y": 500.0,
+      "kind": "output"
+    }
+  ],
+  "connections": [
+    {"source": "node-1", "target": "node-3", "input": 0},
+    {"source": "node-2", "target": "node-3", "input": 1},
+    {"source": "node-3", "target": "node-4", "input": 0},
+    {"source": "node-5", "target": "node-6", "input": 0},
+    {"source": "node-1", "target": "node-6", "input": 1},
+    {"source": "node-6", "target": "node-7", "input": 0},
+    {"source": "node-6", "target": "node-8", "input": 0},
+    {"source": "node-6", "target": "node-8", "input": 1},
+    {"source": "node-8", "target": "node-9", "input": 0},
+    {"source": "node-6", "target": "node-10", "input": 0},
+    {"source": "node-10", "target": "node-11", "input": 0}
+  ]
+}

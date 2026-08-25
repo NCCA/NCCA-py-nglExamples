@@ -1,15 +1,16 @@
 #!/usr/bin/env -S uv run --active --script
 import argparse
 import sys
+import traceback
 
 import numpy as np
 import wgpu
 import wgpu.utils
-from ncca.ngl import Mat4, PerspMode, Vec3, look_at, ortho
-from PySide6.QtCore import QElapsedTimer, Qt, QTimerEvent
-from PySide6.QtGui import QKeyEvent, QMouseEvent, QSurfaceFormat, QWheelEvent
+from ncca.ngl import PerspMode, ortho
+from ncca.ngl.webgpu import WebGPUWidget
+from PySide6.QtCore import QElapsedTimer, Qt, QTimer, QTimerEvent
+from PySide6.QtGui import QKeyEvent, QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
 from wgpu.utils import get_default_device
 
 SIM_WIDTH = 200
@@ -64,8 +65,10 @@ class WebGPUScene(WebGPUWidget):
         - self.directions: A 2D array storing the (dx, dy) velocity vector for each point.
         - self.colours: A 2D array storing the (r, g, b) colour of each point.
 
-        Args:
-            num_points: The number of points to generate.
+        Parameters
+        ----------
+            num_points : int
+                The number of points to generate.
 
         """
         # generate positions in 2D space the size of the simulation with 0,0 the center
@@ -128,41 +131,9 @@ class WebGPUScene(WebGPUWidget):
             usage=wgpu.BufferUsage.VERTEX,
         )
 
-    def _create_render_buffer(self):
-        # This is the texture that the multisampled texture will be resolved to
-        colour_buffer_texture = self.device.create_texture(
-            size=self.texture_size,
-            sample_count=1,
-            format=wgpu.TextureFormat.rgba8unorm,
-            usage=wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.COPY_SRC,
-        )
-        self.colour_buffer_texture = colour_buffer_texture
-        self.colour_buffer_texture_view = self.colour_buffer_texture.create_view()
-
-        # This is the multisampled texture that will be rendered to
-        self.multisample_texture = self.device.create_texture(
-            size=self.texture_size,
-            sample_count=self.msaa_sample_count,
-            format=wgpu.TextureFormat.rgba8unorm,
-            usage=wgpu.TextureUsage.RENDER_ATTACHMENT,
-        )
-        self.multisample_texture_view = self.multisample_texture.create_view()
-
-        # Now create a depth buffer
-        depth_texture = self.device.create_texture(
-            size=self.texture_size,
-            format=wgpu.TextureFormat.depth24plus,
-            usage=wgpu.TextureUsage.RENDER_ATTACHMENT,
-            sample_count=self.msaa_sample_count,
-        )
-        self.depth_buffer_view = depth_texture.create_view()
-
-        # Calculate aligned buffer size for texture copy
-        buffer_size = self._calculate_aligned_buffer_size()
-        self.readback_buffer = self.device.create_buffer(
-            size=buffer_size,
-            usage=wgpu.BufferUsage.COPY_DST | wgpu.BufferUsage.MAP_READ,
-        )
+    # render targets (colour + MSAA + depth) and the pipelined read-back ring
+    # are created by the base WebGPUWidget._create_render_buffer, so we don't
+    # override it here.
 
     def _create_render_pipeline(self) -> None:
         """
@@ -244,9 +215,12 @@ class WebGPUScene(WebGPUWidget):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            width: The new width of the window.
-            height: The new height of the window.
+        Parameters
+        ----------
+            width
+                The new width of the window.
+            height
+                The new height of the window.
         """
         self.window_width = int(width * self.ratio)
         self.window_height = int(height * self.ratio)
@@ -334,12 +308,14 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles keyboard press events.
 
-        Args:
-            event: The QKeyEvent object containing information about the key press.
+        Parameters
+        ----------
+            event : QKeyEvent
+                The QKeyEvent object containing information about the key press.
         """
         key = event.key()
         if key == Qt.Key_Escape:
-            self.close()  # Exit the application
+            self.close()
         elif key == Qt.Key_A:
             self.animate = not self.animate
         elif key == Qt.Key_Space:
@@ -358,15 +334,16 @@ class WebGPUScene(WebGPUWidget):
             self.wind[0] += 0.1
         # Trigger a redraw to apply changes
         self.update()
-        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         """
         Handles mouse movement events for camera control.
 
-        Args:
-            event: The QMouseEvent object containing the new mouse position.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
         if event.buttons() == Qt.LeftButton:
@@ -395,8 +372,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handles mouse button press events to initiate rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The QMouseEvent object.
         """
         # store the mouse position for drag operations
         try:
@@ -503,8 +482,10 @@ class WebGPUScene(WebGPUWidget):
         Here, it updates the positions of the points and makes them bounce
         off the edges of the simulation area.
 
-        Args:
-            event: The QTimerEvent object, not used in this method but required by the API.
+        Parameters
+        ----------
+            event : QTimerEvent
+                The QTimerEvent object, not used in this method but required by the API.
 
 
         """
@@ -543,6 +524,18 @@ class WebGPUScene(WebGPUWidget):
         self.update()
 
 
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
 def main():
     """
     Main function to run the application.
@@ -556,11 +549,34 @@ def main():
         default=1000,
         help="The number of points to generate.",
     )
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
     args = parser.parse_args()
-    app = QApplication(sys.argv)
+
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
     win = WebGPUScene(num_points=args.points)
     win.resize(1024, 720)
     win.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())
 
 

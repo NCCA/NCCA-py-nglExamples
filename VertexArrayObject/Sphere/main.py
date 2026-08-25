@@ -6,22 +6,22 @@ This script demonstrates how to use OpenGL and Qt to render a simple 3D object (
 It sets up a window, handles user input for rotation/translation/zoom, and manages OpenGL resources.
 """
 
+import argparse
 import math
 import sys
+import traceback
 
 import OpenGL.GL as gl
-from ncca.ngl import (
-    Mat4,
+from ncca.ngl import Mat4, Vec3, look_at, perspective
+from ncca.ngl.opengl import (
     PySideEventHandlingMixin,
     ShaderLib,
     Texture,
     VAOFactory,
     VAOType,
-    Vec3,
     VertexData,
-    look_at,
-    perspective,
 )
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -50,8 +50,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.window_width: int = 1024
         self.window_height: int = 720
         self.setTitle("VAO Sphere with Texture")
-        self.view: Mat4 = Mat4()  # View matrix
-        self.project: Mat4 = Mat4()  # Projection matrix
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
 
     def initializeGL(self) -> None:
         """
@@ -86,11 +86,15 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         based on an algorithm by Paul Bourke.
         http://astronomy.swin.edu.au/~pbourke/opengl/sphere/
 
-        Args:
-            radius: The radius of the sphere.
-            precision: The number of divisions around the sphere. Higher is more detailed.
+        Parameters
+        ----------
+            radius : float
+                The radius of the sphere.
+            precision : int
+                The number of divisions around the sphere. Higher is more detailed.
 
-        Returns:
+        Returns
+        -------
             A configured ngl.AbstractVAO containing the sphere geometry.
         """
         # In NGL, "simpleVAO" is a basic VAO that holds interleaved data in a single buffer.
@@ -187,9 +191,12 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         """
         Handle window resizing and update the projection matrix.
 
-        Args:
-            w: New window width.
-            h: New window height.
+        Parameters
+        ----------
+            w : int
+                New window width.
+            h : int
+                New window height.
         """
 
         self.window_width = int(w * self.devicePixelRatio())
@@ -197,9 +204,37 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.project = perspective(45.0, float(w) / h, 0.1, 350.0)
 
 
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # Set up Qt application and OpenGL format
-    app = QApplication(sys.argv)
     format = QSurfaceFormat()
     format.setSamples(4)
     format.setMajorVersion(4)
@@ -208,8 +243,17 @@ if __name__ == "__main__":
     format.setDepthBufferSize(24)
     QSurfaceFormat.setDefaultFormat(format)
 
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
     window = MainWindow()
     window.setFormat(format)
     window.resize(1024, 720)
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())

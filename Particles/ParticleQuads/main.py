@@ -1,15 +1,18 @@
 #!/usr/bin/env -S uv run --active --script
+import argparse
 import sys
+import traceback
 from typing import Set
 
 import numpy as np
 import wgpu
 from Emitter import Emitter
 from ncca.ngl import FirstPersonCamera, Vec3
-from PySide6.QtCore import QEvent, Qt
+from ncca.ngl.webgpu import WebGPUWidget
+from PySide6.QtCore import QEvent, Qt, QTimer
 from PySide6.QtGui import QMouseEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication
-from WebGPUWidget import WebGPUWidget
+from wgpu.utils import get_default_device
 
 
 class WebGPUScene(WebGPUWidget):
@@ -20,8 +23,11 @@ class WebGPUScene(WebGPUWidget):
     painting, and resizing the WebGPU context.
     """
 
-    def __init__(self, width=1024, height=720):
-        super().__init__(width, height)
+    def __init__(self):
+        super().__init__()
+        # The particle pipeline renders single-sampled, so match the base
+        # render targets to it before they are created.
+        self.msaa_sample_count = 1
         self.camera = FirstPersonCamera(
             Vec3(0.0, 1.0, 5.0),
             Vec3(0.0, 0.0, 0.0),
@@ -40,14 +46,17 @@ class WebGPUScene(WebGPUWidget):
         self.INCREMENT: float = 0.01
         self.ZOOM: float = 0.5
         self.circle_square = 1
+        self._initialize_web_gpu()
 
-    def initializeWebGPU(self) -> None:
+    def _initialize_web_gpu(self) -> None:
         """
         Initialize the WebGPU context.
 
-        This method sets up the WebGPU context for the scene.
+        Creates the device and the base render targets, then sets up the
+        emitter, billboard geometry and render pipeline for the scene.
         """
-        super().initializeWebGPU()
+        self.device = get_default_device()
+        self._create_render_buffer()
         self.emitter = Emitter(
             num_particles=50000,
             max_alive=50000,
@@ -192,18 +201,12 @@ class WebGPUScene(WebGPUWidget):
         This method renders the WebGPU content for the scene.
         """
         self.render_text(10, 20, "Particle System", size=20, colour=Qt.white)
-        texture = self.device.create_texture(
-            size=self.texture_size,
-            format=wgpu.TextureFormat.rgba8unorm,
-            usage=wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.COPY_SRC,
-        )
-        texture_view = texture.create_view()
 
         command_encoder = self.device.create_command_encoder()
         render_pass = command_encoder.begin_render_pass(
             color_attachments=[
                 {
-                    "view": texture_view,
+                    "view": self.colour_buffer_texture_view,
                     "resolve_target": None,
                     "load_op": wgpu.LoadOp.clear,
                     "store_op": wgpu.StoreOp.store,
@@ -236,7 +239,7 @@ class WebGPUScene(WebGPUWidget):
         render_pass.draw(6, len(particles) // 12)
         render_pass.end()
         self.device.queue.submit([command_encoder.finish()])
-        self.update_colour_buffer(texture)
+        self._update_colour_buffer()
 
     def resizeWebGPU(self, width: int, height: int) -> None:
         """
@@ -244,11 +247,13 @@ class WebGPUScene(WebGPUWidget):
 
         This method handles resizing of the WebGPU context for the scene.
 
-        Args:
-            width (int): The new width of the widget.
-            height (int): The new height of the widget.
+        Parameters
+        ----------
+            width : int
+                The new width of the widget.
+            height : int
+                The new height of the widget.
         """
-        super().resizeWebGPU(width, height)
         self.camera.set_projection(45.0, width / height, 0.5, 2000.0)
 
     def timerEvent(self, event):
@@ -274,8 +279,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handle the mouse press event.
 
-        Args:
-            event (QMouseEvent): The mouse press event.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The mouse press event.
         """
         pos = event.position()
         if event.button() == Qt.MouseButton.LeftButton:
@@ -288,8 +295,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handle the mouse move event.
 
-        Args:
-            event (QMouseEvent): The mouse move event.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The mouse move event.
         """
         if event.buttons() == Qt.MouseButton.LeftButton:
             pos = event.position()
@@ -306,8 +315,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handle the mouse release event.
 
-        Args:
-            event (QMouseEvent): The mouse release event.
+        Parameters
+        ----------
+            event : QMouseEvent
+                The mouse release event.
         """
         if event.button() == Qt.MouseButton.LeftButton:
             self.rotate = False
@@ -320,8 +331,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handle the mouse wheel event.
 
-        Args:
-            event (QWheelEvent): The mouse wheel event.
+        Parameters
+        ----------
+            event : QWheelEvent
+                The mouse wheel event.
         """
         _ = event.pixelDelta()
 
@@ -331,8 +344,10 @@ class WebGPUScene(WebGPUWidget):
         """
         Handle the key release event.
 
-        Args:
-            event (QEvent): The key release event.
+        Parameters
+        ----------
+            event : QEvent
+                The key release event.
         """
         key = event.key()
         self.key_pressed.remove(key)
@@ -369,7 +384,46 @@ class WebGPUScene(WebGPUWidget):
         )
 
 
-app = QApplication(sys.argv)
-win = WebGPUScene()
-win.show()
-sys.exit(app.exec())
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
+    win = WebGPUScene()
+    win.resize(1024, 720)
+    win.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
+    sys.exit(app.exec())

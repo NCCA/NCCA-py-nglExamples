@@ -1,12 +1,14 @@
 #!/usr/bin/env -S uv run --script
+import argparse
 import sys
+import traceback
 from typing import List, Tuple
 
 import numpy as np
 import wgpu
 from FloorPipeline import FloorPipeline
 from LightingPipeline import LightingPipeline
-from ncca.ngl import Mat3, Mat4, PerspMode, PrimData, Prims, Vec3, look_at, perspective
+from ncca.ngl import Mat4, PerspMode, PrimData, Prims, Vec3, look_at, perspective
 from PySide6.QtCore import QRect, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QImage, QPainter
 from PySide6.QtWidgets import QApplication, QWidget
@@ -223,8 +225,10 @@ class WebGPUScene(QWidget):
         Called whenever the window is resized.
         It's crucial to update the viewport and projection matrix here.
 
-        Args:
-            event: The resize event object.
+        Parameters
+        ----------
+            event
+                The resize event object.
         """
         # Update the stored width and height, considering high-DPI displays
         # Update projection matrix
@@ -249,13 +253,15 @@ class WebGPUScene(QWidget):
         """
         Handles keyboard press events.
 
-        Args:
-            event: The QKeyEvent object containing information about the key press.
+        Parameters
+        ----------
+            event
+                The QKeyEvent object containing information about the key press.
         """
         key = event.key()
 
         if key == Qt.Key_Escape:
-            self.close()  # Exit the application
+            self.close()
         elif key == Qt.Key_Space:
             # Reset camera rotation and position
             self.spin_x_face = 0
@@ -263,15 +269,16 @@ class WebGPUScene(QWidget):
             self.model_position.set(0, 0, 0)
 
         self.update()
-        # Call the base class implementation for any unhandled events
         super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:
         """
         Handles mouse movement events for camera control.
 
-        Args:
-            event: The QMouseEvent object containing the new mouse position.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
         if self.rotate and event.buttons() == Qt.LeftButton:
@@ -298,8 +305,10 @@ class WebGPUScene(QWidget):
         """
         Handles mouse button press events to initiate rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object.
         """
         position = event.position()
         # Left button initiates rotation
@@ -317,8 +326,10 @@ class WebGPUScene(QWidget):
         """
         Handles mouse button release events to stop rotation or translation.
 
-        Args:
-            event: The QMouseEvent object.
+        Parameters
+        ----------
+            event
+                The QMouseEvent object.
         """
         # Stop rotating when the left button is released
         if event.button() == Qt.LeftButton:
@@ -331,8 +342,10 @@ class WebGPUScene(QWidget):
         """
         Handles mouse wheel events for zooming.
 
-        Args:
-            event: The QWheelEvent object.
+        Parameters
+        ----------
+            event
+                The QWheelEvent object.
         """
         num_pixels = event.angleDelta()
         # Zoom in or out by adjusting the Z position of the model
@@ -346,8 +359,10 @@ class WebGPUScene(QWidget):
         """
         Starts the update timer with the given interval.
 
-        Args:
-            interval_ms (int): The interval in milliseconds.
+        Parameters
+        ----------
+            interval_ms : int
+                The interval in milliseconds.
         """
         self._update_timer.start(interval_ms)
 
@@ -359,8 +374,10 @@ class WebGPUScene(QWidget):
         """
         Called whenever the window is resized.
 
-        Args:
-            event: The resize event object.
+        Parameters
+        ----------
+            event
+                The resize event object.
         """
         # Update the stored width and height, considering high-DPI displays
         width = int(event.size().width() * self.ratio)
@@ -382,8 +399,10 @@ class WebGPUScene(QWidget):
         """
         Handle the paint event to render the WebGPU content.
 
-        Args:
-            event (QPaintEvent): The paint event.
+        Parameters
+        ----------
+            event : QPaintEvent
+                The paint event.
         """
         self.paintWebGPU()
         painter = QPainter(self)
@@ -457,13 +476,20 @@ class WebGPUScene(QWidget):
 
         The size of the text will be scaled based on the window's height.
 
-        Args:
-            x (int): The x-coordinate of the text.
-            y (int): The y-coordinate of the text. A negative value will position the text relative to the bottom of the window.
-            text (str): The text to render.
-            size (int, optional): The base font size of the text. This will be scaled. Defaults to 10.
-            font (str, optional): The font family of the text. Defaults to "Arial".
-            colour (QColor, optional): The colour of the text. Defaults to Qt.black.
+        Parameters
+        ----------
+            x : int
+                The x-coordinate of the text.
+            y : int
+                The y-coordinate of the text. A negative value will position the text relative to the bottom of the window.
+            text : str
+                The text to render.
+            size : int, optional
+                The base font size of the text. This will be scaled. Defaults to 10.
+            font : str, optional
+                The font family of the text. Defaults to "Arial".
+            colour : QColor, optional
+                The colour of the text. Defaults to Qt.black.
         """
         self.text_buffer.append((x, y, text, size, font, colour))
 
@@ -544,8 +570,10 @@ class WebGPUScene(QWidget):
         """
         Present the image data on the canvas.
 
-        Args:
-            image_data (np.ndarray): The image data to render.
+        Parameters
+        ----------
+            image_data : np.ndarray
+                The image data to render.
         """
         height, width, _ = image_data.shape
         image = QImage(
@@ -561,15 +589,52 @@ class WebGPUScene(QWidget):
         painter.drawImage(rect2, image, rect1)
 
 
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
 def main():
     """
     Main function to run the application.
     Parses command line arguments and initializes the WebGPUScene.
     """
-    app = QApplication(sys.argv)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
     win = WebGPUScene()
     win.resize(1024, 720)
     win.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())
 
 

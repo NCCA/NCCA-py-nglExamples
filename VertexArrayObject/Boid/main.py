@@ -1,21 +1,20 @@
 #!/usr/bin/env -S uv run --script
 
+import argparse
 import sys
+import traceback
 
 import OpenGL.GL as gl
-from ncca.ngl import (
+from ncca.ngl import Mat4, Vec3, Vec3Array, look_at, perspective
+from ncca.ngl.opengl import (
     DefaultShader,
-    Mat4,
     PySideEventHandlingMixin,
     ShaderLib,
     VAOFactory,
     VAOType,
-    Vec3,
-    Vec3Array,
     VertexData,
-    look_at,
-    perspective,
 )
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
@@ -44,8 +43,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.window_height: int = 720
         self.setTitle("Boid")
         self.modelPos: Vec3 = Vec3()  # Model position in world space
-        self.view: Mat4 = Mat4()  # View matrix
-        self.project: Mat4 = Mat4()  # Projection matrix
+        self.view: Mat4 = Mat4()
+        self.project: Mat4 = Mat4()
 
     def initializeGL(self) -> None:
         """
@@ -56,7 +55,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glClearColor(0.4, 0.4, 0.4, 1.0)  # Set background color
         gl.glEnable(gl.GL_DEPTH_TEST)  # Enable depth testing for 3D
         gl.glEnable(gl.GL_MULTISAMPLE)  # Enable anti-aliasing
-        self.view = look_at(Vec3(0, 1, 4), Vec3(0, 0, 0), Vec3(0, 1, 0))  # Camera setup
+        self.view = look_at(Vec3(0, 1, 4), Vec3(0, 0, 0), Vec3(0, 1, 0))
         ShaderLib.use(DefaultShader.COLOUR)  # Use color shader
         ShaderLib.set_uniform("Colour", 1.0, 1.0, 1.0, 1.0)  # Set default color
         self.buildVAO()  # Build geometry
@@ -132,9 +131,37 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
 
 
+class DebugApplication(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+    def notify(self, receiver, event):
+        try:
+            return super().notify(receiver, event)
+        except Exception:
+            traceback.print_exc()
+            raise
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # Entry point for the application
-    app: QApplication = QApplication(sys.argv)
     format: QSurfaceFormat = QSurfaceFormat()
     format.setSamples(4)  # Enable anti-aliasing
     format.setMajorVersion(4)
@@ -143,8 +170,17 @@ if __name__ == "__main__":
     format.setDepthBufferSize(24)  # Set depth buffer size
     QSurfaceFormat.setDefaultFormat(format)  # Apply format globally
 
+    if args.debug:
+        app = DebugApplication(sys.argv)
+    else:
+        app = QApplication(sys.argv)
+
     window: MainWindow = MainWindow()
     window.setFormat(format)
     window.resize(1024, 720)
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())

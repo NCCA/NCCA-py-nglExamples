@@ -1,12 +1,14 @@
-## Colour Selection
+# Colour Selection
+
+![](ColourSelect.png)
 
 Picking of objects using Colour values based on this [post](https://moddb.fandom.com/wiki/OpenGL_Selection_Using_Unique_Color_IDs).
 
 ### Implementation Details
 
-When the mouse is clicked we use glReadPixels to read the color of the pixel under the mouse cursor. This color is then compared to the colors assigned to each object in the scene. If a match is found, the corresponding object is selected.
+When the mouse is clicked we use glReadPixels to read the colour of the pixel under the mouse cursor. This colour is then compared to the colours assigned to each object in the scene. If a match is found, the corresponding object is selected.
 
-This is not the fastest method, but it is simple and easy to implement. All colors are generated using a single generator instance.
+This is not the fastest method, but it is simple and easy to implement. All colours are generated using a single generator instance.
 
 ```
 def color_id_generator():
@@ -30,3 +32,9 @@ color_gen = color_id_generator()
 ```
 
 At present the background colour is not taken into account (128,128,128)
+
+## References
+
+- [opengl-tutorial — Picking with an OpenGL hack](http://www.opengl-tutorial.org/miscellaneous/clicking-on-objects/picking-with-an-opengl-hack/) — the classic colour-ID picking technique.
+- [glReadPixels — OpenGL Reference](https://registry.khronos.org/OpenGL-Refpages/gl4/html/glReadPixels.xhtml) — the readback call used to fetch the pixel under the cursor (note it stalls the pipeline).
+- See [`RayPickingSelection`](../RayPickingSelection) and [`WebGPUComputePicking`](../WebGPUComputePicking) in this repo for alternatives that avoid the readback stall.

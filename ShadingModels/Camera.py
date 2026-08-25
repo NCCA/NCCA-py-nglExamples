@@ -1,5 +1,3 @@
-import math
-
 from ncca.ngl import Mat4, Vec3, look_at, perspective
 from PySide6.QtCore import Qt
 
@@ -49,9 +47,9 @@ class Camera:
         rot_x = Mat4().rotate_x(self.spin_x_face)
         rot_y = Mat4().rotate_y(self.spin_y_face)
         mouse_global_tx = rot_y @ rot_x
-        mouse_global_tx.m[3][0] = self.model_position.x
-        mouse_global_tx.m[3][1] = self.model_position.y
-        mouse_global_tx.m[3][2] = self.model_position.z
+        mouse_global_tx[3][0] = self.model_position.x
+        mouse_global_tx[3][1] = self.model_position.y
+        mouse_global_tx[3][2] = self.model_position.z
         return mouse_global_tx
 
     def update_projection(self, w: int, h: int):

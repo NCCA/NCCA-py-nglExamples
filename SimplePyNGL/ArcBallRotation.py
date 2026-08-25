@@ -4,26 +4,17 @@ A template for creating a PySide6 application with an OpenGL viewport using py-n
 Enhanced with Maya/Blender-style mouse controls with faster, more responsive rotation.
 """
 
+import argparse
 import math
 import sys
 import traceback
 
 import numpy as np
 import OpenGL.GL as gl
-from ncca.ngl import (
-    DefaultShader,
-    Mat3,
-    Mat4,
-    Primitives,
-    Prims,
-    ShaderLib,
-    Vec3,
-    logger,
-    look_at,
-    perspective,
-)
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QSurfaceFormat, QVector3D
+from ncca.ngl import Mat3, Mat4, Prims, Vec3, logger, look_at, perspective
+from ncca.ngl.opengl import DefaultShader, Primitives, ShaderLib
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 
@@ -223,10 +214,10 @@ class ArcballCamera:
         # Extract right and up vectors from view matrix
         right = Vec3(
             current_view[0][0], current_view[1][0], current_view[2][0]
-        ).normalize()
+        ).normalized()
         up = Vec3(
             current_view[0][1], current_view[1][1], current_view[2][1]
-        ).normalize()
+        ).normalized()
 
         # Scale pan by distance and field of view with improved sensitivity
         fov_scale = math.tan(math.radians(22.5))  # Half of 45-degree FOV
@@ -251,7 +242,7 @@ class ArcballCamera:
         )
 
         # Maintain direction from target to eye
-        direction = (self.eye - self.target).normalize()
+        direction = (self.eye - self.target).normalized()
         self.eye = self.target + direction * self.distance
 
     def get_view_matrix(self):
@@ -364,7 +355,7 @@ class MainWindow(QOpenGLWindow):
 
         MVP = self.project @ self.view @ model
         normal_matrix = self.view @ model
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
 
         t[0]["MVP"] = MVP.to_numpy()
         t[0]["normal_matrix"] = normal_matrix.to_numpy()
@@ -387,7 +378,7 @@ class MainWindow(QOpenGLWindow):
         tx = Mat4().translate(0.0, -0.45, 0.0)
         mvp = self.project @ self.view @ tx
         normal_matrix = Mat3.from_mat4(mvp)
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", mvp)
         ShaderLib.set_uniform("normalMatrix", normal_matrix)
         Primitives.draw("floor")
@@ -485,6 +476,23 @@ class DebugApplication(QApplication):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
+        help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="run with DebugApplication (tracebacks from Qt event handlers)",
+    )
+    args = parser.parse_args()
+
     # Set up OpenGL context
     format: QSurfaceFormat = QSurfaceFormat()
     format.setSamples(4)
@@ -495,7 +503,7 @@ if __name__ == "__main__":
     QSurfaceFormat.setDefaultFormat(format)
 
     # Choose application type
-    if len(sys.argv) > 1 and "--debug" in sys.argv:
+    if args.debug:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
@@ -504,4 +512,8 @@ if __name__ == "__main__":
     window = MainWindow()
     window.resize(1024, 720)
     window.show()
+
+    if args.smoketest is not None:
+        QTimer.singleShot(args.smoketest, lambda: (print("SMOKETEST OK"), app.quit()))
+
     sys.exit(app.exec())

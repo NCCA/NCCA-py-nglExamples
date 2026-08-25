@@ -6,12 +6,9 @@ from MeshData import MeshData
 from ncca.ngl import (
     FirstPersonCamera,
     Mat4,
-    PerspMode,
     PrimData,
     Prims,
     Vec3,
-    look_at,
-    perspective,
 )
 
 _FLOAT_SIZE = np.dtype(np.float32).itemsize
@@ -31,9 +28,12 @@ class Pipeline:
         """
         Initializes the render pipeline.
 
-        Args:
-            device (wgpu.GPUDevice): The WebGPU device.
-            camera (FirstPersonCamera): The camera used for the scene.
+        Parameters
+        ----------
+            device : wgpu.GPUDevice
+                The WebGPU device.
+            camera : FirstPersonCamera
+                The camera used for the scene.
         """
         self.device: wgpu.GPUDevice = device
         self.camera: FirstPersonCamera = camera
@@ -131,10 +131,14 @@ class Pipeline:
         """
         Updates the diffuse color of the lights based on their state.
 
-        Args:
-            one_state (bool): State of the first light.
-            two_state (bool): State of the second light.
-            three_state (bool): State of the third light.
+        Parameters
+        ----------
+            one_state : bool
+                State of the first light.
+            two_state : bool
+                State of the second light.
+            three_state : bool
+                State of the third light.
         """
         off = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32)
         if self.light_uniform_data is not None:
@@ -258,12 +262,18 @@ class Pipeline:
         This method consolidates the entire render pass, from updating buffers
         to submitting draw calls.
 
-        Args:
-            texture_view (wgpu.GPUTextureView): The view to render to.
-            multisample_texture_view (wgpu.GPUTextureView): The multisample view.
-            depth_buffer_view (wgpu.GPUTextureView): The depth buffer view.
-            size (Tuple[int, int]): The viewport size (width, height).
-            scene_objects (List[...]): A list of objects to render, each defined as a
+        Parameters
+        ----------
+            texture_view : wgpu.GPUTextureView
+                The view to render to.
+            multisample_texture_view : wgpu.GPUTextureView
+                The multisample view.
+            depth_buffer_view : wgpu.GPUTextureView
+                The depth buffer view.
+            size : Tuple[int, int]
+                The viewport size (width, height).
+            scene_objects : List[...]
+                A list of objects to render, each defined as a
                                        tuple of (name, transform_matrix, color).
         """
         if self.transforms_data is None:
@@ -293,7 +303,7 @@ class Pipeline:
         (Internal) Update the storage buffer for a single mesh instance.
         """
         normal_matrix = model.copy()
-        normal_matrix.inverse().transpose()
+        normal_matrix = normal_matrix.inverse().transposed()
         self.mesh_data.update_mesh_data(name, model, normal_matrix, colour)
 
     def _begin_render_pass(

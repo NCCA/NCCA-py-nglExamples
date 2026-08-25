@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "nodes": [
+    {
+      "id": "node-1",
+      "name": "Input Point",
+      "x": -880.0,
+      "y": -260.0,
+      "kind": "value",
+      "math_type": "VEC4",
+      "components": [1.0, 0.0, 0.0, 1.0]
+    },
+    {
+      "id": "node-2",
+      "name": "Scale Matrix",
+      "x": -880.0,
+      "y": 20.0,
+      "kind": "generator",
+      "operation": "MAT4_SCALE",
+      "parameters": [[2.0], [2.0], [2.0]]
+    },
+    {
+      "id": "node-3",
+      "name": "Translation Matrix",
+      "x": -880.0,
+      "y": 340.0,
+      "kind": "generator",
+      "operation": "MAT4_TRANSLATE",
+      "parameters": [[5.0], [0.0], [0.0]]
+    },
+    {
+      "id": "node-4",
+      "name": "Scale @ Translate",
+      "x": -480.0,
+      "y": 20.0,
+      "kind": "operation",
+      "operation": "MATRIX_MULTIPLY"
+    },
+    {
+      "id": "node-5",
+      "name": "Translate @ Scale",
+      "x": -480.0,
+      "y": 340.0,
+      "kind": "operation",
+      "operation": "MATRIX_MULTIPLY"
+    },
+    {
+      "id": "node-6",
+      "name": "Apply Scale @ Translate",
+      "x": -80.0,
+      "y": -40.0,
+      "kind": "operation",
+      "operation": "MATRIX_MULTIPLY"
+    },
+    {
+      "id": "node-7",
+      "name": "Apply Translate @ Scale",
+      "x": -80.0,
+      "y": 280.0,
+      "kind": "operation",
+      "operation": "MATRIX_MULTIPLY"
+    },
+    {
+      "id": "node-8",
+      "name": "Scale @ Translate Result",
+      "x": 320.0,
+      "y": -40.0,
+      "kind": "output"
+    },
+    {
+      "id": "node-9",
+      "name": "Translate @ Scale Result",
+      "x": 320.0,
+      "y": 280.0,
+      "kind": "output"
+    }
+  ],
+  "connections": [
+    {"source": "node-2", "target": "node-4", "input": 0},
+    {"source": "node-3", "target": "node-4", "input": 1},
+    {"source": "node-3", "target": "node-5", "input": 0},
+    {"source": "node-2", "target": "node-5", "input": 1},
+    {"source": "node-1", "target": "node-6", "input": 0},
+    {"source": "node-4", "target": "node-6", "input": 1},
+    {"source": "node-1", "target": "node-7", "input": 0},
+    {"source": "node-5", "target": "node-7", "input": 1},
+    {"source": "node-6", "target": "node-8", "input": 0},
+    {"source": "node-7", "target": "node-9", "input": 0}
+  ]
+}
