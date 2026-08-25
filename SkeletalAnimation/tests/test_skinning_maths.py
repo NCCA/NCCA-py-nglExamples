@@ -81,7 +81,7 @@ def _palette(pose, inv_bind):
 
 class TestSkinLBS:
     def test_identity_pose_equals_bind_mesh(self):
-        bind, inv_bind = bind_pose(N_BONES, BONE_LENGTH)
+        _bind, inv_bind = bind_pose(N_BONES, BONE_LENGTH)
         posed = pose_matrices([0.0] * N_BONES, BONE_LENGTH)
         palette = _palette(posed, inv_bind)
 
@@ -97,7 +97,7 @@ class TestSkinLBS:
     def test_single_weight_matches_rigid_transform(self):
         """weight (1, 0): the vertex must follow bone 0 exactly like a rigid
         body -- this is what an LBS palette degenerates to per-influence."""
-        bind, inv_bind = bind_pose(N_BONES, BONE_LENGTH)
+        _bind, inv_bind = bind_pose(N_BONES, BONE_LENGTH)
         posed = pose_matrices([45.0, 0.0, 0.0, 0.0], BONE_LENGTH)
         palette = _palette(posed, inv_bind)
 
@@ -158,7 +158,7 @@ class TestDLBBlend:
 # ----------------------------------------------------------------------
 class TestSkinDQS:
     def test_identity_pose_equals_bind_mesh(self):
-        bind, inv_bind = bind_pose(N_BONES, BONE_LENGTH)
+        _bind, inv_bind = bind_pose(N_BONES, BONE_LENGTH)
         posed = pose_matrices([0.0] * N_BONES, BONE_LENGTH)
         palette = _palette(posed, inv_bind)
         dq_palette = [dual_quat_from_mat(m) for m in palette]
@@ -198,7 +198,7 @@ class TestCandyWrapper:
     def test_lbs_collapses_radius_dqs_preserves_it(self):
         n_bones = 2
         bone_length = 1.0
-        bind, inv_bind = bind_pose(n_bones, bone_length)
+        _bind, inv_bind = bind_pose(n_bones, bone_length)
         # 180 degree twist of the end (last) bone only
         posed = pose_matrices([0.0, 180.0], bone_length)
         palette = _palette(posed, inv_bind)

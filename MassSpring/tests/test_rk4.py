@@ -48,7 +48,7 @@ def _run(sim: _Oscillator, dt: float, steps: int) -> float:
 def test_matches_the_analytic_oscillator_over_a_full_period():
     sim = _oscillator()
     dt = 0.001
-    t = _run(sim, dt, int(round(2.0 * np.pi / dt)))
+    t = _run(sim, dt, round(2.0 * np.pi / dt))
     # x(t) = cos(t), v(t) = -sin(t); after a full period it is back home
     assert sim.state.position[0, 0] == pytest.approx(np.cos(t), abs=1e-6)
     assert sim.state.velocity[0, 0] == pytest.approx(-np.sin(t), abs=1e-6)
@@ -57,7 +57,7 @@ def test_matches_the_analytic_oscillator_over_a_full_period():
 def test_matches_the_analytic_oscillator_at_half_a_period():
     sim = _oscillator()
     dt = 0.001
-    t = _run(sim, dt, int(round(np.pi / dt)))
+    t = _run(sim, dt, round(np.pi / dt))
     assert sim.state.position[0, 0] == pytest.approx(np.cos(t), abs=1e-6)
     assert sim.state.velocity[0, 0] == pytest.approx(-np.sin(t), abs=1e-6)
 
@@ -69,7 +69,7 @@ def test_integrates_every_mass_independently():
         velocity=np.zeros((2, 3)),
     )
     dt = 0.001
-    steps = int(round(np.pi / dt))
+    steps = round(np.pi / dt)
     for step in range(steps):
         sim.integrate(step * dt, dt)
     np.testing.assert_allclose(sim.state.position[0], [-1.0, 0.0, 0.0], atol=1e-4)

@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run --script
 """OpenGL three-pose OBJ morph demo ported from NGL9Demos."""
 
 import argparse

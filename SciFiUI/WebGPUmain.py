@@ -671,7 +671,7 @@ class SciFiWebGPU(WebGPUWidget):
                 btn["label"],
                 colour,
             )
-        lx, ly, lw, lh = lay["left"]
+        lx, ly, _lw, lh = lay["left"]
         text(
             16 * s, lx + int(12 * s), ly + lh - int(12 * s), "PANEL 04 // INPUT", faint
         )

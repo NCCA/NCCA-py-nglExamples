@@ -749,7 +749,7 @@ class MainWindow(QMainWindow):
 
     def _sync_timeline_to_mesh(self) -> None:
         mesh = self.viewport.mesh
-        frame_count = int(round(mesh.duration())) + 1
+        frame_count = round(mesh.duration()) + 1
         frame_time = 1.0 / mesh.ticks_per_second()
         self.timeline.set_clip(frame_count, frame_time)
         self._set_playback_fps(self.timeline.playback_fps())

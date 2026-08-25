@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run --script
 """WebGPU line-list version of the ResetLine demo."""
 
 import argparse

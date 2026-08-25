@@ -113,7 +113,7 @@ class Emitter:
                 array.extend(self.colour[i])
         return np.array(array, dtype=np.float32)
 
-    def update(self, dt: float = None) -> None:
+    def update(self, dt: float | None = None) -> None:
         gravity = np.array([0.0, -9.81, 0.0, 0.0])
 
         # Calculate delta time based on frame time if not provided

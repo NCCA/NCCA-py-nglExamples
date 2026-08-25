@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run --script
 """OpenGL primitive-restart line field ported from NGL9Demos."""
 
 import argparse

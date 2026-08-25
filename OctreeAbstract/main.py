@@ -1,4 +1,3 @@
-#!/usr/bin/env -S uv run --script
 """OpenGL instanced-particle version of the abstract octree demo."""
 
 import argparse

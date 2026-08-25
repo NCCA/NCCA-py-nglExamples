@@ -495,7 +495,7 @@ class SciFiScene:
 
         # buttons
         self.buttons = []
-        lx, ly, lw, lh = lay["left"]
+        lx, ly, lw, _lh = lay["left"]
         pad = int(12 * s)
         bh = int(52 * s)
         y = ly + pad
@@ -515,7 +515,7 @@ class SciFiScene:
             y += bh + pad
 
         # log panel title divider
-        rx, ry, rw, rh = lay["right"]
+        rx, ry, rw, _rh = lay["right"]
         ui.line(rx, ry + int(34 * s), rx + rw, ry + int(34 * s), mid)
 
         ShaderLib.use(UI_SHADER)
@@ -546,7 +546,7 @@ class SciFiScene:
         )
 
         # centre panel title and status line
-        cx, cy, cw, ch = lay["centre"]
+        cx, cy, _cw, ch = lay["centre"]
         Text.render_text(
             "ui",
             cx + int(16 * s),
@@ -566,13 +566,13 @@ class SciFiScene:
 
         # button labels
         for btn in self.buttons:
-            bx, by, bw, bh = btn["rect"]
+            bx, by, _bw, bh = btn["rect"]
             flashing = self.tick < self.flash.get(btn["id"], -1)
             colour = Vec3(0.05, 0.05, 0.05) if flashing else bright
             Text.render_text(
                 "ui", bx + int(14 * s), by + bh // 2 + int(8 * s), btn["label"], colour
             )
-        lx, ly, lw, lh = lay["left"]
+        lx, ly, _lw, lh = lay["left"]
         Text.render_text(
             "log", lx + int(12 * s), ly + lh - int(12 * s), "PANEL 04 // INPUT", faint
         )
@@ -601,7 +601,7 @@ class SciFiScene:
         gl.glDisable(gl.GL_SCISSOR_TEST)
 
         # footer with blinking cursor
-        fx, fy, fw, fh = lay["footer"]
+        fx, fy, _fw, fh = lay["footer"]
         cursor = "_" if (self.tick // 30) % 2 == 0 else " "
         Text.render_text(
             "ui",

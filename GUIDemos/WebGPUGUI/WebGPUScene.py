@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 import wgpu
 from ncca.ngl import (
@@ -138,7 +140,7 @@ class WebGPUScene(WebGPUWidget):
             self.start_update_timer(16)  # ~60 FPS
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
-            exit(1)
+            sys.exit(1)
 
     def _create_render_pipeline(self):
         with open("PBRShader.wgsl", "r") as f:

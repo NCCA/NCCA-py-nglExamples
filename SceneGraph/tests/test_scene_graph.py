@@ -69,7 +69,7 @@ class TestWalkOrderAndPropagation:
         a = root.add(Node("a", local=Mat4.translate(0.0, 1.0, 0.0)))
         a.add(Node("b", local=Mat4.translate(0.0, 0.0, 1.0)))
 
-        worlds = dict((node.name, world) for node, world in root.walk())
+        worlds = {node.name: world for node, world in root.walk()}
 
         np.testing.assert_allclose(_position(worlds["b"]), [1.0, 1.0, 1.0], atol=1e-5)
 

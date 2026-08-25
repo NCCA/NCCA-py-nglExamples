@@ -101,7 +101,7 @@ def build_tube_mesh(
     ``compute_weights`` and ``skin_lbs``/``skin_dqs``.
     """
     total_length = (n_bones - 1) * bone_length
-    n_rings = int(round(total_length / ring_spacing)) + 1
+    n_rings = round(total_length / ring_spacing) + 1
     ring_ys = np.linspace(0.0, total_length, n_rings)
     angles = np.linspace(0.0, 2.0 * np.pi, segments, endpoint=False)
     cos_a, sin_a = np.cos(angles), np.sin(angles)

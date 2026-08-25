@@ -204,25 +204,25 @@ class WebGPUScene(WebGPUWidget):
                 },
             ],
         }
-        common_line_kwargs = dict(
-            layout=line_pipeline_layout,
-            vertex={
+        common_line_kwargs = {
+            "layout": line_pipeline_layout,
+            "vertex": {
                 "module": shader_module,
                 "entry_point": "vs_line",
                 "buffers": [line_vertex_buffer_layout],
             },
-            fragment={
+            "fragment": {
                 "module": shader_module,
                 "entry_point": "fs_line",
                 "targets": [{"format": wgpu.TextureFormat.rgba8unorm}],
             },
-            depth_stencil={
+            "depth_stencil": {
                 "format": wgpu.TextureFormat.depth24plus,
                 "depth_write_enabled": True,
                 "depth_compare": wgpu.CompareFunction.less,
             },
-            multisample={"count": self.msaa_sample_count},
-        )
+            "multisample": {"count": self.msaa_sample_count},
+        }
         self.line_pipeline = self.device.create_render_pipeline(
             label="ray_sphere_lines",
             primitive={"topology": wgpu.PrimitiveTopology.line_list},

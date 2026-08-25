@@ -8,6 +8,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import itertools
+
 from tess_grid import (
     build_patch_grid,
     patch_count,
@@ -80,7 +82,7 @@ class TestTessLevelFromDistance:
             tess_level_from_distance(d, near_distance=2.0, far_distance=20.0)
             for d in (2.0, 6.0, 10.0, 14.0, 18.0, 22.0)
         ]
-        assert all(a >= b for a, b in zip(levels, levels[1:]))
+        assert all(a >= b for a, b in itertools.pairwise(levels))
 
     def test_rejects_bad_distance_bounds(self):
         with pytest.raises(ValueError):

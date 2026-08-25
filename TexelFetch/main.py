@@ -32,7 +32,7 @@ from PySide6.QtWidgets import QApplication
 # C++ source's m_gridSize.
 _GRID_DIM = 10.0
 _GRID_STEP = 0.1
-_GRID_N = int(round(2 * _GRID_DIM / _GRID_STEP))  # 200
+_GRID_N = round(2 * _GRID_DIM / _GRID_STEP)  # 200
 _COORDS = (np.arange(_GRID_N, dtype=np.float32) * _GRID_STEP) - _GRID_DIM
 
 
@@ -65,7 +65,7 @@ def _build_y(offset: float | None) -> np.ndarray:
         np.ndarray
             (_GRID_N * _GRID_N,) array of heights.
     """
-    z, x = np.meshgrid(_COORDS, _COORDS, indexing="ij")
+    _z, x = np.meshgrid(_COORDS, _COORDS, indexing="ij")
     if offset is None:
         return np.sin(x).ravel().astype(np.float32)
     return (np.sin(x + offset) + np.cos(x - offset)).ravel().astype(np.float32)

@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TypeAlias
 
 from ncca.ngl import (
     Mat2,
@@ -206,7 +205,7 @@ TRANSFORM_ROTATION_ORDERS: tuple[str, ...] = tuple(Transform.rot_order)
 DEFAULT_TRANSFORM_ROTATION_ORDER = "xyz"
 
 
-Corner: TypeAlias = tuple[int, "int | None", "int | None"]
+type Corner = tuple[int, "int | None", "int | None"]
 """One triangle corner: (vertex_index, uv_index, normal_index)."""
 
 
@@ -238,7 +237,7 @@ class FaceArray:
     triangles: tuple[tuple[Corner, Corner, Corner], ...]
 
 
-MathValue: TypeAlias = (
+type MathValue = (
     Vec2
     | Vec3
     | Vec4
@@ -799,7 +798,7 @@ class MeshViewerInputs:
     colour: Vec4 | None
 
 
-GraphNode: TypeAlias = (
+type GraphNode = (
     ValueNode
     | OperationNode
     | OutputNode

@@ -1,5 +1,3 @@
-#!/usr/bin/env -S uv run --active --script
-
 #!/usr/bin/env -S uv run --script
 import argparse
 import sys

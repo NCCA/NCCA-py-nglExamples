@@ -83,7 +83,7 @@ class WebGPUScene(QWidget):
             self.startTimer(16)
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
-            exit(1)
+            sys.exit(1)
 
     def _init_buffers(self):
         teapot = PrimData.primitive(Prims.TEAPOT.value)

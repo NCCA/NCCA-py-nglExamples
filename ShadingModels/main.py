@@ -181,20 +181,19 @@ class MainWindow(QMainWindow):
         if (
             event.type() == QEvent.Type.Wheel
             and event.modifiers() == Qt.KeyboardModifier.ControlModifier
-        ):
-            if obj in (self.vert_editor.viewport(), self.frag_editor.viewport()):
-                editor = (
-                    self.vert_editor
-                    if obj is self.vert_editor.viewport()
-                    else self.frag_editor
-                )
-                font = editor.font()
-                if event.angleDelta().y() > 0:
-                    font.setPointSize(font.pointSize() + 1)
-                else:
-                    font.setPointSize(max(6, font.pointSize() - 1))
-                editor.setFont(font)
-                return True
+        ) and obj in (self.vert_editor.viewport(), self.frag_editor.viewport()):
+            editor = (
+                self.vert_editor
+                if obj is self.vert_editor.viewport()
+                else self.frag_editor
+            )
+            font = editor.font()
+            if event.angleDelta().y() > 0:
+                font.setPointSize(font.pointSize() + 1)
+            else:
+                font.setPointSize(max(6, font.pointSize() - 1))
+            editor.setFont(font)
+            return True
         # catch double-click on editor viewports to toggle fullscreen for them
         if event.type() == QEvent.MouseButtonDblClick:
             if obj in (self.vert_editor.viewport(), self.frag_editor.viewport()):

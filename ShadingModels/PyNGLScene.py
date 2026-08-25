@@ -241,9 +241,8 @@ class PyNGLScene(QOpenGLWidget):
             self._wireframe = not self._wireframe
         elif key == Qt.Key_S:
             gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
-        elif key == Qt.Key_Space:
-            if self.camera:
-                self.camera.reset()
+        elif key == Qt.Key_Space and self.camera:
+            self.camera.reset()
         self.update()
         super().keyPressEvent(event)
 

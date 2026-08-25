@@ -65,7 +65,7 @@ class WebGPUScene(WebGPUWidget):
             self.startTimer(16)
         except Exception as e:
             print(f"Failed to initialize WebGPU: {e}")
-            raise e
+            raise
 
     def _create_render_pipeline(self) -> None:
         """
