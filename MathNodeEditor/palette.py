@@ -117,6 +117,11 @@ def _operation_catalogue_entries(
     return entries
 
 
+GROUP_BOX_MARGIN = 7
+GROUP_BOX_BORDER = 1
+PALETTE_MARGIN = 10
+PALETTE_MIN_WIDTH = 240
+
 NODE_CATALOGUE: tuple[CatalogueSection, ...] = (
     ("Values", _value_catalogue_entries()),
     ("Maths", _operation_catalogue_entries(MATH_OPERATIONS)),
@@ -217,7 +222,6 @@ class NodePalette(QWidget):
         super().__init__(parent)
         self.canvas = canvas
         self.view = view
-        self.setFixedWidth(240)
         self.setStyleSheet(
             "QWidget { background: #171d28; color: #e8edf5; }"
             "QGroupBox { border: 1px solid #344056; border-radius: 5px; margin-top: 9px; padding-top: 8px; font-weight: bold; }"
@@ -226,7 +230,9 @@ class NodePalette(QWidget):
             "QPushButton:hover { background: #354763; }"
         )
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setContentsMargins(
+            PALETTE_MARGIN, PALETTE_MARGIN, PALETTE_MARGIN, PALETTE_MARGIN
+        )
         heading = QLabel("PyNGL Maths")
         heading_font = heading.font()
         heading_font.setPointSize(15)
@@ -243,10 +249,26 @@ class NodePalette(QWidget):
         for title, entries in NODE_CATALOGUE:
             self._add_group(layout, title, entries)
         layout.addStretch(1)
-
         frame_all_button = QPushButton("Frame All")
         frame_all_button.clicked.connect(lambda _checked=False: self.view.frame_all())
         layout.addWidget(frame_all_button)
+        self.setFixedWidth(self._preferred_width())
+
+    def _preferred_width(self) -> int:
+        """
+        Return a width which fits the longest button label.
+
+        Labels are measured with the system font, and Windows renders that
+        wider than macOS does, so the old fixed 240 clipped them there. There is
+        deliberately no upper clamp -- capping the width only moves the clipping
+        to whichever font is wider still.
+        """
+        widest = max(
+            (button.sizeHint().width() for button in self.findChildren(QPushButton)),
+            default=0,
+        )
+        chrome = 2 * (PALETTE_MARGIN + GROUP_BOX_MARGIN + GROUP_BOX_BORDER)
+        return max(PALETTE_MIN_WIDTH, widest + chrome)
 
     def _add_group(
         self,
@@ -257,7 +279,9 @@ class NodePalette(QWidget):
         """Add a titled group of palette buttons."""
         group = QGroupBox(title)
         group_layout = QVBoxLayout(group)
-        group_layout.setContentsMargins(7, 10, 7, 7)
+        group_layout.setContentsMargins(
+            GROUP_BOX_MARGIN, 10, GROUP_BOX_MARGIN, GROUP_BOX_MARGIN
+        )
         group_layout.setSpacing(4)
         for label, factory in entries:
             button = QPushButton(label)

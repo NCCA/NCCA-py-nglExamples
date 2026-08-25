@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING
 
 from math_graph import (
@@ -69,6 +69,14 @@ if TYPE_CHECKING:
 
 NODE_HEADER_HEIGHT = 32.0
 NODE_TITLE_LEFT = 42.0
+# Horizontal space kept between one column of nodes and the next. Node widths
+# come from font metrics, so a wider system font eats any gap the saved
+# positions happen to leave -- the gutter is what stops columns colliding.
+COLUMN_GUTTER = 48.0
+# Authored layouts stagger nodes within a column by 40-120 to give the wires
+# room, whilst neighbouring columns sit 200 or more apart. Anything closer than
+# this belongs to the same column.
+SAME_COLUMN_TOLERANCE = 160.0
 PORT_RADIUS = 6.0
 NUMERIC_DECIMALS = 7
 NUMERIC_EDITOR_WIDTH = 92
@@ -93,6 +101,69 @@ MESH_ARRAY_COLOURS: dict[str, QColor] = {
     "UVs": QColor("#7fb8e0"),
     "Normals": QColor("#c47fe0"),
 }
+
+
+def resolve_column_positions(
+    boxes: Sequence[tuple[float, float, float, float]],
+    gutter: float = COLUMN_GUTTER,
+    tolerance: float = SAME_COLUMN_TOLERANCE,
+) -> list[float]:
+    """
+    Repack node columns so a wide system font cannot make them collide.
+
+    Saved graphs pin nodes to absolute coordinates whilst node widths are
+    measured from the system font, so a font wider than the one a layout was
+    authored on eats the gaps between columns. Nodes close in x count as one
+    staggered column and keep their relative offsets, but only whilst they sit
+    on different rows -- two nodes on the same row are neighbours however small
+    the offset, and need the full gutter. Columns are then packed left to right
+    from their measured extents, and a layout with room to spare is returned
+    untouched.
+
+    Parameters
+    ----------
+        boxes : Sequence[tuple[float, float, float, float]]
+            The ``(x, y, width, height)`` of each node, in any order.
+        gutter : float
+            Space to keep between one column and the next.
+        tolerance : float
+            Largest x difference still counted as the same column.
+
+    Returns
+    -------
+        list[float]
+            An x for each node, in the order the boxes were given.
+    """
+    if not boxes:
+        return []
+
+    def shares_row(left: int, right: int) -> bool:
+        """Report whether two nodes overlap vertically."""
+        top, height = boxes[left][1], boxes[left][3]
+        other_top, other_height = boxes[right][1], boxes[right][3]
+        return top < other_top + other_height and other_top < top + height
+
+    order = sorted(range(len(boxes)), key=lambda index: boxes[index][0])
+    columns: list[list[int]] = [[order[0]]]
+    for index in order[1:]:
+        column = columns[-1]
+        near = boxes[index][0] - boxes[column[-1]][0] <= tolerance
+        if near and not any(shares_row(index, member) for member in column):
+            column.append(index)
+        else:
+            columns.append([index])
+
+    resolved = [0.0] * len(boxes)
+    cursor = boxes[order[0]][0]
+    for column in columns:
+        left = min(boxes[index][0] for index in column)
+        extent = max(boxes[index][0] + boxes[index][2] for index in column) - left
+        # Never drag a column leftwards -- only open it up when it is too tight.
+        start_x = max(cursor, left)
+        for index in column:
+            resolved[index] = boxes[index][0] - left + start_x
+        cursor = start_x + extent + gutter
+    return resolved
 
 
 def node_title_font() -> QFont:
