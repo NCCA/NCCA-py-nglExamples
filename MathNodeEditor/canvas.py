@@ -19,6 +19,7 @@ from graphics_items import (
     _bezier_path,
     default_components,
     default_generator_parameters,
+    resolve_column_positions,
 )
 from math_graph import (
     FaceArray,
@@ -542,6 +543,7 @@ class MathNodeScene(QGraphicsScene):
                 else:
                     raise GraphError(f"Unknown node kind {kind!r}")
                 node.set_name(entry.get("name", node.title))
+            self._resolve_column_positions()
             for connection in data["connections"]:
                 source_port = self._output_port_for_node_id(
                     id_map[connection["source"]]
@@ -554,6 +556,34 @@ class MathNodeScene(QGraphicsScene):
             self.update_outputs()
         finally:
             self._loading = False
+
+    def _resolve_column_positions(self) -> None:
+        """
+        Space out the columns of a freshly loaded graph.
+
+        Node widths come from the system font whilst saved positions are fixed,
+        so a font wider than the one a graph was laid out on runs the columns
+        into each other. Run once the nodes are named, since renaming is what
+        settles their final width, and before the wires are made so no path
+        needs redrawing.
+        """
+        nodes = list({id(node): node for node in self.nodes.values()}.values())
+        # Measure the painted bounds, not the body width: the sockets hang off
+        # either edge, and it is those the eye reads as the node running into
+        # its neighbour.
+        bounds = [node.boundingRect() for node in nodes]
+        boxes = [
+            (
+                node.pos().x() + rect.left(),
+                node.pos().y() + rect.top(),
+                rect.width(),
+                rect.height(),
+            )
+            for node, rect in zip(nodes, bounds)
+        ]
+        resolved = resolve_column_positions(boxes)
+        for node, rect, x in zip(nodes, bounds, resolved):
+            node.setPos(QPointF(x - rect.left(), node.pos().y()))
 
     def save_to_file(self, path: str | Path) -> None:
         """Write the current graph to a JSON file."""

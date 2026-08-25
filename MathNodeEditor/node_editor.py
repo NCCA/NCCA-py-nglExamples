@@ -161,7 +161,13 @@ class MathNodeWindow(QMainWindow):
         self.palette_scroll = QScrollArea(self)
         self.palette_scroll.setWidget(self.palette)
         self.palette_scroll.setWidgetResizable(True)
-        self.palette_scroll.setFixedWidth(260)
+        # Follow the palette rather than pinning a width, so a wider system
+        # font widens the sidebar instead of clipping its labels.
+        self.palette_scroll.setFixedWidth(
+            self.palette.width()
+            + self.palette_scroll.verticalScrollBar().sizeHint().width()
+            + 2 * self.palette_scroll.frameWidth()
+        )
         self.palette_scroll.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )

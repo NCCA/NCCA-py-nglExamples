@@ -519,22 +519,34 @@ def test_mat4_output_keeps_each_matrix_row_on_one_line(
     window.close()
 
 
-def test_long_quaternion_palette_label_is_not_clipped(
+def test_palette_labels_are_not_clipped_by_a_wider_system_font(
     application: QApplication,
 ) -> None:
+    """Windows measures the UI font wider than macOS does, so pin the palette
+    against a deliberately wide font rather than whichever one this machine
+    happens to have."""
     node_editor = _node_editor_module()
-    window = node_editor.MathNodeWindow(load_example=False)
-    window.show()
-    button = next(
-        child
-        for child in window.palette.findChildren(QPushButton)
-        if child.text() == "Quaternion from Axis Angle"
-    )
+    original_font = application.font()
+    base_size = original_font.pointSizeF()
+    wide_font = QFont(original_font)
+    wide_font.setPointSizeF((base_size if base_size > 0 else 10.0) + 8.0)
+    application.setFont(wide_font)
+    try:
+        window = node_editor.MathNodeWindow(load_example=False)
+        window.show()
+        application.processEvents()
+        buttons = window.palette.findChildren(QPushButton)
 
-    application.processEvents()
+        clipped = [
+            (button.text(), button.width(), button.sizeHint().width())
+            for button in buttons
+            if button.width() < button.sizeHint().width()
+        ]
 
-    assert button.width() >= button.sizeHint().width()
-    window.close()
+        assert clipped == []
+        window.close()
+    finally:
+        application.setFont(original_font)
 
 
 def test_palette_groups_extended_operations_by_domain(
@@ -1800,25 +1812,21 @@ def test_projection_comparison_example_evaluates_three_mat4_values(
     window.close()
 
 
-@pytest.mark.parametrize(
-    "filename",
-    [
-        "vector_arithmetic_demo.json",
-        "triangle_normal_demo.json",
-        "lambert_diffuse_demo.json",
-        "mat2_rotation_demo.json",
-        "homogeneous_coordinates_demo.json",
-        "transform_order_demo.json",
-        "normal_matrix_demo.json",
-        "quaternion_rotation_demo.json",
-        "quaternion_slerp_demo.json",
-        "projection_comparison_demo.json",
-    ],
+EXAMPLE_FILENAMES = sorted(
+    path.name for path in (Path(__file__).parent.parent / "examples").glob("*.json")
 )
-def test_teaching_example_nodes_do_not_overlap(
+
+
+@pytest.mark.parametrize("filename", EXAMPLE_FILENAMES)
+def test_teaching_example_columns_keep_their_gutter(
     application: QApplication,
     filename: str,
 ) -> None:
+    """Node widths come from font metrics whilst the examples pin the layout, so
+    check the columns keep a real gap rather than merely failing to overlap --
+    several of these examples used to sit flush and only passed by a pixel."""
+    from graphics_items import COLUMN_GUTTER
+
     node_editor = _node_editor_module()
     window = node_editor.MathNodeWindow(load_example=False)
     example_path = Path(__file__).parent.parent / "examples" / filename
@@ -1829,13 +1837,20 @@ def test_teaching_example_nodes_do_not_overlap(
         {id(node): node for node in window.canvas.nodes.values()}.values()
     )
 
-    overlaps = []
+    too_tight = []
     for left, right in combinations(visual_nodes, 2):
-        intersection = left.sceneBoundingRect().intersected(right.sceneBoundingRect())
-        if intersection.width() > 1.0 and intersection.height() > 1.0:
-            overlaps.append((left.title, right.title))
+        left_rect = left.sceneBoundingRect()
+        right_rect = right.sceneBoundingRect()
+        if left_rect.bottom() <= right_rect.top():
+            continue
+        if right_rect.bottom() <= left_rect.top():
+            continue
+        first, second = sorted((left_rect, right_rect), key=lambda rect: rect.left())
+        gap = second.left() - first.right()
+        if gap < COLUMN_GUTTER:
+            too_tight.append((left.title, right.title, round(gap, 1)))
 
-    assert overlaps == []
+    assert too_tight == []
     window.close()
 
 
@@ -2242,3 +2257,61 @@ def test_close_event_ignored_when_discard_is_cancelled(
     assert close_event.isAccepted() is False
     window.canvas.clear_graph()
     window.close()
+
+
+def test_column_layout_keeps_a_gutter_between_columns() -> None:
+    """Two nodes authored 200 apart must still clear each other once the right
+    one turns out to be wider than the gap."""
+    from graphics_items import COLUMN_GUTTER, resolve_column_positions
+
+    positions = resolve_column_positions(
+        [(0.0, 0.0, 260.0, 80.0), (200.0, 0.0, 120.0, 80.0)]
+    )
+
+    assert positions[1] - (positions[0] + 260.0) == COLUMN_GUTTER
+
+
+def test_column_layout_keeps_the_stagger_inside_one_column() -> None:
+    """Nodes offset by a little are one staggered column, not two, so their
+    relative offset survives the repack."""
+    from graphics_items import resolve_column_positions
+
+    positions = resolve_column_positions(
+        [(0.0, 0.0, 100.0, 80.0), (60.0, 300.0, 100.0, 80.0)]
+    )
+
+    assert positions[1] - positions[0] == 60.0
+
+
+def test_column_layout_leaves_a_roomy_layout_alone() -> None:
+    """A layout that already clears the gutter must not be shuffled about."""
+    from graphics_items import resolve_column_positions
+
+    positions = resolve_column_positions(
+        [(0.0, 0.0, 100.0, 80.0), (400.0, 0.0, 100.0, 80.0)]
+    )
+
+    assert positions == [0.0, 400.0]
+
+
+def test_column_layout_anchors_on_the_leftmost_node() -> None:
+    """Repacking must not drag the whole graph away from where it was saved."""
+    from graphics_items import resolve_column_positions
+
+    positions = resolve_column_positions(
+        [(-900.0, 0.0, 400.0, 80.0), (-560.0, 0.0, 100.0, 80.0)]
+    )
+
+    assert positions[0] == -900.0
+
+
+def test_column_layout_splits_a_column_when_two_nodes_share_a_row() -> None:
+    """A small x offset means a stagger only when the nodes sit on different
+    rows -- on the same row they are neighbours and need the full gutter."""
+    from graphics_items import COLUMN_GUTTER, resolve_column_positions
+
+    positions = resolve_column_positions(
+        [(0.0, 0.0, 100.0, 80.0), (100.0, 0.0, 100.0, 80.0)]
+    )
+
+    assert positions[1] - (positions[0] + 100.0) == COLUMN_GUTTER
