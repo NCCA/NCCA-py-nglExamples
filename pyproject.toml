@@ -29,7 +29,7 @@ dependencies = [
 members=["*"]
 exclude=["*"]
 [tool.uv.sources]
-# used for local development only
+#used for local development only
 # ncca-ngl = [
 #  { path = "/Users/jmacey/teaching/Code/PyNGL", editable=true}
 #  ]

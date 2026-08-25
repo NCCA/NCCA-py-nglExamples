@@ -1,0 +1,69 @@
+name: UV Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Enforces type hints (ANN) and docstrings (D) on src/ — see CLAUDE.md.
+  lint-annotations-docstrings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Check type annotations and docstrings
+        run: uv run ruff check src/
+
+  build:
+    name: UV tests
+    runs-on: ${{ matrix.os }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version:
+          - "3.13"
+    steps:
+      - uses: actions/checkout@v4
+
+      # PySide6's wheels ship the Qt libraries but not the system libraries Qt
+      # itself links against, so importing PySide6.QtGui on a bare Linux runner
+      # dies with "libEGL.so.1: cannot open shared object file". ncca.ngl.obj
+      # imports ncca.ngl.opengl, which imports PySide6, so that one missing .so
+      # takes out every test module -- the pure-maths ones included. The macOS
+      # and Windows wheels are self-contained and need none of this.
+      - name: Install Qt system libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 \
+            libgl1 \
+            libglib2.0-0t64 \
+            libfontconfig1 \
+            libxkbcommon0 \
+            libdbus-1-3
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Run tests
+        shell: bash
+        run: |
+          uv run pytest
