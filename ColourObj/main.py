@@ -16,7 +16,7 @@ from colour_obj import ColourObj
 from ncca.ngl import Mat4, Vec3, logger, look_at, perspective
 from ncca.ngl.opengl import ShaderLib
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QSurfaceFormat
+from PySide6.QtGui import QCloseEvent, QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 
@@ -225,6 +225,12 @@ class MainWindow(QOpenGLWindow):
         delta = event.angleDelta().y()
         self.model_position.z += self.ZOOM * (delta / 120.0)
         self.update()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """Release the custom colour VAO whilst the OpenGL context is current."""
+        self.makeCurrent()
+        self.mesh.cleanup()
+        super().closeEvent(event)
 
 
 class DebugApplication(QApplication):
