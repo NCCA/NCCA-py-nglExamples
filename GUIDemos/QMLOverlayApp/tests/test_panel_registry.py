@@ -5,7 +5,7 @@ from PySide6.QtCore import QPointF
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from panel_registry import PanelRegistry  # noqa: E402
+from panel_registry import PanelRegistry
 
 
 def test_hit_test_false_when_no_panels_registered():

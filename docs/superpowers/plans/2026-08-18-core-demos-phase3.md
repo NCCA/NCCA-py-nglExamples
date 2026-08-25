@@ -215,7 +215,12 @@ from pathlib import Path
 
 import OpenGL.GL as gl
 from ncca.ngl import Mat3, Mat4, Transform, Vec3, logger, look_at, perspective
-from ncca.ngl.opengl import DefaultShader, Primitives, PySideEventHandlingMixin, ShaderLib
+from ncca.ngl.opengl import (
+    DefaultShader,
+    Primitives,
+    PySideEventHandlingMixin,
+    ShaderLib,
+)
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
@@ -225,10 +230,30 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from collision_maths import sphere_sphere_collide  # noqa: E402
 
 _SPHERES = [
-    {"pos": Vec3(-10.0, 0.0, 0.0), "dir": Vec3(0.0, 0.0, 0.0), "radius": 2.0, "colour": (1.0, 1.0, 0.0)},
-    {"pos": Vec3(10.0, 0.0, 0.0), "dir": Vec3(0.0, 0.0, 0.0), "radius": 2.0, "colour": (1.0, 1.0, 0.0)},
-    {"pos": Vec3(-7.0, 0.0, 0.0), "dir": Vec3(0.5, 0.0, 0.0), "radius": 1.0, "colour": (1.0, 0.0, 0.0)},
-    {"pos": Vec3(7.0, 0.0, 0.0), "dir": Vec3(-0.5, 0.0, 0.0), "radius": 1.0, "colour": (0.0, 0.0, 1.0)},
+    {
+        "pos": Vec3(-10.0, 0.0, 0.0),
+        "dir": Vec3(0.0, 0.0, 0.0),
+        "radius": 2.0,
+        "colour": (1.0, 1.0, 0.0),
+    },
+    {
+        "pos": Vec3(10.0, 0.0, 0.0),
+        "dir": Vec3(0.0, 0.0, 0.0),
+        "radius": 2.0,
+        "colour": (1.0, 1.0, 0.0),
+    },
+    {
+        "pos": Vec3(-7.0, 0.0, 0.0),
+        "dir": Vec3(0.5, 0.0, 0.0),
+        "radius": 1.0,
+        "colour": (1.0, 0.0, 0.0),
+    },
+    {
+        "pos": Vec3(7.0, 0.0, 0.0),
+        "dir": Vec3(-0.5, 0.0, 0.0),
+        "radius": 1.0,
+        "colour": (0.0, 0.0, 1.0),
+    },
 ]
 
 
@@ -269,13 +294,24 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.update()
 
     def _check_collisions(self) -> None:
-        s2, s3, s0, s1 = self.spheres[2], self.spheres[3], self.spheres[0], self.spheres[1]
-        if sphere_sphere_collide(_v3(s2["pos"]), s2["radius"], _v3(s3["pos"]), s3["radius"]):
+        s2, s3, s0, s1 = (
+            self.spheres[2],
+            self.spheres[3],
+            self.spheres[0],
+            self.spheres[1],
+        )
+        if sphere_sphere_collide(
+            _v3(s2["pos"]), s2["radius"], _v3(s3["pos"]), s3["radius"]
+        ):
             s2["dir"] = s2["dir"] * -1.0
             s3["dir"] = s3["dir"] * -1.0
-        if sphere_sphere_collide(_v3(s0["pos"]), s0["radius"], _v3(s2["pos"]), s2["radius"]):
+        if sphere_sphere_collide(
+            _v3(s0["pos"]), s0["radius"], _v3(s2["pos"]), s2["radius"]
+        ):
             s2["dir"] = s2["dir"] * -1.0
-        if sphere_sphere_collide(_v3(s1["pos"]), s1["radius"], _v3(s3["pos"]), s3["radius"]):
+        if sphere_sphere_collide(
+            _v3(s1["pos"]), s1["radius"], _v3(s3["pos"]), s3["radius"]
+        ):
             s3["dir"] = s3["dir"] * -1.0
 
     def paintGL(self) -> None:
@@ -489,10 +525,30 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from collision_maths import sphere_sphere_collide  # noqa: E402
 
 _SPHERES = [
-    {"pos": Vec3(-10.0, 0.0, 0.0), "dir": Vec3(0.0, 0.0, 0.0), "radius": 2.0, "colour": (1.0, 1.0, 0.0)},
-    {"pos": Vec3(10.0, 0.0, 0.0), "dir": Vec3(0.0, 0.0, 0.0), "radius": 2.0, "colour": (1.0, 1.0, 0.0)},
-    {"pos": Vec3(-7.0, 0.0, 0.0), "dir": Vec3(0.5, 0.0, 0.0), "radius": 1.0, "colour": (1.0, 0.0, 0.0)},
-    {"pos": Vec3(7.0, 0.0, 0.0), "dir": Vec3(-0.5, 0.0, 0.0), "radius": 1.0, "colour": (0.0, 0.0, 1.0)},
+    {
+        "pos": Vec3(-10.0, 0.0, 0.0),
+        "dir": Vec3(0.0, 0.0, 0.0),
+        "radius": 2.0,
+        "colour": (1.0, 1.0, 0.0),
+    },
+    {
+        "pos": Vec3(10.0, 0.0, 0.0),
+        "dir": Vec3(0.0, 0.0, 0.0),
+        "radius": 2.0,
+        "colour": (1.0, 1.0, 0.0),
+    },
+    {
+        "pos": Vec3(-7.0, 0.0, 0.0),
+        "dir": Vec3(0.5, 0.0, 0.0),
+        "radius": 1.0,
+        "colour": (1.0, 0.0, 0.0),
+    },
+    {
+        "pos": Vec3(7.0, 0.0, 0.0),
+        "dir": Vec3(-0.5, 0.0, 0.0),
+        "radius": 1.0,
+        "colour": (0.0, 0.0, 1.0),
+    },
 ]
 _DRAW_POOL_SIZE = 4
 
@@ -545,9 +601,21 @@ class WebGPUScene(WebGPUWidget):
         vertex_buffer_layout = {
             "array_stride": 8 * 4,
             "attributes": [
-                {"format": wgpu.VertexFormat.float32x3, "offset": 0, "shader_location": 0},
-                {"format": wgpu.VertexFormat.float32x3, "offset": 3 * 4, "shader_location": 1},
-                {"format": wgpu.VertexFormat.float32x2, "offset": 6 * 4, "shader_location": 2},
+                {
+                    "format": wgpu.VertexFormat.float32x3,
+                    "offset": 0,
+                    "shader_location": 0,
+                },
+                {
+                    "format": wgpu.VertexFormat.float32x3,
+                    "offset": 3 * 4,
+                    "shader_location": 1,
+                },
+                {
+                    "format": wgpu.VertexFormat.float32x2,
+                    "offset": 6 * 4,
+                    "shader_location": 2,
+                },
             ],
         }
         self.pipeline = self.device.create_render_pipeline(
@@ -562,7 +630,10 @@ class WebGPUScene(WebGPUWidget):
                 "entry_point": "fs_main",
                 "targets": [{"format": wgpu.TextureFormat.rgba8unorm}],
             },
-            primitive={"topology": wgpu.PrimitiveTopology.triangle_list, "cull_mode": wgpu.CullMode.back},
+            primitive={
+                "topology": wgpu.PrimitiveTopology.triangle_list,
+                "cull_mode": wgpu.CullMode.back,
+            },
             depth_stencil={
                 "format": wgpu.TextureFormat.depth24plus,
                 "depth_write_enabled": True,
@@ -590,7 +661,12 @@ class WebGPUScene(WebGPUWidget):
             )
             bind_group = self.device.create_bind_group(
                 layout=self.bind_group_layout,
-                entries=[{"binding": 0, "resource": {"buffer": buf, "offset": 0, "size": uniform_size}}],
+                entries=[
+                    {
+                        "binding": 0,
+                        "resource": {"buffer": buf, "offset": 0, "size": uniform_size},
+                    }
+                ],
             )
             self.draw_uniform_buffers.append(buf)
             self.draw_bind_groups.append(bind_group)
@@ -602,16 +678,29 @@ class WebGPUScene(WebGPUWidget):
         self.update()
 
     def _check_collisions(self) -> None:
-        s2, s3, s0, s1 = self.spheres[2], self.spheres[3], self.spheres[0], self.spheres[1]
-        if sphere_sphere_collide(_v3(s2["pos"]), s2["radius"], _v3(s3["pos"]), s3["radius"]):
+        s2, s3, s0, s1 = (
+            self.spheres[2],
+            self.spheres[3],
+            self.spheres[0],
+            self.spheres[1],
+        )
+        if sphere_sphere_collide(
+            _v3(s2["pos"]), s2["radius"], _v3(s3["pos"]), s3["radius"]
+        ):
             s2["dir"] = s2["dir"] * -1.0
             s3["dir"] = s3["dir"] * -1.0
-        if sphere_sphere_collide(_v3(s0["pos"]), s0["radius"], _v3(s2["pos"]), s2["radius"]):
+        if sphere_sphere_collide(
+            _v3(s0["pos"]), s0["radius"], _v3(s2["pos"]), s2["radius"]
+        ):
             s2["dir"] = s2["dir"] * -1.0
-        if sphere_sphere_collide(_v3(s1["pos"]), s1["radius"], _v3(s3["pos"]), s3["radius"]):
+        if sphere_sphere_collide(
+            _v3(s1["pos"]), s1["radius"], _v3(s3["pos"]), s3["radius"]
+        ):
             s3["dir"] = s3["dir"] * -1.0
 
-    def _draw_sphere(self, render_pass, draw_index: int, s: dict, global_tx: Mat4) -> None:
+    def _draw_sphere(
+        self, render_pass, draw_index: int, s: dict, global_tx: Mat4
+    ) -> None:
         m = Mat4().translate(s["pos"].x, s["pos"].y, s["pos"].z) @ Mat4().scale(
             s["radius"], s["radius"], s["radius"]
         )
@@ -623,7 +712,9 @@ class WebGPUScene(WebGPUWidget):
         data[0:16] = mvp.to_numpy().flatten()
         data[16:32] = normal_matrix.to_numpy().flatten()
         data[32:36] = np.array([*s["colour"], 1.0], dtype=np.float32)
-        self.device.queue.write_buffer(self.draw_uniform_buffers[draw_index], 0, data.tobytes())
+        self.device.queue.write_buffer(
+            self.draw_uniform_buffers[draw_index], 0, data.tobytes()
+        )
         render_pass.set_bind_group(0, self.draw_bind_groups[draw_index], [], 0, 999999)
         render_pass.set_vertex_buffer(0, self.vertex_buffer)
         render_pass.draw(self.vertex_count)
@@ -666,7 +757,9 @@ class WebGPUScene(WebGPUWidget):
         self._update_colour_buffer()
 
     def resizeWebGPU(self, w: int, h: int) -> None:
-        self.project = perspective(45.0, float(w) / max(h, 1), 0.05, 350.0, PerspMode.WebGPU)
+        self.project = perspective(
+            45.0, float(w) / max(h, 1), 0.05, 350.0, PerspMode.WebGPU
+        )
 
     def closeEvent(self, event) -> None:
         self.animation_timer.stop()
@@ -823,7 +916,13 @@ from pathlib import Path
 import numpy as np
 import OpenGL.GL as gl
 from ncca.ngl import Mat3, Mat4, Transform, Vec3, logger, look_at, perspective
-from ncca.ngl.opengl import DefaultShader, Primitives, Prims, PySideEventHandlingMixin, ShaderLib
+from ncca.ngl.opengl import (
+    DefaultShader,
+    Primitives,
+    Prims,
+    PySideEventHandlingMixin,
+    ShaderLib,
+)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
@@ -945,9 +1044,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         from ncca.ngl.opengl.vertex_data import VertexData
 
         vao = VAOFactory.create_vao(VAOType.SIMPLE, gl.GL_LINES)
-        data = np.array(
-            [p0.x, p0.y, p0.z, p1.x, p1.y, p1.z], dtype=np.float32
-        )
+        data = np.array([p0.x, p0.y, p0.z, p1.x, p1.y, p1.z], dtype=np.float32)
         with vao:
             vao.set_data(VertexData(data, 2))
             vao.set_vertex_attribute_pointer(0, 3, gl.GL_FLOAT, 3 * 4, 0)
@@ -977,7 +1074,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             m = global_tx @ tx.matrix()
             mv = self.view @ m
             ShaderLib.set_uniform("MVP", self.project @ mv)
-            ShaderLib.set_uniform("normalMatrix", Mat3.from_mat4(m).inverse().transposed())
+            ShaderLib.set_uniform(
+                "normalMatrix", Mat3.from_mat4(m).inverse().transposed()
+            )
             Primitives.draw("cube")
 
         for s in self.spheres:
@@ -992,7 +1091,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             m = global_tx @ tx.matrix()
             mv = self.view @ m
             ShaderLib.set_uniform("MVP", self.project @ mv)
-            ShaderLib.set_uniform("normalMatrix", Mat3.from_mat4(m).inverse().transposed())
+            ShaderLib.set_uniform(
+                "normalMatrix", Mat3.from_mat4(m).inverse().transposed()
+            )
             Primitives.draw("sphere")
             gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
 
@@ -1002,12 +1103,17 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
                     (self.ray2_start, self.ray2_end),
                 ):
                     ray_dir = Vec3(
-                        ray_end.x - ray_start.x, ray_end.y - ray_start.y, ray_end.z - ray_start.z
+                        ray_end.x - ray_start.x,
+                        ray_end.y - ray_start.y,
+                        ray_end.z - ray_start.z,
                     )
                     near, far = _hit_points(ray_start, ray_dir, s["pos"], s["radius"])
                     if near is None:
                         continue
-                    for point, colour in ((near, (1.0, 0.0, 0.0)), (far, (0.0, 1.0, 0.0))):
+                    for point, colour in (
+                        (near, (1.0, 0.0, 0.0)),
+                        (far, (0.0, 1.0, 0.0)),
+                    ):
                         ShaderLib.use(DefaultShader.DIFFUSE)
                         ShaderLib.set_uniform("Colour", *colour, 1.0)
                         tx2 = Transform()
@@ -1020,7 +1126,10 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
                         )
                         Primitives.draw("smallSphere")
 
-        for ray_start, ray_end in ((self.ray1_start, self.ray1_end), (self.ray2_start, self.ray2_end)):
+        for ray_start, ray_end in (
+            (self.ray1_start, self.ray1_end),
+            (self.ray2_start, self.ray2_end),
+        ):
             mvp = self.project @ self.view @ global_tx
             self._draw_line(ray_start, ray_end, mvp)
 
@@ -1287,7 +1396,13 @@ from pathlib import Path
 import numpy as np
 import OpenGL.GL as gl
 from ncca.ngl import Mat3, Mat4, Transform, Vec3, logger, look_at, perspective
-from ncca.ngl.opengl import DefaultShader, Primitives, Prims, PySideEventHandlingMixin, ShaderLib
+from ncca.ngl.opengl import (
+    DefaultShader,
+    Primitives,
+    Prims,
+    PySideEventHandlingMixin,
+    ShaderLib,
+)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
@@ -1406,9 +1521,30 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         normal = _calc_normal(v0, v1, v2)
         data = np.array(
             [
-                v0.x, v0.y, v0.z, normal.x, normal.y, normal.z, 0.0, 0.0,
-                v1.x, v1.y, v1.z, normal.x, normal.y, normal.z, 0.0, 0.0,
-                v2.x, v2.y, v2.z, normal.x, normal.y, normal.z, 0.0, 0.0,
+                v0.x,
+                v0.y,
+                v0.z,
+                normal.x,
+                normal.y,
+                normal.z,
+                0.0,
+                0.0,
+                v1.x,
+                v1.y,
+                v1.z,
+                normal.x,
+                normal.y,
+                normal.z,
+                0.0,
+                0.0,
+                v2.x,
+                v2.y,
+                v2.z,
+                normal.x,
+                normal.y,
+                normal.z,
+                0.0,
+                0.0,
             ],
             dtype=np.float32,
         )
@@ -1442,7 +1578,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             m3 = global_tx @ tx3.matrix()
             mv3 = self.view @ m3
             ShaderLib.set_uniform("MVP", self.project @ mv3)
-            ShaderLib.set_uniform("normalMatrix", Mat3.from_mat4(m3).inverse().transposed())
+            ShaderLib.set_uniform(
+                "normalMatrix", Mat3.from_mat4(m3).inverse().transposed()
+            )
             Primitives.draw("smallSphere")
 
     def resizeGL(self, w: int, h: int) -> None:
@@ -1665,7 +1803,12 @@ from pathlib import Path
 import numpy as np
 import OpenGL.GL as gl
 from ncca.ngl import Mat3, Mat4, Prims, Transform, Vec3, logger, look_at, perspective
-from ncca.ngl.opengl import DefaultShader, Primitives, PySideEventHandlingMixin, ShaderLib
+from ncca.ngl.opengl import (
+    DefaultShader,
+    Primitives,
+    PySideEventHandlingMixin,
+    ShaderLib,
+)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
@@ -1720,13 +1863,23 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         ShaderLib.set_uniform("lightDiffuse", 1.0, 1.0, 1.0, 1.0)
         Primitives.load_default_primitives()
         Primitives.create(
-            Prims.TRIANGLE_PLANE, "plane", _PLANE_WIDTH, _PLANE_DEPTH, 1, 1, Vec3(0, 1, 0)
+            Prims.TRIANGLE_PLANE,
+            "plane",
+            _PLANE_WIDTH,
+            _PLANE_DEPTH,
+            1,
+            1,
+            Vec3(0, 1, 0),
         )
         self.animation_timer.start(130)
 
     def _plane_normal(self) -> Vec3:
         rot = Mat4().rotate_z(self.plane_zrot) @ Mat4().rotate_x(self.plane_xrot)
-        n = rot.mult_vec3(Vec3(0, 1, 0)) if hasattr(rot, "mult_vec3") else rot @ Vec3(0, 1, 0)
+        n = (
+            rot.mult_vec3(Vec3(0, 1, 0))
+            if hasattr(rot, "mult_vec3")
+            else rot @ Vec3(0, 1, 0)
+        )
         return n
 
     def _on_tick(self) -> None:
@@ -1781,7 +1934,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         Primitives.draw("plane")
 
         for s in self.spheres:
-            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE if s["hit"] else gl.GL_FILL)
+            gl.glPolygonMode(
+                gl.GL_FRONT_AND_BACK, gl.GL_LINE if s["hit"] else gl.GL_FILL
+            )
             ShaderLib.set_uniform("Colour", 1.0, 1.0, 0.0, 1.0)
             tx = Transform()
             tx.set_position(s["pos"].x, s["pos"].y, s["pos"].z)
@@ -1789,7 +1944,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             m2 = global_tx @ tx.matrix()
             mv2 = self.view @ m2
             ShaderLib.set_uniform("MVP", self.project @ mv2)
-            ShaderLib.set_uniform("normalMatrix", Mat3.from_mat4(m2).inverse().transposed())
+            ShaderLib.set_uniform(
+                "normalMatrix", Mat3.from_mat4(m2).inverse().transposed()
+            )
             Primitives.draw("sphere")
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
 
@@ -1996,7 +2153,12 @@ from pathlib import Path
 import numpy as np
 import OpenGL.GL as gl
 from ncca.ngl import Mat3, Mat4, Transform, Vec3, logger, look_at, perspective
-from ncca.ngl.opengl import DefaultShader, Primitives, PySideEventHandlingMixin, ShaderLib
+from ncca.ngl.opengl import (
+    DefaultShader,
+    Primitives,
+    PySideEventHandlingMixin,
+    ShaderLib,
+)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
@@ -2026,16 +2188,31 @@ def _spawn_sphere() -> dict:
 
 
 _BOX_EDGES = (
-    (0, 1), (1, 2), (2, 3), (3, 0),  # bottom face (y = -h)
-    (4, 5), (5, 6), (6, 7), (7, 4),  # top face (y = +h)
-    (0, 4), (1, 5), (2, 6), (3, 7),  # connecting edges
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 0),  # bottom face (y = -h)
+    (4, 5),
+    (5, 6),
+    (6, 7),
+    (7, 4),  # top face (y = +h)
+    (0, 4),
+    (1, 5),
+    (2, 6),
+    (3, 7),  # connecting edges
 )
 
 
 def _box_corners(h: float) -> list[Vec3]:
     return [
-        Vec3(-h, -h, -h), Vec3(h, -h, -h), Vec3(h, -h, h), Vec3(-h, -h, h),
-        Vec3(-h, h, -h), Vec3(h, h, -h), Vec3(h, h, h), Vec3(-h, h, h),
+        Vec3(-h, -h, -h),
+        Vec3(h, -h, -h),
+        Vec3(h, -h, h),
+        Vec3(-h, -h, h),
+        Vec3(-h, h, -h),
+        Vec3(h, h, -h),
+        Vec3(h, h, h),
+        Vec3(-h, h, h),
     ]
 
 
@@ -2091,7 +2268,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
                     if sphere_sphere_collide(
                         np.array([other["pos"].x, other["pos"].y, other["pos"].z]),
                         other["radius"],
-                        np.array([current["pos"].x, current["pos"].y, current["pos"].z]),
+                        np.array(
+                            [current["pos"].x, current["pos"].y, current["pos"].z]
+                        ),
                         current["radius"],
                     ):
                         current["dir"] = current["dir"] * -1.0
@@ -2140,7 +2319,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
         ShaderLib.use(DefaultShader.DIFFUSE)
         for s in self.spheres:
-            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE if s["hit"] else gl.GL_FILL)
+            gl.glPolygonMode(
+                gl.GL_FRONT_AND_BACK, gl.GL_LINE if s["hit"] else gl.GL_FILL
+            )
             ShaderLib.set_uniform("Colour", 1.0, 1.0, 0.0, 1.0)
             tx = Transform()
             tx.set_position(s["pos"].x, s["pos"].y, s["pos"].z)
@@ -2148,7 +2329,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             m = global_tx @ tx.matrix()
             mv = self.view @ m
             ShaderLib.set_uniform("MVP", self.project @ mv)
-            ShaderLib.set_uniform("normalMatrix", Mat3.from_mat4(m).inverse().transposed())
+            ShaderLib.set_uniform(
+                "normalMatrix", Mat3.from_mat4(m).inverse().transposed()
+            )
             Primitives.draw("sphere")
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
 

@@ -12,9 +12,9 @@ import os
 import shlex
 import subprocess
 import sys
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
 
 import ncca.ngl
 from PySide6.QtCore import QFile, Qt

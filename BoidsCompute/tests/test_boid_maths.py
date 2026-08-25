@@ -10,7 +10,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from boid_maths import BoidParams, step  # noqa: E402
+from boid_maths import BoidParams, step
 
 # A set of radii/weights that switches off every rule bar the one under test,
 # so each test isolates a single force.

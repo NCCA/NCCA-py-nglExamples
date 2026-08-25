@@ -1,5 +1,3 @@
-from typing import List, Optional, Tuple
-
 import numpy as np
 import wgpu
 from MeshData import MeshData
@@ -37,15 +35,15 @@ class Pipeline:
         """
         self.device: wgpu.GPUDevice = device
         self.camera: FirstPersonCamera = camera
-        self.pipeline: Optional[wgpu.GPURenderPipeline] = None
-        self.transforms_buffer: Optional[wgpu.GPUBuffer] = None
-        self.light_uniform_buffer: Optional[wgpu.GPUBuffer] = None
-        self.bind_group_0: Optional[wgpu.GPUBindGroup] = None
+        self.pipeline: wgpu.GPURenderPipeline | None = None
+        self.transforms_buffer: wgpu.GPUBuffer | None = None
+        self.light_uniform_buffer: wgpu.GPUBuffer | None = None
+        self.bind_group_0: wgpu.GPUBindGroup | None = None
         self.mesh_data: MeshData = MeshData(self.device)
-        self.transforms_data: Optional[np.ndarray] = None
-        self.light_uniform_data: Optional[np.ndarray] = None
-        self.command_encoder: Optional[wgpu.GPUCommandEncoder] = None
-        self.render_pass: Optional[wgpu.GPURenderPassEncoder] = None
+        self.transforms_data: np.ndarray | None = None
+        self.light_uniform_data: np.ndarray | None = None
+        self.command_encoder: wgpu.GPUCommandEncoder | None = None
+        self.render_pass: wgpu.GPURenderPassEncoder | None = None
 
         self._create_lights()
         self._create_global_transforms()
@@ -253,8 +251,8 @@ class Pipeline:
         texture_view: wgpu.GPUTextureView,
         multisample_texture_view: wgpu.GPUTextureView,
         depth_buffer_view: wgpu.GPUTextureView,
-        size: Tuple[int, int],
-        scene_objects: List[Tuple[str, Mat4, Tuple[float, float, float, float]]],
+        size: tuple[int, int],
+        scene_objects: list[tuple[str, Mat4, tuple[float, float, float, float]]],
     ) -> None:
         """
         Renders a complete scene with the given objects.
@@ -308,7 +306,7 @@ class Pipeline:
 
     def _begin_render_pass(
         self,
-        size: Tuple[int, int],
+        size: tuple[int, int],
         texture_view: wgpu.GPUTextureView,
         multisample_texture_view: wgpu.GPUTextureView,
         depth_buffer_view: wgpu.GPUTextureView,

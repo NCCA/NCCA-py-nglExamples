@@ -106,8 +106,8 @@ class PhysicsWorld(ABC):
         self._gravity = gravity
         self.last_spawn_ms: float = 0.0
         self._spawned: list[tuple[str, Vec3]] = []
-        self.model: "mujoco.MjModel" = None
-        self.data: "mujoco.MjData" = None
+        self.model: mujoco.MjModel = None
+        self.data: mujoco.MjData = None
 
     def _new_spec(self) -> "mujoco.MjSpec":
         """Builds a spec holding the ground plane and every mesh, but no bodies."""
@@ -418,10 +418,10 @@ def make_world(
 
 
 __all__ = [
+    "SPAWN_HEIGHT",
     "BodyState",
     "PhysicsWorld",
     "PoolWorld",
     "RecompileWorld",
-    "SPAWN_HEIGHT",
     "make_world",
 ]

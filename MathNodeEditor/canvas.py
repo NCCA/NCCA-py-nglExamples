@@ -190,19 +190,16 @@ class MathNodeScene(QGraphicsScene):
             node_id,
             operation,
             node_parameters,
-            lambda parameter_index,
-            values,
-            generator_node_id=node_id: self._generator_changed(
-                generator_node_id, parameter_index, values
+            lambda parameter_index, values, generator_node_id=node_id: (
+                self._generator_changed(generator_node_id, parameter_index, values)
             ),
             rotation_order=(
                 self.graph.generator_rotation_order(node_id)
                 if operation is Operation.TRANSFORM
                 else None
             ),
-            on_rotation_order_change=lambda order,
-            generator_node_id=node_id: self._generator_rotation_order_changed(
-                generator_node_id, order
+            on_rotation_order_change=lambda order, generator_node_id=node_id: (
+                self._generator_rotation_order_changed(generator_node_id, order)
             ),
         )
         self.addItem(node)

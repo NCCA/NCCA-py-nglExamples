@@ -11,7 +11,6 @@ import argparse
 import sys
 import traceback
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 import OpenGL.GL as gl
@@ -86,7 +85,7 @@ class MainWindow(QOpenGLWindow):
         self.light_change_timer = self.startTimer(1000)
         self.num_lights = 8
         self.show_lights = True
-        self.light_array: List[Light] = []
+        self.light_array: list[Light] = []
 
     def initializeGL(self) -> None:
         """
@@ -415,7 +414,7 @@ class DebugApplication(QApplication):
     re-raise the exception to halt the program, making the error immediately visible.
     """
 
-    def __init__(self, argv: List[str]) -> None:
+    def __init__(self, argv: list[str]) -> None:
         super().__init__(argv)
         logger.info("Running in full debug mode")
 

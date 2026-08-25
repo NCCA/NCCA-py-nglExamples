@@ -53,7 +53,7 @@ class Joint:
     name: str
     offset: Vec3 = field(default_factory=lambda: Vec3(0.0, 0.0, 0.0))
     channels: list[str] = field(default_factory=list)
-    children: list["Joint"] = field(default_factory=list)
+    children: list[Joint] = field(default_factory=list)
     motion: np.ndarray | None = None
 
 
@@ -86,7 +86,7 @@ class Bvh:
         self._parse(self.path.read_text())
 
     @classmethod
-    def from_text(cls, text: str) -> "Bvh":
+    def from_text(cls, text: str) -> Bvh:
         """Parse .bvh content directly from a string (mainly for tests)."""
         bvh = cls.__new__(cls)
         bvh.path = None

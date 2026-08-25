@@ -2,7 +2,6 @@
 import argparse
 import sys
 import traceback
-from typing import Set
 
 import numpy as np
 import wgpu
@@ -36,7 +35,7 @@ class WebGPUScene(WebGPUWidget):
         )
         self.camera.set_projection(45.0, self.width() / self.height(), 0.5, 2000.0)
         self.animate = True
-        self.key_pressed: Set[int] = set()
+        self.key_pressed: set[int] = set()
         self.spinXFace: int = 0
         self.spinYFace: int = 0
         self.rotate: bool = False

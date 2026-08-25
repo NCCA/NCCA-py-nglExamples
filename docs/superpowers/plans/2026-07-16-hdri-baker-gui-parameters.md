@@ -133,8 +133,13 @@ def test_from_meta_falls_back_to_v1_shape_when_settings_absent():
 
 
 def test_expected_shapes_tracks_the_settings():
-    s = BakeSettings(env_size=64, irradiance_size=16, prefilter_size=32,
-                     prefilter_mips=3, lut_size=128)
+    s = BakeSettings(
+        env_size=64,
+        irradiance_size=16,
+        prefilter_size=32,
+        prefilter_mips=3,
+        lut_size=128,
+    )
     shapes = expected_shapes(s)
     assert shapes["env"] == (6, 64, 64, 4)
     assert shapes["irradiance"] == (6, 16, 16, 4)
@@ -351,8 +356,13 @@ def test_round_trip_preserves_arrays_and_meta(tmp_path):
 
 def test_round_trip_at_non_default_settings(tmp_path):
     settings = BakeSettings(
-        env_size=64, irradiance_size=16, prefilter_size=32, prefilter_mips=3,
-        lut_size=128, prefilter_samples=32, brdf_samples=16,
+        env_size=64,
+        irradiance_size=16,
+        prefilter_size=32,
+        prefilter_mips=3,
+        lut_size=128,
+        prefilter_samples=32,
+        brdf_samples=16,
         irradiance_sample_delta=0.5,
     )
     path = tmp_path / "small.npz"
@@ -507,9 +517,7 @@ def save_maps(maps: dict, path: str | Path) -> None:
     meta["settings"] = settings.to_meta()
     meta["prefilter_roughness"] = settings.roughness_levels()
 
-    arrays = {
-        k: np.asarray(maps[k], dtype=np.float16) for k in _array_keys(settings)
-    }
+    arrays = {k: np.asarray(maps[k], dtype=np.float16) for k in _array_keys(settings)}
     arrays["meta"] = np.array(json.dumps(meta))
     np.savez_compressed(path, **arrays)
 
@@ -634,8 +642,13 @@ def test_bake_honours_non_default_sizes(gpu):
     from bake_settings import BakeSettings, expected_shapes
 
     settings = BakeSettings(
-        env_size=64, irradiance_size=8, prefilter_size=16, prefilter_mips=3,
-        lut_size=32, prefilter_samples=16, brdf_samples=16,
+        env_size=64,
+        irradiance_size=8,
+        prefilter_size=16,
+        prefilter_mips=3,
+        lut_size=32,
+        prefilter_samples=16,
+        brdf_samples=16,
         irradiance_sample_delta=0.5,
     )
     maps = bake_maps(_tiny_equirect(), settings, source="test.exr")
@@ -651,8 +664,13 @@ def test_baked_maps_survive_a_save_load_round_trip(gpu, tmp_path):
     from ibl_maps import load_maps, save_maps
 
     settings = BakeSettings(
-        env_size=64, irradiance_size=8, prefilter_size=16, prefilter_mips=3,
-        lut_size=32, prefilter_samples=16, brdf_samples=16,
+        env_size=64,
+        irradiance_size=8,
+        prefilter_size=16,
+        prefilter_mips=3,
+        lut_size=32,
+        prefilter_samples=16,
+        brdf_samples=16,
         irradiance_sample_delta=0.5,
     )
     maps = bake_maps(_tiny_equirect(), settings, source="test.exr")
@@ -668,12 +686,19 @@ def test_bake_records_the_roughness_the_mips_were_baked_at(gpu):
     from bake_ibl import bake_maps
     from bake_settings import BakeSettings
 
-    maps = bake_maps(_tiny_equirect(), BakeSettings(env_size=32, prefilter_size=16,
-                                                    prefilter_mips=2, lut_size=32,
-                                                    irradiance_size=8,
-                                                    prefilter_samples=16,
-                                                    brdf_samples=16,
-                                                    irradiance_sample_delta=0.5))
+    maps = bake_maps(
+        _tiny_equirect(),
+        BakeSettings(
+            env_size=32,
+            prefilter_size=16,
+            prefilter_mips=2,
+            lut_size=32,
+            irradiance_size=8,
+            prefilter_samples=16,
+            brdf_samples=16,
+            irradiance_sample_delta=0.5,
+        ),
+    )
     assert maps["meta"]["prefilter_roughness"] == [0.0, 1.0]
 
 
@@ -763,46 +788,44 @@ class _Baker:
 In `bake_prefilter` (lines 252-291), replace every `ibl_maps.PREFILTER_SIZE` with `self.settings.prefilter_size`, every `ibl_maps.PREFILTER_MIPS` with `self.settings.prefilter_mips`, and the roughness line with `roughness = self.settings.roughness_for_mip(mip)`:
 
 ```python
-    def bake_prefilter(self, src) -> "wgpu.GPUTexture":
-        pipe = self._make_cube_pipeline(
-            "Prefilter.wgsl", "cube", _PREFILTER_CAPTURE_DTYPE
-        )
-        source_bind_group = self._source_bind_group(pipe["source_bgl"], src, "cube")
+def bake_prefilter(self, src) -> "wgpu.GPUTexture":
+    pipe = self._make_cube_pipeline("Prefilter.wgsl", "cube", _PREFILTER_CAPTURE_DTYPE)
+    source_bind_group = self._source_bind_group(pipe["source_bgl"], src, "cube")
 
-        size0 = self.settings.prefilter_size
-        cube = self.device.create_texture(
-            size=(size0, size0, 6),
-            mip_level_count=self.settings.prefilter_mips,
-            format=BAKE_FORMAT,
-            usage=wgpu.TextureUsage.RENDER_ATTACHMENT
-            | wgpu.TextureUsage.TEXTURE_BINDING
-            | wgpu.TextureUsage.COPY_SRC,
-        )
+    size0 = self.settings.prefilter_size
+    cube = self.device.create_texture(
+        size=(size0, size0, 6),
+        mip_level_count=self.settings.prefilter_mips,
+        format=BAKE_FORMAT,
+        usage=wgpu.TextureUsage.RENDER_ATTACHMENT
+        | wgpu.TextureUsage.TEXTURE_BINDING
+        | wgpu.TextureUsage.COPY_SRC,
+    )
 
-        for mip in range(self.settings.prefilter_mips):
-            size = size0 >> mip
-            uniforms = np.zeros((), dtype=_PREFILTER_CAPTURE_DTYPE)
-            uniforms["projection"] = _CAPTURE_PROJECTION.to_numpy()
-            uniforms["roughness"] = self.settings.roughness_for_mip(mip)
-            for face in range(6):
-                uniforms["view"] = _CAPTURE_VIEWS[face].to_numpy()
-                self.device.queue.write_buffer(
-                    pipe["capture_buffer"], 0, uniforms.tobytes()
-                )
-                self._render_face(
-                    pipe["pipeline"],
-                    pipe["capture_bind_group"],
-                    source_bind_group,
-                    cube.create_view(
-                        dimension="2d",
-                        base_array_layer=face,
-                        array_layer_count=1,
-                        base_mip_level=mip,
-                        mip_level_count=1,
-                    ),
-                    size,
-                )
-        return cube
+    for mip in range(self.settings.prefilter_mips):
+        size = size0 >> mip
+        uniforms = np.zeros((), dtype=_PREFILTER_CAPTURE_DTYPE)
+        uniforms["projection"] = _CAPTURE_PROJECTION.to_numpy()
+        uniforms["roughness"] = self.settings.roughness_for_mip(mip)
+        for face in range(6):
+            uniforms["view"] = _CAPTURE_VIEWS[face].to_numpy()
+            self.device.queue.write_buffer(
+                pipe["capture_buffer"], 0, uniforms.tobytes()
+            )
+            self._render_face(
+                pipe["pipeline"],
+                pipe["capture_bind_group"],
+                source_bind_group,
+                cube.create_view(
+                    dimension="2d",
+                    base_array_layer=face,
+                    array_layer_count=1,
+                    base_mip_level=mip,
+                    mip_level_count=1,
+                ),
+                size,
+            )
+    return cube
 ```
 
 In `bake_brdf` (lines 316-354), replace the three `ibl_maps.LUT_SIZE` uses:
@@ -874,12 +897,20 @@ def test_sample_count_changes_the_prefiltered_result(gpu):
     from bake_ibl import bake_maps
     from bake_settings import BakeSettings, prefilter_key
 
-    base = dict(env_size=64, irradiance_size=8, prefilter_size=16,
-                prefilter_mips=3, lut_size=32, irradiance_sample_delta=0.5)
-    noisy = bake_maps(_tiny_equirect(), BakeSettings(**base, prefilter_samples=4,
-                                                     brdf_samples=16))
-    clean = bake_maps(_tiny_equirect(), BakeSettings(**base, prefilter_samples=512,
-                                                     brdf_samples=16))
+    base = dict(
+        env_size=64,
+        irradiance_size=8,
+        prefilter_size=16,
+        prefilter_mips=3,
+        lut_size=32,
+        irradiance_sample_delta=0.5,
+    )
+    noisy = bake_maps(
+        _tiny_equirect(), BakeSettings(**base, prefilter_samples=4, brdf_samples=16)
+    )
+    clean = bake_maps(
+        _tiny_equirect(), BakeSettings(**base, prefilter_samples=512, brdf_samples=16)
+    )
     # mip 2 is the roughest level, where sampling noise shows up most
     a = np.asarray(noisy[prefilter_key(2)], np.float32)
     b = np.asarray(clean[prefilter_key(2)], np.float32)
@@ -890,12 +921,20 @@ def test_brdf_sample_count_changes_the_lut(gpu):
     from bake_ibl import bake_maps
     from bake_settings import BakeSettings
 
-    base = dict(env_size=32, irradiance_size=8, prefilter_size=16,
-                prefilter_mips=2, lut_size=64, irradiance_sample_delta=0.5)
-    coarse = bake_maps(_tiny_equirect(), BakeSettings(**base, brdf_samples=4,
-                                                      prefilter_samples=16))
-    fine = bake_maps(_tiny_equirect(), BakeSettings(**base, brdf_samples=512,
-                                                    prefilter_samples=16))
+    base = dict(
+        env_size=32,
+        irradiance_size=8,
+        prefilter_size=16,
+        prefilter_mips=2,
+        lut_size=64,
+        irradiance_sample_delta=0.5,
+    )
+    coarse = bake_maps(
+        _tiny_equirect(), BakeSettings(**base, brdf_samples=4, prefilter_samples=16)
+    )
+    fine = bake_maps(
+        _tiny_equirect(), BakeSettings(**base, brdf_samples=512, prefilter_samples=16)
+    )
     a = np.asarray(coarse["brdf_lut"], np.float32)
     b = np.asarray(fine["brdf_lut"], np.float32)
     assert not np.allclose(a, b, atol=1e-3)
@@ -905,13 +944,21 @@ def test_irradiance_sample_delta_changes_the_irradiance(gpu):
     from bake_ibl import bake_maps
     from bake_settings import BakeSettings
 
-    base = dict(env_size=64, irradiance_size=8, prefilter_size=16,
-                prefilter_mips=2, lut_size=32, prefilter_samples=16,
-                brdf_samples=16)
-    coarse = bake_maps(_tiny_equirect(),
-                       BakeSettings(**base, irradiance_sample_delta=0.5))
-    fine = bake_maps(_tiny_equirect(),
-                     BakeSettings(**base, irradiance_sample_delta=0.05))
+    base = dict(
+        env_size=64,
+        irradiance_size=8,
+        prefilter_size=16,
+        prefilter_mips=2,
+        lut_size=32,
+        prefilter_samples=16,
+        brdf_samples=16,
+    )
+    coarse = bake_maps(
+        _tiny_equirect(), BakeSettings(**base, irradiance_sample_delta=0.5)
+    )
+    fine = bake_maps(
+        _tiny_equirect(), BakeSettings(**base, irradiance_sample_delta=0.05)
+    )
     a = np.asarray(coarse["irradiance"], np.float32)
     b = np.asarray(fine["irradiance"], np.float32)
     assert not np.allclose(a, b, atol=1e-3)
@@ -1036,51 +1083,47 @@ _BRDF_UNIFORM_DTYPE = np.dtype(
 `bake_cube` hardcodes `_CAPTURE_DTYPE`; Irradiance now needs its own. Replace `bake_cube` (lines 217-250) with:
 
 ```python
-    def bake_cube(
-        self,
-        shader_name: str,
-        size: int,
-        src_view_dim: str,
-        src,
-        capture_dtype: np.dtype = _CAPTURE_DTYPE,
-        extra: dict | None = None,
-    ) -> "wgpu.GPUTexture":
-        """Bake `shader_name` into all six faces of a new `size`^2 cube texture.
+def bake_cube(
+    self,
+    shader_name: str,
+    size: int,
+    src_view_dim: str,
+    src,
+    capture_dtype: np.dtype = _CAPTURE_DTYPE,
+    extra: dict | None = None,
+) -> "wgpu.GPUTexture":
+    """Bake `shader_name` into all six faces of a new `size`^2 cube texture.
 
-        `extra` sets any shader-specific uniform fields beyond projection/view.
-        """
-        pipe = self._make_cube_pipeline(shader_name, src_view_dim, capture_dtype)
-        source_bind_group = self._source_bind_group(
-            pipe["source_bgl"], src, src_view_dim
+    `extra` sets any shader-specific uniform fields beyond projection/view.
+    """
+    pipe = self._make_cube_pipeline(shader_name, src_view_dim, capture_dtype)
+    source_bind_group = self._source_bind_group(pipe["source_bgl"], src, src_view_dim)
+
+    cube = self.device.create_texture(
+        size=(size, size, 6),
+        format=BAKE_FORMAT,
+        usage=wgpu.TextureUsage.RENDER_ATTACHMENT
+        | wgpu.TextureUsage.TEXTURE_BINDING
+        | wgpu.TextureUsage.COPY_SRC,
+    )
+
+    uniforms = np.zeros((), dtype=capture_dtype)
+    uniforms["projection"] = _CAPTURE_PROJECTION.to_numpy()
+    for name, value in (extra or {}).items():
+        uniforms[name] = value
+    for face in range(6):
+        uniforms["view"] = _CAPTURE_VIEWS[face].to_numpy()
+        self.device.queue.write_buffer(pipe["capture_buffer"], 0, uniforms.tobytes())
+        self._render_face(
+            pipe["pipeline"],
+            pipe["capture_bind_group"],
+            source_bind_group,
+            cube.create_view(
+                dimension="2d", base_array_layer=face, array_layer_count=1
+            ),
+            size,
         )
-
-        cube = self.device.create_texture(
-            size=(size, size, 6),
-            format=BAKE_FORMAT,
-            usage=wgpu.TextureUsage.RENDER_ATTACHMENT
-            | wgpu.TextureUsage.TEXTURE_BINDING
-            | wgpu.TextureUsage.COPY_SRC,
-        )
-
-        uniforms = np.zeros((), dtype=capture_dtype)
-        uniforms["projection"] = _CAPTURE_PROJECTION.to_numpy()
-        for name, value in (extra or {}).items():
-            uniforms[name] = value
-        for face in range(6):
-            uniforms["view"] = _CAPTURE_VIEWS[face].to_numpy()
-            self.device.queue.write_buffer(
-                pipe["capture_buffer"], 0, uniforms.tobytes()
-            )
-            self._render_face(
-                pipe["pipeline"],
-                pipe["capture_bind_group"],
-                source_bind_group,
-                cube.create_view(
-                    dimension="2d", base_array_layer=face, array_layer_count=1
-                ),
-                size,
-            )
-        return cube
+    return cube
 ```
 
 and in `bake_maps`, pass the irradiance shader its sample delta:
@@ -1243,8 +1286,13 @@ In `PBR/HDRIBaker/hdri_demo.py`, replace `_PBR_SCENE_DTYPE` at line 113. `useIBL
 ```python
 _PBR_SCENE_DTYPE = np.dtype(
     {
-        "names": ["lightPositions", "lightColors", "camPos", "useIBL",
-                  "maxReflectionLod"],
+        "names": [
+            "lightPositions",
+            "lightColors",
+            "camPos",
+            "useIBL",
+            "maxReflectionLod",
+        ],
         "formats": [
             (np.float32, (4, 4)),
             (np.float32, (4, 4)),
@@ -1270,25 +1318,23 @@ from ibl_maps import load_maps
 and replace `_upload_maps` (lines 353-360):
 
 ```python
-    def _upload_maps(self, maps: dict) -> None:
-        """Upload a loaded map set to GPU cube/2D textures.
+def _upload_maps(self, maps: dict) -> None:
+    """Upload a loaded map set to GPU cube/2D textures.
 
-        Sizes come from the file's own settings, not from a constant here --
-        a map set baked at any resolution has to land correctly.
-        """
-        settings: BakeSettings = maps["settings"]
-        self.settings = settings
-        self.env_cube = self._upload_cube(maps["env"], settings.env_size)
-        self.irradiance_cube = self._upload_cube(
-            maps["irradiance"], settings.irradiance_size
-        )
-        prefilter_mips = [
-            maps[prefilter_key(m)] for m in range(1, settings.prefilter_mips)
-        ]
-        self.prefilter_cube = self._upload_cube(
-            maps[prefilter_key(0)], settings.prefilter_size, prefilter_mips
-        )
-        self.brdf_lut = self._upload_lut(maps["brdf_lut"])
+    Sizes come from the file's own settings, not from a constant here --
+    a map set baked at any resolution has to land correctly.
+    """
+    settings: BakeSettings = maps["settings"]
+    self.settings = settings
+    self.env_cube = self._upload_cube(maps["env"], settings.env_size)
+    self.irradiance_cube = self._upload_cube(
+        maps["irradiance"], settings.irradiance_size
+    )
+    prefilter_mips = [maps[prefilter_key(m)] for m in range(1, settings.prefilter_mips)]
+    self.prefilter_cube = self._upload_cube(
+        maps[prefilter_key(0)], settings.prefilter_size, prefilter_mips
+    )
+    self.brdf_lut = self._upload_lut(maps["brdf_lut"])
 ```
 
 - [ ] **Step 4: Feed `maxReflectionLod` into the scene uniform**
@@ -1298,12 +1344,10 @@ Two sites set it, because the scene UBO and the map load happen in either order 
 First, at the end of `_upload_maps` (the method you just wrote), keep the UBO in step with a freshly loaded file:
 
 ```python
-        # On startup the maps may load before the scene UBO exists; the
-        # pipeline-creation site below covers that case.
-        if hasattr(self, "pbr_scene_uniforms"):
-            self.pbr_scene_uniforms["maxReflectionLod"] = float(
-                settings.prefilter_mips - 1
-            )
+# On startup the maps may load before the scene UBO exists; the
+# pipeline-creation site below covers that case.
+if hasattr(self, "pbr_scene_uniforms"):
+    self.pbr_scene_uniforms["maxReflectionLod"] = float(settings.prefilter_mips - 1)
 ```
 
 Second, at the `self.pbr_scene_uniforms = np.zeros((), dtype=_PBR_SCENE_DTYPE)` block (around line 494), seed it from the settings that `_upload_maps` recorded:

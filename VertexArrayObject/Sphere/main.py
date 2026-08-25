@@ -102,8 +102,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
 
         if radius < 0:
             radius = -radius
-        if precision < 4:
-            precision = 4
+        precision = max(precision, 4)
 
         vertex_data = []
 

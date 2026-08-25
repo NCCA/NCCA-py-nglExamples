@@ -88,18 +88,16 @@ class GLSLHighlighter(QSyntaxHighlighter):
             m_end = self.comment_end.search(text, start_idx)
             if m_end:
                 end_idx = m_end.end()
-                length = end_idx - (start_idx if start_idx >= 0 else 0)
-                self.setFormat(
-                    start_idx if start_idx >= 0 else 0, length, self.comment_format
-                )
+                length = end_idx - (max(start_idx, 0))
+                self.setFormat(max(start_idx, 0), length, self.comment_format)
                 start_idx = self.comment_start.search(text, end_idx)
                 start_idx = start_idx.start() if start_idx else -1
                 self.setCurrentBlockState(0)
             else:
                 # not closed in this block
                 self.setFormat(
-                    start_idx if start_idx >= 0 else 0,
-                    len(text) - (start_idx if start_idx >= 0 else 0),
+                    max(start_idx, 0),
+                    len(text) - (max(start_idx, 0)),
                     self.comment_format,
                 )
                 self.setCurrentBlockState(1)

@@ -17,8 +17,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from marching_cubes import polygonise, sample_metaballs  # noqa: E402
-from mc_tables import CORNER_OFFSETS, TRI_TABLE  # noqa: E402
+from marching_cubes import polygonise, sample_metaballs
+from mc_tables import CORNER_OFFSETS, TRI_TABLE
 
 
 # ----------------------------------------------------------------------

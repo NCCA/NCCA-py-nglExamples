@@ -2,7 +2,6 @@
 import argparse
 import sys
 import traceback
-from typing import List, Tuple
 
 import numpy as np
 import wgpu
@@ -57,7 +56,7 @@ class WebGPUScene(QWidget):
         self.project = perspective(
             45.0, self.width() / self.height(), 0.1, 100.0, PerspMode.WebGPU
         )
-        self.text_buffer: List[Tuple[int, int, str, int, str, QColor]] = []
+        self.text_buffer: list[tuple[int, int, str, int, str, QColor]] = []
         self.frame_buffer = None
         self._update_timer = QTimer(self)
         self._update_timer.timeout.connect(self.update)

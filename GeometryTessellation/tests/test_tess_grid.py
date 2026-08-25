@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tess_grid import (  # noqa: E402
+from tess_grid import (
     build_patch_grid,
     patch_count,
     tess_level_from_distance,

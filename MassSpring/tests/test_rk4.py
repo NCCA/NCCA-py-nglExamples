@@ -13,7 +13,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from rk4 import AbstractRK4Integrator, State  # noqa: E402
+from rk4 import AbstractRK4Integrator, State
 
 
 class _Oscillator(AbstractRK4Integrator):

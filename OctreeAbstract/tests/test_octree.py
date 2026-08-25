@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from octree import BoundingBox, Octree, ParticleSystem, bounds_lines  # noqa: E402
+from octree import BoundingBox, Octree, ParticleSystem, bounds_lines
 
 
 def test_bounding_box_subdivides_from_low_to_high_octants():

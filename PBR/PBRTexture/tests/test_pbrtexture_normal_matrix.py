@@ -20,7 +20,7 @@ pytest.importorskip("wgpu")
 DEMO_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(DEMO_DIR))
 
-from ncca.ngl import (  # noqa: E402
+from ncca.ngl import (
     FirstPersonCamera,
     Mat3,
     Mat4,

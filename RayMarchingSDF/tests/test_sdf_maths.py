@@ -11,7 +11,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sdf_maths import (  # noqa: E402
+from sdf_maths import (
     estimate_normal,
     scene,
     sd_box,

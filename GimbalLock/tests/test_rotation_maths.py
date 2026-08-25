@@ -15,7 +15,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from rotation_maths import (  # noqa: E402
+from rotation_maths import (
     euler_to_mat,
     euler_to_quat,
     is_gimbal_locked,

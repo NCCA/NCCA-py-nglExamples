@@ -150,7 +150,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         size = 100 + int(Random.random_positive_number(12000))
         # Clear old data
         del self.data[:]
-        for i in range(0, size * 2):
+        for i in range(size * 2):
             p = Random.get_random_vec3() * 5
             self.data.append(p.x)
             self.data.append(p.y)

@@ -14,7 +14,7 @@ from ncca.ngl import Mat4, Quaternion
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from mesh import (  # noqa: E402
+from mesh import (
     SkinnedMesh,
     _bracketing_keys,
     _interpolate_rotation,

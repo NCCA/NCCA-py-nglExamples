@@ -17,7 +17,7 @@ import numpy as np
 DEMO_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(DEMO_DIR))
 
-from ncca.ngl import Mat3, Mat4, Vec3, look_at, perspective  # noqa: E402
+from ncca.ngl import Mat3, Mat4, Vec3, look_at, perspective
 
 
 def _load_main():

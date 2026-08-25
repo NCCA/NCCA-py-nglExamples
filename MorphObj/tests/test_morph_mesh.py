@@ -6,7 +6,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from morph_mesh import (  # noqa: E402
+from morph_mesh import (
     adjust_weight,
     advance_punch,
     load_morph_mesh,

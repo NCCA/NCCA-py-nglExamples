@@ -29,8 +29,8 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             initial_position=Vec3(0, 0, 0),
         )
 
-        self.window_width = int(1024)
-        self.window_height = int(720)
+        self.window_width = 1024
+        self.window_height = 720
         self.setTitle("SimpleIndexVAOFactory")
         self.view = Mat4()
         self.project = Mat4()

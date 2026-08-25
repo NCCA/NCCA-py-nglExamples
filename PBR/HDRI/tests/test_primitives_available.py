@@ -18,9 +18,9 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ncca.ngl import Prims  # noqa: E402
-from ncca.ngl.opengl import Primitives  # noqa: E402
-from ncca.ngl.prim_data import PrimData  # noqa: E402
+from ncca.ngl import Prims
+from ncca.ngl.opengl import Primitives
+from ncca.ngl.prim_data import PrimData
 
 
 def test_cube_is_not_a_parametric_create_type():

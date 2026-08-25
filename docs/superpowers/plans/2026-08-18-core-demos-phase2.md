@@ -234,8 +234,12 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             ShaderLib.set_uniform(f"light[{i}].diffuse", r, g, b, a)
             ShaderLib.set_uniform(f"light[{i}].specular", r, g, b, a)
             ShaderLib.set_uniform(f"light[{i}].direction", 0.0, -1.0, 0.0)
-            ShaderLib.set_uniform(f"light[{i}].spotCosCutoff", math.cos(math.radians(25.0)))
-            ShaderLib.set_uniform(f"light[{i}].spotCosInnerCutoff", math.cos(math.radians(15.0)))
+            ShaderLib.set_uniform(
+                f"light[{i}].spotCosCutoff", math.cos(math.radians(25.0))
+            )
+            ShaderLib.set_uniform(
+                f"light[{i}].spotCosInnerCutoff", math.cos(math.radians(15.0))
+            )
             ShaderLib.set_uniform(f"light[{i}].spotExponent", 8.0)
             ShaderLib.set_uniform(f"light[{i}].constantAttenuation", 1.0)
             ShaderLib.set_uniform(f"light[{i}].linearAttenuation", 0.02)
@@ -585,13 +589,25 @@ class WebGPUScene(WebGPUWidget):
         vertex_layout = {
             "array_stride": 8 * 4,
             "attributes": [
-                {"format": wgpu.VertexFormat.float32x3, "offset": 0, "shader_location": 0},
-                {"format": wgpu.VertexFormat.float32x3, "offset": 3 * 4, "shader_location": 1},
+                {
+                    "format": wgpu.VertexFormat.float32x3,
+                    "offset": 0,
+                    "shader_location": 0,
+                },
+                {
+                    "format": wgpu.VertexFormat.float32x3,
+                    "offset": 3 * 4,
+                    "shader_location": 1,
+                },
             ],
         }
         self.pipeline = self.device.create_render_pipeline(
             layout=pipeline_layout,
-            vertex={"module": shader_module, "entry_point": "vs_main", "buffers": [vertex_layout]},
+            vertex={
+                "module": shader_module,
+                "entry_point": "vs_main",
+                "buffers": [vertex_layout],
+            },
             fragment={
                 "module": shader_module,
                 "entry_point": "fs_main",
@@ -662,7 +678,14 @@ class WebGPUScene(WebGPUWidget):
                 self.device.create_bind_group(
                     layout=self.bind_group_layout,
                     entries=[
-                        {"binding": 0, "resource": {"buffer": buf, "offset": 0, "size": self._uniform_size}},
+                        {
+                            "binding": 0,
+                            "resource": {
+                                "buffer": buf,
+                                "offset": 0,
+                                "size": self._uniform_size,
+                            },
+                        },
                         {
                             "binding": 1,
                             "resource": {
@@ -707,7 +730,9 @@ class WebGPUScene(WebGPUWidget):
         tx[3, 2] = self.model_position.z
         return tx
 
-    def _draw_object(self, render_pass, draw_index: int, model: Mat4, vertex_buffer, count: int) -> None:
+    def _draw_object(
+        self, render_pass, draw_index: int, model: Mat4, vertex_buffer, count: int
+    ) -> None:
         mvp = self.project @ self.view @ model
         normal_matrix = model.inverse().transposed()
         data = np.zeros(self._uniform_size // 4, dtype=np.float32)
@@ -715,7 +740,9 @@ class WebGPUScene(WebGPUWidget):
         data[16:32] = mvp.to_numpy().flatten()
         data[32:48] = normal_matrix.to_numpy().flatten()
         data[48:51] = (0.0, 8.0, 16.0)
-        self.device.queue.write_buffer(self.pane_uniform_buffers[draw_index], 0, data.tobytes())
+        self.device.queue.write_buffer(
+            self.pane_uniform_buffers[draw_index], 0, data.tobytes()
+        )
         render_pass.set_bind_group(0, self.pane_bind_groups[draw_index], [], 0, 999999)
         render_pass.set_vertex_buffer(0, vertex_buffer)
         render_pass.draw(count)
@@ -745,11 +772,15 @@ class WebGPUScene(WebGPUWidget):
 
         global_tx = self._global_tx()
         draw_index = 0
-        self._draw_object(render_pass, draw_index, global_tx, self.ground_buffer, self.ground_count)
+        self._draw_object(
+            render_pass, draw_index, global_tx, self.ground_buffer, self.ground_count
+        )
         draw_index += 1
         for x, z in self.grid_positions:
             model = global_tx @ Mat4().translate(x, 0.5, z)
-            self._draw_object(render_pass, draw_index, model, self.teapot_buffer, self.teapot_count)
+            self._draw_object(
+                render_pass, draw_index, model, self.teapot_buffer, self.teapot_count
+            )
             draw_index += 1
 
         render_pass.end()
@@ -1063,9 +1094,14 @@ def build_wave_grid(n: int, size: float, offset: float) -> np.ndarray:
 
     def vertex(i: int, j: int) -> tuple[float, ...]:
         return (
-            xs[j, i], ys[j, i], zs[j, i],
-            normals[j, i, 0], normals[j, i, 1], normals[j, i, 2],
-            u[j, i], v[j, i],
+            xs[j, i],
+            ys[j, i],
+            zs[j, i],
+            normals[j, i, 0],
+            normals[j, i, 1],
+            normals[j, i, 2],
+            u[j, i],
+            v[j, i],
         )
 
     tris: list[float] = []

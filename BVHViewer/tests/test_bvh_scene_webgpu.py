@@ -7,8 +7,8 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bvh import Bvh  # noqa: E402
-from bvh_scene_webgpu import (  # noqa: E402
+from bvh import Bvh
+from bvh_scene_webgpu import (
     build_ground_line_vertices,
     build_skeleton_instances,
     build_trace_line_vertices,

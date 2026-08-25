@@ -327,10 +327,9 @@ def prefilter_key(mip: int) -> str:
 
 
 def _array_keys() -> list[str]:
-    return (
-        ["env", "irradiance", "brdf_lut"]
-        + [prefilter_key(m) for m in range(PREFILTER_MIPS)]
-    )
+    return ["env", "irradiance", "brdf_lut"] + [
+        prefilter_key(m) for m in range(PREFILTER_MIPS)
+    ]
 
 
 def save_maps(maps: dict, path: str | Path) -> None:
@@ -464,9 +463,7 @@ def bake_maps(image: np.ndarray, source: str = "") -> dict:
     rgba = np.dstack([image, np.ones(image.shape[:2], np.float32)]).astype(np.float32)
     equirect = baker.upload_2d(rgba, BAKE_FORMAT)
 
-    env = baker.bake_cube(
-        "Equirect2Cube.wgsl", ibl_maps.ENV_SIZE, "2d", equirect
-    )
+    env = baker.bake_cube("Equirect2Cube.wgsl", ibl_maps.ENV_SIZE, "2d", equirect)
     irradiance = baker.bake_cube(
         "Irradiance.wgsl", ibl_maps.IRRADIANCE_SIZE, "cube", env
     )
@@ -572,7 +569,9 @@ class _Baker:
         buffer.unmap()
         flat = np.frombuffer(bytes(raw), dtype=np.float16)
         rows = flat.reshape(height, padded // 2)
-        return np.ascontiguousarray(rows[:, : width * channels].reshape(height, width, channels))
+        return np.ascontiguousarray(
+            rows[:, : width * channels].reshape(height, width, channels)
+        )
 
     def read_cube(self, texture, size: int, mip: int) -> np.ndarray:
         """Read all six faces of a cube mip into a (6, size, size, 4) array."""
@@ -753,14 +752,15 @@ class HDRIBakerWindow(QMainWindow):
             self.maps[prefilter_key(2)][0],
             # BRDF LUT is 2-channel; pad a zero blue so it tonemaps as RGB
             np.dstack(
-                [self.maps["brdf_lut"], np.zeros(self.maps["brdf_lut"].shape[:2], np.float16)]
+                [
+                    self.maps["brdf_lut"],
+                    np.zeros(self.maps["brdf_lut"].shape[:2], np.float16),
+                ]
             ),
         )
         for label, data in zip(self.thumbs, previews):
             img = _tonemap_to_qimage(np.asarray(data, np.float32))
-            label.setPixmap(
-                QPixmap.fromImage(img).scaled(128, 128, Qt.KeepAspectRatio)
-            )
+            label.setPixmap(QPixmap.fromImage(img).scaled(128, 128, Qt.KeepAspectRatio))
         self.save_btn.setEnabled(True)
 
     def on_save(self) -> None:
@@ -859,58 +859,58 @@ Create `PBR/HDRIBaker/hdri_demo.py` by adapting `PBR/HDRI/HDRIWebGPU.py`. Copy t
 6. Add the new upload + load methods:
 
 ```python
-    def _upload_cube(self, faces: np.ndarray, size: int, mips: list | None = None):
-        """Create a cube texture and fill it from (6,size,size,4) float16 arrays.
+def _upload_cube(self, faces: np.ndarray, size: int, mips: list | None = None):
+    """Create a cube texture and fill it from (6,size,size,4) float16 arrays.
 
-        `faces` is mip 0. `mips`, when given, is a list of extra
-        (6, size>>m, size>>m, 4) arrays for mips 1..n.
-        """
-        levels = [faces] + (mips or [])
-        tex = self.device.create_texture(
-            size=(size, size, 6),
-            mip_level_count=len(levels),
-            format=BAKE_FORMAT,
-            usage=wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST,
-        )
-        for mip, level in enumerate(levels):
-            level_size = size >> mip
-            data = np.ascontiguousarray(level.astype(np.float16))
-            for face in range(6):
-                self.device.queue.write_texture(
-                    {"texture": tex, "mip_level": mip, "origin": (0, 0, face)},
-                    data[face].tobytes(),
-                    {"bytes_per_row": level_size * 4 * 2, "rows_per_image": level_size},
-                    (level_size, level_size, 1),
-                )
-        return tex
+    `faces` is mip 0. `mips`, when given, is a list of extra
+    (6, size>>m, size>>m, 4) arrays for mips 1..n.
+    """
+    levels = [faces] + (mips or [])
+    tex = self.device.create_texture(
+        size=(size, size, 6),
+        mip_level_count=len(levels),
+        format=BAKE_FORMAT,
+        usage=wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST,
+    )
+    for mip, level in enumerate(levels):
+        level_size = size >> mip
+        data = np.ascontiguousarray(level.astype(np.float16))
+        for face in range(6):
+            self.device.queue.write_texture(
+                {"texture": tex, "mip_level": mip, "origin": (0, 0, face)},
+                data[face].tobytes(),
+                {"bytes_per_row": level_size * 4 * 2, "rows_per_image": level_size},
+                (level_size, level_size, 1),
+            )
+    return tex
 
-    def _upload_lut(self, lut: np.ndarray):
-        h, w = lut.shape[:2]
-        data = np.ascontiguousarray(lut.astype(np.float16))
-        tex = self.device.create_texture(
-            size=(w, h, 1),
-            format=LUT_FORMAT,
-            usage=wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST,
-        )
-        self.device.queue.write_texture(
-            {"texture": tex},
-            data.tobytes(),
-            {"bytes_per_row": w * 2 * 2, "rows_per_image": h},
-            (w, h, 1),
-        )
-        return tex
 
-    def _load_baked_maps(self) -> None:
-        maps = load_maps(self.maps_path)
-        self.env_cube = self._upload_cube(maps["env"], ENV_SIZE)
-        self.irradiance_cube = self._upload_cube(maps["irradiance"], IRRADIANCE_SIZE)
-        prefilter_mips = [
-            maps[prefilter_key(m)] for m in range(1, PREFILTER_MIPS)
-        ]
-        self.prefilter_cube = self._upload_cube(
-            maps[prefilter_key(0)], PREFILTER_SIZE, prefilter_mips
-        )
-        self.brdf_lut = self._upload_lut(maps["brdf_lut"])
+def _upload_lut(self, lut: np.ndarray):
+    h, w = lut.shape[:2]
+    data = np.ascontiguousarray(lut.astype(np.float16))
+    tex = self.device.create_texture(
+        size=(w, h, 1),
+        format=LUT_FORMAT,
+        usage=wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST,
+    )
+    self.device.queue.write_texture(
+        {"texture": tex},
+        data.tobytes(),
+        {"bytes_per_row": w * 2 * 2, "rows_per_image": h},
+        (w, h, 1),
+    )
+    return tex
+
+
+def _load_baked_maps(self) -> None:
+    maps = load_maps(self.maps_path)
+    self.env_cube = self._upload_cube(maps["env"], ENV_SIZE)
+    self.irradiance_cube = self._upload_cube(maps["irradiance"], IRRADIANCE_SIZE)
+    prefilter_mips = [maps[prefilter_key(m)] for m in range(1, PREFILTER_MIPS)]
+    self.prefilter_cube = self._upload_cube(
+        maps[prefilter_key(0)], PREFILTER_SIZE, prefilter_mips
+    )
+    self.brdf_lut = self._upload_lut(maps["brdf_lut"])
 ```
 
 7. Add imports at the top: `from ibl_maps import load_maps, prefilter_key, PREFILTER_MIPS` and `from pathlib import Path` (already present). Keep the `ENV_SIZE, IRRADIANCE_SIZE, PREFILTER_SIZE, PREFILTER_MIPS, LUT_SIZE` constants (they can stay as literals or import from `ibl_maps`; keep the existing literals to minimise churn) and `BAKE_FORMAT`/`LUT_FORMAT`.

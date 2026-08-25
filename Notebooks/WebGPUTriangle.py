@@ -27,7 +27,6 @@ def _(mo):
     First we need to import the modules we need.
     """
     )
-    return
 
 
 @app.cell
@@ -55,7 +54,6 @@ def _(mo):
     For each of the triangle vertices.  Note the winding of the triangle and how the y axis is negative in this case. We will see later how the different windings effect things and are different from OpenGL.
     """
     )
-    return
 
 
 @app.cell
@@ -152,7 +150,6 @@ def _(mo):
     Finally, this function defines the pipeline layout (in a json like structure) and in particular the stride to get to the different input elements (position and colour).
     """
     )
-    return
 
 
 @app.cell
@@ -237,7 +234,6 @@ def _(mo):
     We then create a command queue and issue commands to execute our pipeline and render the data.
     """
     )
-    return
 
 
 @app.cell
@@ -305,7 +301,6 @@ def _(mo):
     mo.md(
         r"""Once the render has been generated we have a buffer GPU side, we need to now copy this buffer back to the "client" side so we can use it. In this case we will use a numpy array and then display it (we could do this in this function directly). """
     )
-    return
 
 
 @app.cell
@@ -375,7 +370,6 @@ def _(mo):
     5. copy back to the client side.
     """
     )
-    return
 
 
 @app.cell
@@ -400,7 +394,6 @@ def _(
 @app.cell
 def _(mo):
     mo.md(r"""Finally we can draw our triangle using the buffer""")
-    return
 
 
 @app.cell
@@ -410,7 +403,6 @@ def _(buffer):
     plt.imshow(buffer)
     plt.axis("off")  # hides both x and y axes
     plt.show()
-    return
 
 
 @app.cell

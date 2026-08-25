@@ -34,7 +34,7 @@ from PySide6.QtWidgets import QApplication
 from wgpu.utils import get_default_device
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from collision_maths import ray_sphere_intersect  # noqa: E402
+from collision_maths import ray_sphere_intersect
 
 _NUM_SPHERES = 50
 # 50 spheres + 2 ray-start cube markers, one pool slot per draw call/frame.

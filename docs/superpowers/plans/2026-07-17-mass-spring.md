@@ -385,7 +385,9 @@ def test_pinning_a_moving_mass_stops_it_dead():
     _settled(chain, 50)
     # it snaps back to its anchor and stays there rather than drifting on
     # carrying the velocity it had when it was pinned
-    np.testing.assert_allclose(chain.positions[1], chain.initial_positions[1], atol=1e-9)
+    np.testing.assert_allclose(
+        chain.positions[1], chain.initial_positions[1], atol=1e-9
+    )
     np.testing.assert_allclose(chain.state.velocity[1], [0.0, 0.0, 0.0], atol=1e-9)
 ```
 
@@ -716,7 +718,9 @@ class MassSpringScene(PySideEventHandlingMixin, QOpenGLWidget):
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_MULTISAMPLE)
         self.view = look_at(Vec3(0, 0, 7), Vec3(0, 0, 0), Vec3(0, 1, 0))
-        self.project = perspective(45.0, self.width() / max(self.height(), 1), 0.5, 150.0)
+        self.project = perspective(
+            45.0, self.width() / max(self.height(), 1), 0.5, 150.0
+        )
         ShaderLib.use(DefaultShader.DIFFUSE)
         ShaderLib.set_uniform("lightPos", 1.0, 1.0, 1.0)
         ShaderLib.set_uniform("lightDiffuse", 1.0, 1.0, 1.0, 1.0)
@@ -763,12 +767,16 @@ class MassSpringScene(PySideEventHandlingMixin, QOpenGLWidget):
             v.set_num_indices(self.chain.num_masses)
             v.draw()
 
-    def _draw_mass(self, position: np.ndarray, colour, prim: str, global_tx: Mat4) -> None:
+    def _draw_mass(
+        self, position: np.ndarray, colour, prim: str, global_tx: Mat4
+    ) -> None:
         ShaderLib.use(DefaultShader.DIFFUSE)
         ShaderLib.set_uniform("Colour", *colour)
         self.transform.reset()
         self.transform.set_scale(_MASS_SCALE, _MASS_SCALE, _MASS_SCALE)
-        self.transform.set_position(float(position[0]), float(position[1]), float(position[2]))
+        self.transform.set_position(
+            float(position[0]), float(position[1]), float(position[2])
+        )
         self.load_matrices_to_shader(global_tx)
         Primitives.draw(prim)
 
@@ -940,7 +948,11 @@ class MainWindow(QMainWindow):
         self.damping = self._spinbox(0.5, 0.0, 10.0, 0.01)
         self.rest_length = self._spinbox(1.0, 0.01, 10.0, 0.01)
         for row, (label, box) in enumerate(
-            (("k", self.k), ("damping", self.damping), ("rest length", self.rest_length))
+            (
+                ("k", self.k),
+                ("damping", self.damping),
+                ("rest length", self.rest_length),
+            )
         ):
             grid.addWidget(QLabel(label), row, 0)
             grid.addWidget(box, row, 1)

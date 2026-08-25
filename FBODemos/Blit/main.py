@@ -200,7 +200,7 @@ class MainWindow(QOpenGLWindow):
         else:
             w4 = self.window_width // 4
             h2 = self.window_height // 2
-            for i in range(0, 8):
+            for i in range(8):
                 gl.glReadBuffer(gl.GL_COLOR_ATTACHMENT0 + i)
                 if i < 4:
                     gl.glBlitFramebuffer(

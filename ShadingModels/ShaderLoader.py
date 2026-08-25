@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import OpenGL.GL as gl
 from ncca.ngl import Mat3, Mat4, Vec2, Vec3, Vec4
@@ -20,14 +20,14 @@ class ShaderLoader:
             json_file : str
                 The path to the JSON file defining the shader.
         """
-        self.shader_data: Dict[str, Any] = {}
+        self.shader_data: dict[str, Any] = {}
         self.root_path: Path = Path(json_file).parent
         self.has_normal_matrix: bool = False
         self.has_model_view: bool = False
-        self.uniform_defs: Dict[str, Any] = {}
+        self.uniform_defs: dict[str, Any] = {}
         self.load_json(json_file)
 
-    def _parse_uniform_value(self, uniform: Dict[str, Any]) -> Any:
+    def _parse_uniform_value(self, uniform: dict[str, Any]) -> Any:
         """Parse a uniform value from the raw JSON data."""
         utype = uniform.get("Type", "")
         uvalue = uniform.get("Value")
@@ -77,7 +77,7 @@ class ShaderLoader:
                 "range": shader_range,
             }
 
-    def get_uniform_definitions(self) -> Dict[str, Any]:
+    def get_uniform_definitions(self) -> dict[str, Any]:
         """Returns the parsed uniform definitions."""
         return self.uniform_defs
 

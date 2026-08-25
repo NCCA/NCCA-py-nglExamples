@@ -122,7 +122,7 @@ def bake_maps(
 
 
 class _Baker:
-    def __init__(self, device: "wgpu.GPUDevice", settings: BakeSettings) -> None:
+    def __init__(self, device: wgpu.GPUDevice, settings: BakeSettings) -> None:
         self.device = device
         self.settings = settings
         cube = PrimData.primitive(Prims.CUBE.value).astype(np.float32)
@@ -140,7 +140,7 @@ class _Baker:
         )
 
     # ---- IO / upload (ported from HDRIWebGPU._upload_2d) --------------------
-    def upload_2d(self, data: np.ndarray, fmt: str) -> "wgpu.GPUTexture":
+    def upload_2d(self, data: np.ndarray, fmt: str) -> wgpu.GPUTexture:
         height, width = data.shape[:2]
         half = data.astype(np.float16)
         tex = self.device.create_texture(
@@ -261,7 +261,7 @@ class _Baker:
         src,
         capture_dtype: np.dtype = _CAPTURE_DTYPE,
         extra: dict | None = None,
-    ) -> "wgpu.GPUTexture":
+    ) -> wgpu.GPUTexture:
         """Bake `shader_name` into all six faces of a new `size`^2 cube texture.
 
         `extra` sets any shader-specific uniform fields beyond projection/view.
@@ -299,7 +299,7 @@ class _Baker:
             )
         return cube
 
-    def bake_prefilter(self, src) -> "wgpu.GPUTexture":
+    def bake_prefilter(self, src) -> wgpu.GPUTexture:
         pipe = self._make_cube_pipeline(
             "Prefilter.wgsl", "cube", _PREFILTER_CAPTURE_DTYPE
         )
@@ -365,7 +365,7 @@ class _Baker:
         render_pass.end()
         self.device.queue.submit([encoder.finish()])
 
-    def bake_brdf(self) -> "wgpu.GPUTexture":
+    def bake_brdf(self) -> wgpu.GPUTexture:
         with open(_SHADER_DIR / "BRDF.wgsl", "r") as f:
             shader = self.device.create_shader_module(code=f.read())
 

@@ -26,7 +26,7 @@ The repo's row-vector convention (`RayPickingSelection/picking_maths.py`, the de
 
 ```python
 right = view[:3, 0] / norm
-up    = view[:3, 1] / norm
+up = view[:3, 1] / norm
 ```
 
 `cylindrical_basis(view)` keeps `up` pinned to world +y and rebuilds `right` as `cross(world_up, backward)`, where `backward` is column 2 of the same matrix. When the camera looks straight up or down, `backward` is parallel to world +y and the cross product collapses to zero — there's no well-defined "sideways" left. Rather than divide by zero and hand back NaN, `cylindrical_basis` falls back to a fixed world +x for `right` in that case (documented in the function's docstring, pinned by `test_degenerate_straight_down_view_has_no_nan`); real engines hit the same wall, a tree billboard genuinely has no good answer viewed from directly above.

@@ -36,11 +36,17 @@ import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--smoketest", nargs="?", const=200, default=None, type=int, metavar="MS",
+        "--smoketest",
+        nargs="?",
+        const=200,
+        default=None,
+        type=int,
+        metavar="MS",
         help="run for MS milliseconds (default 200), print SMOKETEST OK and exit",
     )
     parser.add_argument(
-        "--debug", action="store_true",
+        "--debug",
+        action="store_true",
         help="run with DebugApplication (tracebacks from Qt event handlers)",
     )
     args = parser.parse_args()

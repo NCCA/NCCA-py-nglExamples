@@ -9,7 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from layouts import (  # noqa: E402
+from layouts import (
     MATERIAL_BLOCK_NAIVE_DTYPE,
     MATERIAL_BLOCK_STD140_DTYPE,
     SCENE_BLOCK_DTYPE,

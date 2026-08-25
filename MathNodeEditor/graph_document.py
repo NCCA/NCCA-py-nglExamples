@@ -59,7 +59,7 @@ def _number(value: object, label: str) -> float:
 def _named_enum(
     entry: Mapping[str, object],
     field: str,
-    enum_type: type[MathType] | type[Operation],
+    enum_type: type[MathType | Operation],
     label: str,
     node_id: str,
 ) -> MathType | Operation:

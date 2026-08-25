@@ -1046,7 +1046,7 @@ class MathGraph:
                         raise GraphError(
                             "mesh-array-derived outputs cannot be embedded"
                         )
-                    lines.append(f"{node_name} = {repr(node.value)}")
+                    lines.append(f"{node_name} = {node.value!r}")
                 elif isinstance(node, GeneratorNode):
                     parameter_types = OPERATION_PARAMETER_TYPES[node.operation]
                     parameters = [
@@ -1104,25 +1104,45 @@ class MathGraph:
                         input_names.append(emit(node.inputs[input_index], active))
                     binary_operations = {
                         Operation.ADD: lambda: f"{input_names[0]} + {input_names[1]}",
-                        Operation.SUBTRACT: lambda: f"{input_names[0]} - {input_names[1]}",
+                        Operation.SUBTRACT: lambda: (
+                            f"{input_names[0]} - {input_names[1]}"
+                        ),
                         Operation.MULTIPLY: lambda: (
                             f"_component_multiply({input_names[0]}, {input_names[1]})"
                         ),
-                        Operation.MATRIX_MULTIPLY: lambda: f"{input_names[0]} @ {input_names[1]}",
-                        Operation.DOT: lambda: f"float({input_names[0]}.dot({input_names[1]}))",
-                        Operation.CROSS: lambda: f"{input_names[0]}.cross({input_names[1]})",
+                        Operation.MATRIX_MULTIPLY: lambda: (
+                            f"{input_names[0]} @ {input_names[1]}"
+                        ),
+                        Operation.DOT: lambda: (
+                            f"float({input_names[0]}.dot({input_names[1]}))"
+                        ),
+                        Operation.CROSS: lambda: (
+                            f"{input_names[0]}.cross({input_names[1]})"
+                        ),
                         Operation.NORMALISE: lambda: f"{input_names[0]}.normalized()",
                         Operation.TRANSPOSE: lambda: f"{input_names[0]}.transposed()",
                         Operation.INVERSE: lambda: f"{input_names[0]}.inverse()",
-                        Operation.MAT4_TO_MAT3: lambda: f"Mat3.from_mat4({input_names[0]})",
-                        Operation.QUATERNION_PRODUCT: lambda: f"{input_names[0]} @ {input_names[1]}",
-                        Operation.QUATERNION_ROTATE_VECTOR: lambda: f"{input_names[0]} * {input_names[1]}",
-                        Operation.QUATERNION_TO_MAT4: lambda: f"{input_names[0]}.to_mat4()",
+                        Operation.MAT4_TO_MAT3: lambda: (
+                            f"Mat3.from_mat4({input_names[0]})"
+                        ),
+                        Operation.QUATERNION_PRODUCT: lambda: (
+                            f"{input_names[0]} @ {input_names[1]}"
+                        ),
+                        Operation.QUATERNION_ROTATE_VECTOR: lambda: (
+                            f"{input_names[0]} * {input_names[1]}"
+                        ),
+                        Operation.QUATERNION_TO_MAT4: lambda: (
+                            f"{input_names[0]}.to_mat4()"
+                        ),
                         Operation.MAT4_TO_QUATERNION: lambda: (
                             f"Quaternion.from_mat4({input_names[0]})"
                         ),
-                        Operation.QUATERNION_CONJUGATE: lambda: f"{input_names[0]}.conjugate()",
-                        Operation.QUATERNION_INVERSE: lambda: f"{input_names[0]}.inverse()",
+                        Operation.QUATERNION_CONJUGATE: lambda: (
+                            f"{input_names[0]}.conjugate()"
+                        ),
+                        Operation.QUATERNION_INVERSE: lambda: (
+                            f"{input_names[0]}.inverse()"
+                        ),
                     }
                     if node.operation in {
                         Operation.TRANSFORM_VERTICES,

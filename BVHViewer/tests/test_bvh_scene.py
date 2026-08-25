@@ -7,10 +7,10 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import bvh_scene  # noqa: E402
-from bvh import Bvh  # noqa: E402
-from bvh_scene import BvhScene  # noqa: E402
-from ncca.ngl import Mat4  # noqa: E402
+import bvh_scene
+from bvh import Bvh
+from bvh_scene import BvhScene
+from ncca.ngl import Mat4
 
 _CLIP = """\
 HIERARCHY

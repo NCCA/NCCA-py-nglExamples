@@ -22,8 +22,8 @@ from bake_settings import BakeSettings, expected_shapes, prefilter_key
 
 __all__ = [
     "SCHEMA_VERSION",
-    "save_maps",
     "load_maps",
+    "save_maps",
 ]
 
 SCHEMA_VERSION = 2

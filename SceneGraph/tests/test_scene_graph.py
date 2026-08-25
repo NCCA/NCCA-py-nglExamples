@@ -14,8 +14,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ncca.ngl import Mat4  # noqa: E402
-from scene_graph import Node  # noqa: E402
+from ncca.ngl import Mat4
+from scene_graph import Node
 
 
 def _position(world: Mat4) -> np.ndarray:

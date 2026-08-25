@@ -19,7 +19,7 @@ To set the screen resolution, we can use the `set_screen_resolution` function.
 
 ```python
 def resizeGL(self, w: int, h: int) -> None:
-        Text.set_screen_size(self.window_width, self.window_height)
+    Text.set_screen_size(self.window_width, self.window_height)
 ```
 
 To render text we can use the `render_text` function.

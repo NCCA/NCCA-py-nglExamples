@@ -15,7 +15,7 @@ class PointCloud:
         self.sphere_radius = 1.0
 
     @classmethod
-    def from_file(cls, path: str) -> "PointCloud":
+    def from_file(cls, path: str) -> PointCloud:
         cloud = cls()
         with open(path) as f:
             for line in f:

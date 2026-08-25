@@ -80,7 +80,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         self.window_height: int = 720  # Window height
         self.setTitle("DOF Shader")
         self.fstop = 2.8
-        self.av = int(3)  # used in f-stop calc where fstop=sqrtf(2^av)
+        self.av = 3  # used in f-stop calc where fstop=sqrtf(2^av)
         self.focal_length = 1.0
         self.focal_distance = 2.0
         self.focus_distance = 5.0

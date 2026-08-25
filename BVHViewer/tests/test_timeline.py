@@ -9,11 +9,11 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import main as bvh_viewer  # noqa: E402
-from PySide6.QtCore import QPoint, Qt  # noqa: E402
-from PySide6.QtGui import QKeySequence  # noqa: E402
-from PySide6.QtTest import QSignalSpy, QTest  # noqa: E402
-from PySide6.QtWidgets import (  # noqa: E402
+import main as bvh_viewer
+from PySide6.QtCore import QPoint, Qt
+from PySide6.QtGui import QKeySequence
+from PySide6.QtTest import QSignalSpy, QTest
+from PySide6.QtWidgets import (
     QApplication,
     QDoubleSpinBox,
     QMainWindow,

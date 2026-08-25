@@ -14,8 +14,8 @@ ground plane is the whole of the conversion. The primitives that have an axis
 without any help.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable
 
 import mujoco
 import numpy as np

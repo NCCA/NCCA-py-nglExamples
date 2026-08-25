@@ -184,7 +184,12 @@ class GeneratorNode:
 
 ```python
 GraphNode: TypeAlias = (
-    ValueNode | OperationNode | OutputNode | LiteralNode | MeshViewerNode | GeneratorNode
+    ValueNode
+    | OperationNode
+    | OutputNode
+    | LiteralNode
+    | MeshViewerNode
+    | GeneratorNode
 )
 ```
 
@@ -201,33 +206,35 @@ Replace:
 with:
 
 ```python
-    def add_operation(self, operation: Operation) -> str:
-        """Add a wired operation node to the graph."""
-        if operation in GENERATOR_OPERATIONS:
-            raise ValueError(
-                f"{operation.value} has no wired inputs; use add_generator instead"
-            )
-        return self._add_node(OperationNode(operation))
+def add_operation(self, operation: Operation) -> str:
+    """Add a wired operation node to the graph."""
+    if operation in GENERATOR_OPERATIONS:
+        raise ValueError(
+            f"{operation.value} has no wired inputs; use add_generator instead"
+        )
+    return self._add_node(OperationNode(operation))
 
-    def add_generator(
-        self, operation: Operation, parameters: tuple[tuple[float, ...], ...]
-    ) -> str:
-        """Add a parameter node (Look At, Perspective, ...) to the graph."""
-        parameter_types = OPERATION_PARAMETER_TYPES[operation]
-        for parameter_type, components in zip(parameter_types, parameters):
-            _validate_components(parameter_type, components)
-        return self._add_node(GeneratorNode(operation, [tuple(p) for p in parameters]))
 
-    def set_generator_parameter(
-        self, node_id: str, parameter_index: int, components: tuple[float, ...]
-    ) -> None:
-        """Replace one parameter's components on a generator node."""
-        node = self._nodes[node_id]
-        if not isinstance(node, GeneratorNode):
-            raise ValueError("Only generator nodes store editable parameters")
-        parameter_type = OPERATION_PARAMETER_TYPES[node.operation][parameter_index]
+def add_generator(
+    self, operation: Operation, parameters: tuple[tuple[float, ...], ...]
+) -> str:
+    """Add a parameter node (Look At, Perspective, ...) to the graph."""
+    parameter_types = OPERATION_PARAMETER_TYPES[operation]
+    for parameter_type, components in zip(parameter_types, parameters):
         _validate_components(parameter_type, components)
-        node.parameters[parameter_index] = tuple(components)
+    return self._add_node(GeneratorNode(operation, [tuple(p) for p in parameters]))
+
+
+def set_generator_parameter(
+    self, node_id: str, parameter_index: int, components: tuple[float, ...]
+) -> None:
+    """Replace one parameter's components on a generator node."""
+    node = self._nodes[node_id]
+    if not isinstance(node, GeneratorNode):
+        raise ValueError("Only generator nodes store editable parameters")
+    parameter_type = OPERATION_PARAMETER_TYPES[node.operation][parameter_index]
+    _validate_components(parameter_type, components)
+    node.parameters[parameter_index] = tuple(components)
 ```
 
 - [ ] **Step 7: Extend the "no inputs" checks to `GeneratorNode` (`math_graph.py:645-667`)**
@@ -263,15 +270,13 @@ to:
 Insert immediately after `if isinstance(node, LiteralNode): return node.value`:
 
 ```python
-            if isinstance(node, GeneratorNode):
-                parameter_types = OPERATION_PARAMETER_TYPES[node.operation]
-                values = tuple(
-                    VALUE_CLASSES[parameter_type](*components)
-                    for parameter_type, components in zip(
-                        parameter_types, node.parameters
-                    )
-                )
-                return apply_operation(node.operation, *values)
+if isinstance(node, GeneratorNode):
+    parameter_types = OPERATION_PARAMETER_TYPES[node.operation]
+    values = tuple(
+        VALUE_CLASSES[parameter_type](*components)
+        for parameter_type, components in zip(parameter_types, node.parameters)
+    )
+    return apply_operation(node.operation, *values)
 ```
 
 - [ ] **Step 9: Run the tests to verify they pass**
@@ -651,8 +656,7 @@ class GeneratorNodeItem(BaseNodeItem):
         label_font = QFont()
         label_font.setPointSize(9)
         label_width = max(
-            QFontMetrics(label_font).horizontalAdvance(name)
-            for name in parameter_names
+            QFontMetrics(label_font).horizontalAdvance(name) for name in parameter_names
         )
         max_columns = max(TYPE_SHAPES[math_type][1] for math_type in parameter_types)
         width = max(200.0, label_width + 16.0 + max_columns * 76.0 + 24.0)
@@ -749,31 +753,31 @@ from .graphics_items import (
 - [ ] **Step 7: Add `add_generator_node`, right after `add_operation_node` (`canvas.py:120-131`)**
 
 ```python
-    def add_generator_node(
-        self,
-        operation: Operation,
-        position: QPointF | None = None,
-        parameters: tuple[tuple[float, ...], ...] | None = None,
-    ) -> GeneratorNodeItem:
-        """Add a parameter node (Look At, Perspective, ...) to the canvas."""
-        node_parameters = (
-            parameters
-            if parameters is not None
-            else default_generator_parameters(operation)
-        )
-        node_id = self.graph.add_generator(operation, node_parameters)
-        node = GeneratorNodeItem(
-            node_id,
-            operation,
-            node_parameters,
-            lambda parameter_index, values, generator_node_id=node_id: self._generator_changed(
-                generator_node_id, parameter_index, values
-            ),
-        )
-        self.addItem(node)
-        node.setPos(position if position is not None else self._next_position())
-        self.nodes[node_id] = node
-        return node
+def add_generator_node(
+    self,
+    operation: Operation,
+    position: QPointF | None = None,
+    parameters: tuple[tuple[float, ...], ...] | None = None,
+) -> GeneratorNodeItem:
+    """Add a parameter node (Look At, Perspective, ...) to the canvas."""
+    node_parameters = (
+        parameters
+        if parameters is not None
+        else default_generator_parameters(operation)
+    )
+    node_id = self.graph.add_generator(operation, node_parameters)
+    node = GeneratorNodeItem(
+        node_id,
+        operation,
+        node_parameters,
+        lambda parameter_index, values, generator_node_id=node_id: (
+            self._generator_changed(generator_node_id, parameter_index, values)
+        ),
+    )
+    self.addItem(node)
+    node.setPos(position if position is not None else self._next_position())
+    self.nodes[node_id] = node
+    return node
 ```
 
 - [ ] **Step 8: Add `_generator_changed`, right after `_value_changed` (`canvas.py:202-205`)**
@@ -1025,19 +1029,19 @@ and in `__all__`, insert `"GeneratorNodeItem",` between `"GraphError",` and `"Ma
 In `test_palette_buttons_add_the_requested_node_type`'s parametrize list, change:
 
 ```python
-        ("Matrix Multiply", "OperationNodeItem"),
-        ("Look At", "OperationNodeItem"),
-        ("Perspective", "OperationNodeItem"),
-        ("Output", "OutputNodeItem"),
+(("Matrix Multiply", "OperationNodeItem"),)
+(("Look At", "OperationNodeItem"),)
+(("Perspective", "OperationNodeItem"),)
+(("Output", "OutputNodeItem"),)
 ```
 
 to:
 
 ```python
-        ("Matrix Multiply", "OperationNodeItem"),
-        ("Look At", "GeneratorNodeItem"),
-        ("Perspective", "GeneratorNodeItem"),
-        ("Output", "OutputNodeItem"),
+(("Matrix Multiply", "OperationNodeItem"),)
+(("Look At", "GeneratorNodeItem"),)
+(("Perspective", "GeneratorNodeItem"),)
+(("Output", "OutputNodeItem"),)
 ```
 
 Replace `test_operation_nodes_display_semantic_input_names` with two tests — one for operations that stay wired, one for the new generator nodes:

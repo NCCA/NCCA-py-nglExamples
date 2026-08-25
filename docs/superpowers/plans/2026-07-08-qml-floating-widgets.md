@@ -303,13 +303,19 @@ class TeapotRenderer(QQuickFramebufferObject.Renderer):
 
     def createFramebufferObject(self, size: QSize) -> QOpenGLFramebufferObject:
         fmt = QOpenGLFramebufferObjectFormat()
-        fmt.setAttachment(QOpenGLFramebufferObjectFormat.Attachment.CombinedDepthStencil)
+        fmt.setAttachment(
+            QOpenGLFramebufferObjectFormat.Attachment.CombinedDepthStencil
+        )
         fmt.setSamples(4)
         self._aspect = size.width() / max(size.height(), 1)
         return QOpenGLFramebufferObject(size, fmt)
 
     def synchronize(self, item: TeapotView) -> None:
-        if item.transformModel is None or item.lookAtModel is None or item.colourModel is None:
+        if (
+            item.transformModel is None
+            or item.lookAtModel is None
+            or item.colourModel is None
+        ):
             return
         model_matrix = item.transformModel.get_matrix()
         view_matrix = item.lookAtModel.get_matrix()
@@ -629,7 +635,9 @@ class PanelRegistry(QObject):
         self._rects: dict[str, QRectF] = {}
 
     @Slot(str, float, float, float, float)
-    def update_rect(self, panel_id: str, x: float, y: float, w: float, h: float) -> None:
+    def update_rect(
+        self, panel_id: str, x: float, y: float, w: float, h: float
+    ) -> None:
         """Record (or replace) the current screen rect of a panel.
 
         Args:
@@ -1012,7 +1020,9 @@ class MainWindow(QMainWindow):
         self.overlay = OverlayQuickWidget(self.scene, self.registry, self.scene)
         self.overlay.rootContext().setContextProperty("panelRegistry", self.registry)
         self.overlay.rootContext().setContextProperty("pyNGLScene", self.scene)
-        self.overlay.setSource(QUrl.fromLocalFile(str(Path(__file__).parent / "main.qml")))
+        self.overlay.setSource(
+            QUrl.fromLocalFile(str(Path(__file__).parent / "main.qml"))
+        )
         self.overlay.setGeometry(self.scene.rect())
 
     def resizeEvent(self, event: QEvent) -> None:

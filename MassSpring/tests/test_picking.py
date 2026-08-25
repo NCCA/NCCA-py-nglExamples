@@ -12,8 +12,8 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ncca.ngl import Mat4, Vec3, look_at, perspective  # noqa: E402
-from picking import (  # noqa: E402
+from ncca.ngl import Mat4, Vec3, look_at, perspective
+from picking import (
     decode_id,
     encode_id,
     intersect_plane,
@@ -29,7 +29,7 @@ def _camera() -> np.ndarray:
 
 
 def test_ids_round_trip_over_the_whole_range():
-    for index in range(0, 64):
+    for index in range(64):
         assert decode_id(encode_id(index)) == index
 
 
@@ -40,7 +40,7 @@ def test_black_is_the_background_not_an_index():
 
 
 def test_ids_stay_inside_a_byte_per_channel():
-    for index in range(0, 64):
+    for index in range(64):
         assert all(0 <= c <= 255 for c in encode_id(index))
 
 

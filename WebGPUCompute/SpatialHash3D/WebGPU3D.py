@@ -617,7 +617,7 @@ class WebGPUScene3D(WebGPUWidget):
                         "resolve_target": self.colour_buffer_texture_view,
                         "load_op": wgpu.LoadOp.clear,
                         "store_op": wgpu.StoreOp.store,
-                        "clear_value": (0.4, 0.4, 0.4, 1.0),  #
+                        "clear_value": (0.4, 0.4, 0.4, 1.0),
                     }
                 ],
                 depth_stencil_attachment={

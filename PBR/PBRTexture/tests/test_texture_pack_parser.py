@@ -4,7 +4,7 @@ from pathlib import Path
 DEMO_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(DEMO_DIR))
 
-from texture_pack_parser import parse_texture_packs  # noqa: E402
+from texture_pack_parser import parse_texture_packs
 
 
 def test_parse_texture_packs_reads_array_format(tmp_path):

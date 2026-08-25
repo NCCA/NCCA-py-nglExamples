@@ -13,7 +13,6 @@ one storage-buffer instance via :meth:`instance`.
 """
 
 from abc import ABC
-from typing import Tuple
 
 from ncca.ngl import Mat4, Transform, Vec3, Vec4
 
@@ -47,7 +46,7 @@ class SelectionObject(ABC):
         tx.set_scale(self.scale.x, self.scale.y, self.scale.z)
         return tx.matrix()
 
-    def matches_colour_id(self, pixel: Tuple[int, int, int]) -> bool:
+    def matches_colour_id(self, pixel: tuple[int, int, int]) -> bool:
         return tuple(pixel) == self.colour_id
 
     def instance(self, global_tx: Mat4) -> dict:

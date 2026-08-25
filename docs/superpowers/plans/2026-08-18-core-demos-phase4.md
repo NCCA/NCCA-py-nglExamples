@@ -297,7 +297,9 @@ git commit -m "feat(texel-fetch): add the WebGPU storage-buffer reinterpretation
       program_name = program["name"]
       ShaderLib.create_shader_program(program_name)
 
-      base_dir = json_path.parent.parent  # JSON's "shaders/..." paths are relative to the demo folder
+      base_dir = (
+          json_path.parent.parent
+      )  # JSON's "shaders/..." paths are relative to the demo folder
       ok = True
       for stage in program["Shaders"]:
           shader_name = stage["name"]
@@ -309,7 +311,9 @@ git commit -m "feat(texel-fetch): add the WebGPU storage-buffer reinterpretation
           ShaderLib.attach_shader_to_program(program_name, shader_name)
 
       if not (ShaderLib.link_program_object(program_name) and ok):
-          logger.error(f"Failed to build shader program {program_name!r} from {json_path}")
+          logger.error(
+              f"Failed to build shader program {program_name!r} from {json_path}"
+          )
       return program_name
   ```
   (`ShaderLib.load_shader_source_from_string` is confirmed present on both `_ShaderLib` and the underlying `Shader` class — this is exactly what makes the multi-file concatenation possible; `load_shader_source` only takes a single file path.)
@@ -620,7 +624,9 @@ def read_cmptx(path: Path) -> tuple[int, int, int, bytes]:
             raise ValueError(f"{path} is not an ngl::cmptx file")
         width, height = struct.unpack("<ii", f.read(8))
         (internal_format,) = struct.unpack("<I", f.read(4))
-        f.read(4)  # compression enum -- unused on read, DXT1 is the only variant this demo writes
+        f.read(
+            4
+        )  # compression enum -- unused on read, DXT1 is the only variant this demo writes
         (size,) = struct.unpack("<I", f.read(4))
         data = f.read(size)
     return width, height, internal_format, data
@@ -734,13 +740,17 @@ Create `TextureCompressor/main.py` — the `DXTViewer` port: `MainWindow(PySideE
 
 - `initializeGL`: build a screen-space NDC quad VAO (two triangles, position+UV, same layout as `SimpleTexture`'s or `DXTViewer`'s `ScreenQuad`), `ShaderLib.load_shader("Texture", "TextureVertex.glsl", "TextureFragment.glsl")`, `ShaderLib.set_uniform("tex", 0)`, then load the default `textures/texture.cmptx` via:
   ```python
-  width, height, internal_format, data = read_cmptx(Path(__file__).parent / "textures" / "texture.cmptx")
+  width, height, internal_format, data = read_cmptx(
+      Path(__file__).parent / "textures" / "texture.cmptx"
+  )
   self.tex_id = gl.glGenTextures(1)
   gl.glActiveTexture(gl.GL_TEXTURE0)
   gl.glBindTexture(gl.GL_TEXTURE_2D, self.tex_id)
   gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
   gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-  gl.glCompressedTexImage2D(gl.GL_TEXTURE_2D, 0, internal_format, width, height, 0, len(data), data)
+  gl.glCompressedTexImage2D(
+      gl.GL_TEXTURE_2D, 0, internal_format, width, height, 0, len(data), data
+  )
   ```
   (`glCompressedTexImage2D` needs the explicit `imageSize` argument in this PyOpenGL build — confirmed via `OpenGL.GL.VERSION.GL_1_3`'s wrapper, which only annotates `data`'s array size as unchecked, it does not auto-fill `imageSize` the way `glTexImage2D` auto-fills from `format`/`type`.)
 - `paintGL`: clear, bind texture + VAO, draw 6 vertices as `GL_TRIANGLES` — no MVP needed (NDC-space screen quad, same as the source's `ScreenQuad`).

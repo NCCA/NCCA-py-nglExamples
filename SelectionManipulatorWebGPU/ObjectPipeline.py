@@ -14,7 +14,6 @@ shading and flat colour-ID output for picking.
 """
 
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import numpy as np
 import wgpu
@@ -49,9 +48,9 @@ class ObjectPipeline:
 
     def __init__(self, device: wgpu.GPUDevice) -> None:
         self.device = device
-        self._geometry: Dict[str, np.ndarray] = {}
-        self._mesh_info: Dict[str, Tuple[int, int]] = {}  # name -> (first, count)
-        self._order: List[str] = []  # instance_index -> mesh name for this frame
+        self._geometry: dict[str, np.ndarray] = {}
+        self._mesh_info: dict[str, tuple[int, int]] = {}  # name -> (first, count)
+        self._order: list[str] = []  # instance_index -> mesh name for this frame
 
         self.vertex_buffer: wgpu.GPUBuffer | None = None
         self.instance_data = np.zeros(_CAPACITY, dtype=_INSTANCE_DTYPE)
@@ -166,8 +165,8 @@ class ObjectPipeline:
         self,
         view: np.ndarray,
         projection: np.ndarray,
-        light_pos: Tuple[float, float, float],
-        light_diffuse: Tuple[float, float, float, float],
+        light_pos: tuple[float, float, float],
+        light_diffuse: tuple[float, float, float, float],
         render_mode: int,
     ) -> None:
         self.globals_data["view"] = view
@@ -179,7 +178,7 @@ class ObjectPipeline:
             self.globals_buffer, 0, self.globals_data.tobytes()
         )
 
-    def set_instances(self, instances: List[dict]) -> None:
+    def set_instances(self, instances: list[dict]) -> None:
         """instances: list of dicts with mesh/model/normal_matrix/colour/pick_colour/selected."""
         self._order = []
         for i, inst in enumerate(instances):

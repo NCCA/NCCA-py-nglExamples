@@ -104,9 +104,7 @@ def test_the_centre_ray_hits_the_origin_plane_at_the_origin():
     project = perspective(45.0, 1.0, 0.5, 150.0)
     mvp = (project @ view).to_numpy()
     origin, direction = ray_from_screen(50.0, 50.0, 100, 100, mvp)
-    hit = intersect_plane(
-        origin, direction, np.zeros(3), np.array([0.0, 0.0, -1.0])
-    )
+    hit = intersect_plane(origin, direction, np.zeros(3), np.array([0.0, 0.0, -1.0]))
     np.testing.assert_allclose(hit, [0.0, 0.0, 0.0], atol=1e-4)
 
 
@@ -116,9 +114,7 @@ def test_a_ray_above_centre_hits_the_plane_higher_up():
     mvp = (project @ view).to_numpy()
     # y=25 is above the centre in Qt's top-left pixel origin
     origin, direction = ray_from_screen(50.0, 25.0, 100, 100, mvp)
-    hit = intersect_plane(
-        origin, direction, np.zeros(3), np.array([0.0, 0.0, -1.0])
-    )
+    hit = intersect_plane(origin, direction, np.zeros(3), np.array([0.0, 0.0, -1.0]))
     assert hit[1] > 0.1
     assert abs(hit[0]) < 1e-4
 
@@ -360,30 +356,29 @@ Add the accessor next to `num_masses`:
 Add the mutators after `set_fix_last`:
 
 ```python
-    def set_dragged(self, index: int | None) -> None:
-        """Mark a mass as held by the mouse, or pass None to let go.
+def set_dragged(self, index: int | None) -> None:
+    """Mark a mass as held by the mouse, or pass None to let go.
 
-        A held mass is kinematic: it goes into the fixed mask so the
-        integrator leaves it alone and the mouse can place it freely.
-        """
-        if index is not None and not 0 <= index < self._num_masses:
-            raise ValueError(
-                f"no mass {index} in a chain of {self._num_masses}"
-            )
-        self._dragged = index
-        self._rebuild_fixed_mask()
+    A held mass is kinematic: it goes into the fixed mask so the
+    integrator leaves it alone and the mouse can place it freely.
+    """
+    if index is not None and not 0 <= index < self._num_masses:
+        raise ValueError(f"no mass {index} in a chain of {self._num_masses}")
+    self._dragged = index
+    self._rebuild_fixed_mask()
 
-    def move_dragged(self, position: np.ndarray) -> None:
-        """Put the held mass exactly at `position`. Does nothing if nothing is held.
 
-        The anchor moves too: a pinned mass is clamped back to its anchor by
-        _apply_fixed, so without this dragging one would snap straight back.
-        """
-        if self._dragged is None:
-            return
-        self.state.position[self._dragged] = position
-        self.state.velocity[self._dragged] = 0.0
-        self._initial_positions[self._dragged] = position
+def move_dragged(self, position: np.ndarray) -> None:
+    """Put the held mass exactly at `position`. Does nothing if nothing is held.
+
+    The anchor moves too: a pinned mass is clamped back to its anchor by
+    _apply_fixed, so without this dragging one would snap straight back.
+    """
+    if self._dragged is None:
+        return
+    self.state.position[self._dragged] = position
+    self.state.velocity[self._dragged] = 0.0
+    self._initial_positions[self._dragged] = position
 ```
 
 Replace `_rebuild_fixed_mask` so the held mass joins the mask:
@@ -478,63 +473,65 @@ In `__init__`, after `self._timer_id = None`:
 Add these methods to `MassSpringScene`, after `_draw_chain_line`:
 
 ```python
-    # -------------------------------------------------------------- picking
-    def _world_mvp(self) -> Mat4:
-        """Projection @ view, with no arcball -- the space the drag happens in."""
-        return self.project @ self.view
+# -------------------------------------------------------------- picking
+def _world_mvp(self) -> Mat4:
+    """Projection @ view, with no arcball -- the space the drag happens in."""
+    return self.project @ self.view
 
-    def _pick(self, x: float, y: float) -> int | None:
-        """Render every mass flat in its ID colour and read back which one is
-        under the cursor. x, y are device pixels, Qt's top-left origin."""
-        self.makeCurrent()
-        gl.glViewport(0, 0, self.window_width, self.window_height)
-        gl.glClearColor(0.0, 0.0, 0.0, 1.0)  # black means nothing
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        global_tx = self._mouse_global_tx()
-        ShaderLib.use(DefaultShader.COLOUR)
-        for i in range(self.chain.num_masses):
-            r, g, b = encode_id(i)
-            self.transform.reset()
-            self.transform.set_scale(_MASS_SCALE, _MASS_SCALE, _MASS_SCALE)
-            p = self.chain.positions[i]
-            self.transform.set_position(float(p[0]), float(p[1]), float(p[2]))
-            mvp = self.project @ self.view @ global_tx @ self.transform.matrix()
-            ShaderLib.set_uniform("MVP", mvp)
-            ShaderLib.set_uniform("Colour", r / 255.0, g / 255.0, b / 255.0, 1.0)
-            Primitives.draw("cube")
-        gl.glClearColor(0.4, 0.4, 0.4, 1.0)
 
-        half = _PICK_BLOCK // 2
-        read_x = max(0, int(x) - half)
-        read_y = max(0, self.window_height - int(y) - half)
-        data = gl.glReadPixels(
-            read_x, read_y, _PICK_BLOCK, _PICK_BLOCK, gl.GL_RGB, gl.GL_UNSIGNED_BYTE
-        )
-        pixels = [tuple(data[i : i + 3]) for i in range(0, len(data), 3)]
-        for pixel in pixels:
-            index = decode_id(pixel)
-            if index is not None and index < self.chain.num_masses:
-                return index
-        return None
+def _pick(self, x: float, y: float) -> int | None:
+    """Render every mass flat in its ID colour and read back which one is
+    under the cursor. x, y are device pixels, Qt's top-left origin."""
+    self.makeCurrent()
+    gl.glViewport(0, 0, self.window_width, self.window_height)
+    gl.glClearColor(0.0, 0.0, 0.0, 1.0)  # black means nothing
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+    global_tx = self._mouse_global_tx()
+    ShaderLib.use(DefaultShader.COLOUR)
+    for i in range(self.chain.num_masses):
+        r, g, b = encode_id(i)
+        self.transform.reset()
+        self.transform.set_scale(_MASS_SCALE, _MASS_SCALE, _MASS_SCALE)
+        p = self.chain.positions[i]
+        self.transform.set_position(float(p[0]), float(p[1]), float(p[2]))
+        mvp = self.project @ self.view @ global_tx @ self.transform.matrix()
+        ShaderLib.set_uniform("MVP", mvp)
+        ShaderLib.set_uniform("Colour", r / 255.0, g / 255.0, b / 255.0, 1.0)
+        Primitives.draw("cube")
+    gl.glClearColor(0.4, 0.4, 0.4, 1.0)
 
-    def _drag_to(self, x: float, y: float) -> None:
-        """Slide the held mass along its drag plane to follow the cursor."""
-        if self.chain.dragged is None or self._drag_plane_point is None:
-            return
-        origin, direction = ray_from_screen(
-            x, y, self.window_width, self.window_height, self._world_mvp().to_numpy()
-        )
-        # the camera is fixed looking down -z, so the screen-parallel plane
-        # has this normal in world space whatever the arcball is doing
-        hit = intersect_plane(
-            origin, direction, self._drag_plane_point, np.array([0.0, 0.0, -1.0])
-        )
-        if hit is None:
-            return
-        # back out of the arcball into the chain's own space
-        global_np = self._mouse_global_tx().to_numpy()
-        self.chain.move_dragged(transform_point(hit, np.linalg.inv(global_np)))
-        self.update()
+    half = _PICK_BLOCK // 2
+    read_x = max(0, int(x) - half)
+    read_y = max(0, self.window_height - int(y) - half)
+    data = gl.glReadPixels(
+        read_x, read_y, _PICK_BLOCK, _PICK_BLOCK, gl.GL_RGB, gl.GL_UNSIGNED_BYTE
+    )
+    pixels = [tuple(data[i : i + 3]) for i in range(0, len(data), 3)]
+    for pixel in pixels:
+        index = decode_id(pixel)
+        if index is not None and index < self.chain.num_masses:
+            return index
+    return None
+
+
+def _drag_to(self, x: float, y: float) -> None:
+    """Slide the held mass along its drag plane to follow the cursor."""
+    if self.chain.dragged is None or self._drag_plane_point is None:
+        return
+    origin, direction = ray_from_screen(
+        x, y, self.window_width, self.window_height, self._world_mvp().to_numpy()
+    )
+    # the camera is fixed looking down -z, so the screen-parallel plane
+    # has this normal in world space whatever the arcball is doing
+    hit = intersect_plane(
+        origin, direction, self._drag_plane_point, np.array([0.0, 0.0, -1.0])
+    )
+    if hit is None:
+        return
+    # back out of the arcball into the chain's own space
+    global_np = self._mouse_global_tx().to_numpy()
+    self.chain.move_dragged(transform_point(hit, np.linalg.inv(global_np)))
+    self.update()
 ```
 
 - [ ] **Step 4: Route the mouse**
@@ -542,39 +539,41 @@ Add these methods to `MassSpringScene`, after `_draw_chain_line`:
 Add these overrides at the end of the class:
 
 ```python
-    # ---------------------------------------------------------------- mouse
-    def mousePressEvent(self, event) -> None:
-        """Left-press grabs a mass if one is under the cursor, otherwise it
-        falls through to the mixin and rotates the camera."""
-        if event.button() == Qt.LeftButton:
-            dpr = self.devicePixelRatio()
-            position = event.position()
-            index = self._pick(position.x() * dpr, position.y() * dpr)
-            if index is not None:
-                self.chain.set_dragged(index)
-                # the drag plane passes through the mass, in world space
-                self._drag_plane_point = transform_point(
-                    self.chain.positions[index], self._mouse_global_tx().to_numpy()
-                )
-                self.update()
-                return  # do NOT let the mixin start a camera rotate too
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event) -> None:
-        if self.chain.dragged is not None:
-            dpr = self.devicePixelRatio()
-            position = event.position()
-            self._drag_to(position.x() * dpr, position.y() * dpr)
-            return
-        super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event) -> None:
-        if event.button() == Qt.LeftButton and self.chain.dragged is not None:
-            self.chain.set_dragged(None)
-            self._drag_plane_point = None
+# ---------------------------------------------------------------- mouse
+def mousePressEvent(self, event) -> None:
+    """Left-press grabs a mass if one is under the cursor, otherwise it
+    falls through to the mixin and rotates the camera."""
+    if event.button() == Qt.LeftButton:
+        dpr = self.devicePixelRatio()
+        position = event.position()
+        index = self._pick(position.x() * dpr, position.y() * dpr)
+        if index is not None:
+            self.chain.set_dragged(index)
+            # the drag plane passes through the mass, in world space
+            self._drag_plane_point = transform_point(
+                self.chain.positions[index], self._mouse_global_tx().to_numpy()
+            )
             self.update()
-            return
-        super().mouseReleaseEvent(event)
+            return  # do NOT let the mixin start a camera rotate too
+    super().mousePressEvent(event)
+
+
+def mouseMoveEvent(self, event) -> None:
+    if self.chain.dragged is not None:
+        dpr = self.devicePixelRatio()
+        position = event.position()
+        self._drag_to(position.x() * dpr, position.y() * dpr)
+        return
+    super().mouseMoveEvent(event)
+
+
+def mouseReleaseEvent(self, event) -> None:
+    if event.button() == Qt.LeftButton and self.chain.dragged is not None:
+        self.chain.set_dragged(None)
+        self._drag_plane_point = None
+        self.update()
+        return
+    super().mouseReleaseEvent(event)
 ```
 
 - [ ] **Step 5: Draw the held mass in its own colour**
@@ -648,7 +647,10 @@ def check():
     pos = QPointF(px / dpr, py / dpr)
     scene.mousePressEvent(
         QMouseEvent(
-            QEvent.Type.MouseButtonPress, pos, Qt.LeftButton, Qt.LeftButton,
+            QEvent.Type.MouseButtonPress,
+            pos,
+            Qt.LeftButton,
+            Qt.LeftButton,
             Qt.NoModifier,
         )
     )
@@ -658,7 +660,11 @@ def check():
     moved = QPointF(pos.x() + 120, pos.y())
     scene.mouseMoveEvent(
         QMouseEvent(
-            QEvent.Type.MouseMove, moved, Qt.NoButton, Qt.LeftButton, Qt.NoModifier,
+            QEvent.Type.MouseMove,
+            moved,
+            Qt.NoButton,
+            Qt.LeftButton,
+            Qt.NoModifier,
         )
     )
     after = scene.chain.positions[1].copy()
@@ -666,7 +672,10 @@ def check():
     assert after[0] > before[0] + 0.1, "drag did not move the mass right"
     scene.mouseReleaseEvent(
         QMouseEvent(
-            QEvent.Type.MouseButtonRelease, moved, Qt.LeftButton, Qt.NoButton,
+            QEvent.Type.MouseButtonRelease,
+            moved,
+            Qt.LeftButton,
+            Qt.NoButton,
             Qt.NoModifier,
         )
     )
@@ -675,8 +684,11 @@ def check():
     # and a press on empty background must rotate instead of grabbing
     scene.mousePressEvent(
         QMouseEvent(
-            QEvent.Type.MouseButtonPress, QPointF(5, 5), Qt.LeftButton,
-            Qt.LeftButton, Qt.NoModifier,
+            QEvent.Type.MouseButtonPress,
+            QPointF(5, 5),
+            Qt.LeftButton,
+            Qt.LeftButton,
+            Qt.NoModifier,
         )
     )
     assert scene.chain.dragged is None, "background press grabbed a mass"

@@ -30,7 +30,7 @@ from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from collision_maths import ray_sphere_intersect  # noqa: E402
+from collision_maths import ray_sphere_intersect
 
 
 def _hit_points(ray_start: Vec3, ray_dir: Vec3, sphere_pos: Vec3, radius: float):

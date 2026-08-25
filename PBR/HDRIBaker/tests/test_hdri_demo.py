@@ -16,8 +16,8 @@ import pytest
 
 pytest.importorskip("wgpu")
 
-from hdri_demo import _TRANSFORM_DTYPE, HDRIScene  # noqa: E402
-from ncca.ngl import FirstPersonCamera, Mat4, PerspMode, Vec3  # noqa: E402
+from hdri_demo import _TRANSFORM_DTYPE, HDRIScene
+from ncca.ngl import FirstPersonCamera, Mat4, PerspMode, Vec3
 
 
 class _FakeQueue:

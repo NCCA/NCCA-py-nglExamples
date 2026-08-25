@@ -125,7 +125,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         for i in range(0, len(verts), 3):
             n = calc_normal(verts[i], verts[i + 1], verts[i + 2])
             verts.extend([n, n, n])
-        for i in range(0, len(verts)):
+        for i in range(len(verts)):
             print(verts[i])
 
         # Create and bind VAO

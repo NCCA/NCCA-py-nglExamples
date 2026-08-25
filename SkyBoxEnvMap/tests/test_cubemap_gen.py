@@ -7,7 +7,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from cubemap_gen import FACE_ORDER, generate_cubemap_faces  # noqa: E402
+from cubemap_gen import FACE_ORDER, generate_cubemap_faces
 
 
 class TestFaceCountShapeDtype:

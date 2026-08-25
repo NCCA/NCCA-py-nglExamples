@@ -33,7 +33,6 @@ def _(mo):
     It is common to create buffers in shaders to pass in uniform data such as the MVP matrix and other information. To do this in WebGPU we can use numpy. The following example shows how we can create a simple buffer. 
     """
     )
-    return
 
 
 @app.cell
@@ -56,7 +55,6 @@ def _(np):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""We can set the data in this buffer using the following methods """)
-    return
 
 
 @app.cell
@@ -76,8 +74,6 @@ def _(Mat4, Vec3, look_at, perspective, vertex_uniform_data):
     vertex_uniform_data["colour"] = (1, 0, 0, 0)
 
     print(vertex_uniform_data)
-
-    return
 
 
 @app.cell

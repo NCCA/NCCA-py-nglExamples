@@ -96,7 +96,7 @@ class MainWindow(QOpenGLWindow):
         ShaderLib.set_uniform("normalMap", 1)
         ShaderLib.set_uniform("spec", 2)
         light_pos = [Vec3(3, -2, -2), Vec3(-3, -1.5, -2), Vec3(0, 5, 0)]
-        for i in range(0, 3):
+        for i in range(3):
             ShaderLib.set_uniform(f"light[{i}].position", light_pos[i])
             ShaderLib.set_uniform(f"light[{i}].ambient", Vec3(0.01, 0.01, 0.01))
             ShaderLib.set_uniform(f"light[{i}].diffuse", Vec3(1, 1, 1))

@@ -9,9 +9,9 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import main as bvh_viewer  # noqa: E402
-from bvh_scene import BvhScene  # noqa: E402
-from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
+import main as bvh_viewer
+from bvh_scene import BvhScene
+from PySide6.QtWidgets import QApplication, QWidget
 
 
 @pytest.fixture(scope="module")

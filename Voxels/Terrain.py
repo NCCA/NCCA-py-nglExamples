@@ -106,7 +106,7 @@ class Terrain:
 
         self.texture_index[index] += value
         self.texture_index[index] = np.clip(
-            self.texture_index[index], int(0), int(self.num_textures - 1)
+            self.texture_index[index], 0, int(self.num_textures - 1)
         )
         # Re-upload the modified index buffer to the GPU (the texture buffer
         # association is already set up in gen_texture_buffer).

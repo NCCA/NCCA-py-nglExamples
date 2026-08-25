@@ -14,8 +14,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from mass_spring import MassSpringChain  # noqa: E402
-from ncca.ngl import Vec3  # noqa: E402
+from mass_spring import MassSpringChain
+from ncca.ngl import Vec3
 
 
 def _settled(chain: MassSpringChain, steps: int = 400) -> None:

@@ -27,7 +27,7 @@ Rotate the shoulder and the elbow, wrist and both claws swing with it, because t
 This repo's maths is row-vector (`row_vec @ matrix`), and `Mat4.__matmul__` is written so `A @ B` applies `B` first, then `A` — same as `MVP = project @ view @ model` applying `model` first. So a child's world matrix is:
 
 ```python
-world = parent_world @ local   # local first, then everything above it
+world = parent_world @ local  # local first, then everything above it
 ```
 
 and a single joint's own local matrix is built the same way: `Mat4.translate(*pivot) @ Mat4.rotate_z(angle)` rotates the node's local frame about its own origin first, then carries the whole thing out to the pivot point in the parent's space. Get this backwards — `local @ parent_world`, or rotate-then-translate the wrong way round — and the arm still "renders", it just swings from the wrong place, which is a much nastier bug to spot than a crash. That's why `tests/test_scene_graph.py` pins down actual numbers (a 90 degree parent rotation must swing a `(0,0,2)` child offset to `(2,0,0)`) rather than just checking the code runs.

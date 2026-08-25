@@ -5,7 +5,7 @@ import sys
 import traceback
 from pathlib import Path
 
-import ncca.ngl.qml  # noqa: F401  (import registers ncca.ngl.qml widget types)
+import ncca.ngl.qml
 from panel_registry import PanelRegistry
 from PyNGLScene import PyNGLScene
 from PySide6.QtCore import QEvent, Qt, QTimer, QUrl

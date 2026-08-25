@@ -75,7 +75,7 @@ class BakeSettings:
         return asdict(self)
 
     @classmethod
-    def from_meta(cls, meta: dict) -> "BakeSettings":
+    def from_meta(cls, meta: dict) -> BakeSettings:
         """Rebuild settings from a file's meta block.
 
         A schema v1 file has no ``settings`` block; it can only ever have been
@@ -88,7 +88,7 @@ class BakeSettings:
         return cls(**{k: v for k, v in block.items() if k in known})
 
     @classmethod
-    def legacy_v1(cls) -> "BakeSettings":
+    def legacy_v1(cls) -> BakeSettings:
         """The one fixed shape every schema v1 file was baked at. Frozen
         history -- it must not track the defaults, which are free to move."""
         return cls(

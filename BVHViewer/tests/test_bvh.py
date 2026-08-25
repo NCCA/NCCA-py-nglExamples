@@ -13,8 +13,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bvh import Bvh, BvhParseError, rotation_from_y  # noqa: E402
-from ncca.ngl import Mat3, Vec3  # noqa: E402
+from bvh import Bvh, BvhParseError, rotation_from_y
+from ncca.ngl import Mat3, Vec3
 
 DEMO_DIR = Path(__file__).parent.parent
 TEST_BVH = DEMO_DIR / "bvh" / "test.bvh"

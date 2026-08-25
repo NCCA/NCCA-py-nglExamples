@@ -48,7 +48,7 @@ class DebugApplication(QApplication):
 Then replace the argument/app/smoketest handling in `__main__` (keep the existing QSurfaceFormat block and window setup untouched):
 
 ```python
-import argparse   # add to imports at top of file
+import argparse  # add to imports at top of file
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -75,8 +75,8 @@ if __name__ == "__main__":
     else:
         app = QApplication(sys.argv)
 
-    window = MainWindow()          # keep existing constructor args/size
-    window.resize(1024, 720)       # keep existing size
+    window = MainWindow()  # keep existing constructor args/size
+    window.resize(1024, 720)  # keep existing size
     window.show()
 
     if args.smoketest is not None:
@@ -114,7 +114,7 @@ def main() -> None:
         app = DebugApplication(sys.argv)
     else:
         app = QApplication(sys.argv)
-    win = WebGPUScene()            # keep existing class/size
+    win = WebGPUScene()  # keep existing class/size
     win.resize(1024, 720)
     win.show()
 
@@ -157,7 +157,10 @@ def main():
         scene.update()
         scene.render()
         sdl3.SDL_GL_SwapWindow(window)
-        if args.smoketest is not None and sdl3.SDL_GetTicks() - start_ticks >= args.smoketest:
+        if (
+            args.smoketest is not None
+            and sdl3.SDL_GetTicks() - start_ticks >= args.smoketest
+        ):
             print("SMOKETEST OK")
             running = False
 

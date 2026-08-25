@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from easing import EASING_FUNCTIONS, ease_out_bounce, get_source  # noqa: E402
+from easing import EASING_FUNCTIONS, ease_out_bounce, get_source
 
 
 @pytest.mark.parametrize("name", EASING_FUNCTIONS.keys())

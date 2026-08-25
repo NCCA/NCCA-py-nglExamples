@@ -28,7 +28,7 @@ import sys
 import traceback
 from pathlib import Path
 
-import ncca.ngl.qml  # noqa: F401  (import registers ncca.ngl.qml QML widget types)
+import ncca.ngl.qml
 import numpy as np
 import wgpu
 import wgpu.utils

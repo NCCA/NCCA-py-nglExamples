@@ -79,7 +79,6 @@ def _():
             time.sleep(interval)
 
     # This won't run automatically, but you can rerun cells manually or with an external trigger.
-    pass
 
 
 # end cell

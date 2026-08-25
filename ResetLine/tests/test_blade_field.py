@@ -5,7 +5,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from blade_field import (  # noqa: E402
+from blade_field import (
     BASE_COLOUR,
     RESTART_INDEX,
     animate_blades,

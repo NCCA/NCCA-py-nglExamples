@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 ################################################################################
 ## Form generated from reading UI file 'MainWindow.ui'
 ##
@@ -27,7 +25,7 @@ from PySide6.QtWidgets import (
 from rgbcolourwidget import RGBColourWidget
 
 
-class Ui_MainWidget(object):
+class Ui_MainWidget:
     def setupUi(self, MainWidget):
         if not MainWidget.objectName():
             MainWidget.setObjectName("MainWidget")

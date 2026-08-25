@@ -10,9 +10,9 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import main_webgpu as bvh_webgpu  # noqa: E402
-from ncca.ngl import PerspMode, perspective  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
+import main_webgpu as bvh_webgpu
+from ncca.ngl import PerspMode, perspective
+from PySide6.QtWidgets import QApplication
 
 
 @pytest.fixture(scope="module")

@@ -140,23 +140,19 @@ class MathNodeScene(QGraphicsScene):
 Then replace the hand-built `load_example` method:
 
 ```python
-    def load_example(self) -> None:
-        """Build the requested component-wise Vec3 multiplication example."""
-        self.clear_graph()
-        left = self.add_value_node(
-            MathType.VEC3, QPointF(-520.0, -130.0), (1.0, 2.0, 3.0)
-        )
-        right = self.add_value_node(
-            MathType.VEC3, QPointF(-520.0, 100.0), (4.0, 5.0, 6.0)
-        )
-        multiply = self.add_operation_node(Operation.MULTIPLY, QPointF(-140.0, 0.0))
-        output = self.add_output_node(QPointF(220.0, 0.0))
-        assert left.output_port is not None
-        assert right.output_port is not None
-        assert multiply.output_port is not None
-        self.connect_ports(left.output_port, multiply.input_ports[0])
-        self.connect_ports(right.output_port, multiply.input_ports[1])
-        self.connect_ports(multiply.output_port, output.input_ports[0])
+def load_example(self) -> None:
+    """Build the requested component-wise Vec3 multiplication example."""
+    self.clear_graph()
+    left = self.add_value_node(MathType.VEC3, QPointF(-520.0, -130.0), (1.0, 2.0, 3.0))
+    right = self.add_value_node(MathType.VEC3, QPointF(-520.0, 100.0), (4.0, 5.0, 6.0))
+    multiply = self.add_operation_node(Operation.MULTIPLY, QPointF(-140.0, 0.0))
+    output = self.add_output_node(QPointF(220.0, 0.0))
+    assert left.output_port is not None
+    assert right.output_port is not None
+    assert multiply.output_port is not None
+    self.connect_ports(left.output_port, multiply.input_ports[0])
+    self.connect_ports(right.output_port, multiply.input_ports[1])
+    self.connect_ports(multiply.output_port, output.input_ports[0])
 ```
 
 with:
@@ -500,9 +496,7 @@ def _isolated_settings(tmp_path: Path) -> QSettings:
 
 
 @pytest.fixture(autouse=True)
-def _redirect_default_settings(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def _redirect_default_settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Point every bare QSettings() at a throwaway file for this test only.
 
     ``MathNodeWindow(load_example=...)`` calls elsewhere in this file (there
@@ -1345,7 +1339,9 @@ def test_new_does_not_prompt_when_the_graph_is_unmodified(
         load_example=False, settings=_isolated_settings(tmp_path)
     )
 
-    def _fail_if_called(*_args: object, **_kwargs: object) -> QMessageBox.StandardButton:
+    def _fail_if_called(
+        *_args: object, **_kwargs: object
+    ) -> QMessageBox.StandardButton:
         raise AssertionError("Must not prompt on a clean graph")
 
     monkeypatch.setattr(QMessageBox, "question", _fail_if_called)
@@ -1419,7 +1415,14 @@ the `PySide6.QtGui` import to
 — add `QCloseEvent` to that same line, alphabetically after `QAction`:
 
 ```python
-from PySide6.QtGui import QAction, QCloseEvent, QFont, QFontMetrics, QKeySequence, QWheelEvent
+from PySide6.QtGui import (
+    QAction,
+    QCloseEvent,
+    QFont,
+    QFontMetrics,
+    QKeySequence,
+    QWheelEvent,
+)
 ```
 
 - [ ] **Step 2: Run the tests to verify they fail**
@@ -1457,24 +1460,25 @@ In `MathNodeEditor/node_editor.py`, add the method (place it right after
 Then gate `_new_graph` and `_open_graph`:
 
 ```python
-    def _new_graph(self) -> None:
-        """Discard the current graph and start a blank one."""
-        if not self._confirm_discard_changes():
-            return
-        self.canvas.clear_graph()
-        self.current_file = None
-        self._update_title()
+def _new_graph(self) -> None:
+    """Discard the current graph and start a blank one."""
+    if not self._confirm_discard_changes():
+        return
+    self.canvas.clear_graph()
+    self.current_file = None
+    self._update_title()
 
-    def _open_graph(self) -> None:
-        """Prompt for a path and replace the current graph with its contents."""
-        if not self._confirm_discard_changes():
-            return
-        path, _name_filter = QFileDialog.getOpenFileName(
-            self, "Open Graph", "", "JSON Files (*.json)"
-        )
-        if not path:
-            return
-        self._open_path(Path(path))
+
+def _open_graph(self) -> None:
+    """Prompt for a path and replace the current graph with its contents."""
+    if not self._confirm_discard_changes():
+        return
+    path, _name_filter = QFileDialog.getOpenFileName(
+        self, "Open Graph", "", "JSON Files (*.json)"
+    )
+    if not path:
+        return
+    self._open_path(Path(path))
 ```
 
 And gate `closeEvent` — `Quit` (`self.action_quit.triggered.connect(self.close)`,

@@ -23,12 +23,12 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from billboard_maths import (  # noqa: E402
+from billboard_maths import (
     back_to_front,
     cylindrical_basis,
     spherical_basis,
 )
-from ncca.ngl import Vec3, look_at  # noqa: E402
+from ncca.ngl import Vec3, look_at
 
 
 def _view(eye, look=(0.0, 0.0, 0.0), up=(0.0, 1.0, 0.0)) -> np.ndarray:

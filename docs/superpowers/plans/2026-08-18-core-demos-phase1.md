@@ -145,7 +145,12 @@ import traceback
 import OpenGL.GL as gl
 from matrix_stack import MatrixStack
 from ncca.ngl import Mat3, Prims, Vec3, logger, look_at, perspective
-from ncca.ngl.opengl import DefaultShader, Primitives, PySideEventHandlingMixin, ShaderLib
+from ncca.ngl.opengl import (
+    DefaultShader,
+    Primitives,
+    PySideEventHandlingMixin,
+    ShaderLib,
+)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
@@ -497,7 +502,9 @@ class WebGPUScene(WebGPUWidget):
 
         self.stack.set_view(look_at(Vec3(0, 2, 5), Vec3(0, 0, 0), Vec3(0, 1, 0)))
         self.stack.set_projection(
-            perspective(45.0, self.width() / self.height(), 0.05, 350.0, PerspMode.WebGPU)
+            perspective(
+                45.0, self.width() / self.height(), 0.05, 350.0, PerspMode.WebGPU
+            )
         )
 
         self.device = get_default_device()
@@ -605,11 +612,15 @@ class WebGPUScene(WebGPUWidget):
         WebGPU uniform buffer), not how it's computed.
         """
         obj["uniforms"]["mvp"] = self.stack.mvp().to_numpy()
-        obj["uniforms"]["normal_matrix"] = self.stack.mv().inverse().transposed().to_numpy()
+        obj["uniforms"]["normal_matrix"] = (
+            self.stack.mv().inverse().transposed().to_numpy()
+        )
         obj["uniforms"]["colour"] = colour
         obj["uniforms"]["light_pos"] = (1.0, 1.0, 1.0, 0.0)
         obj["uniforms"]["light_diffuse"] = (1.0, 1.0, 1.0, 1.0)
-        self.device.queue.write_buffer(obj["uniform_buffer"], 0, obj["uniforms"].tobytes())
+        self.device.queue.write_buffer(
+            obj["uniform_buffer"], 0, obj["uniforms"].tobytes()
+        )
         render_pass.set_bind_group(0, obj["bind_group"], [], 0, 999999)
         render_pass.set_vertex_buffer(0, obj["vertex_buffer"])
         render_pass.draw(obj["count"])
@@ -673,7 +684,9 @@ class WebGPUScene(WebGPUWidget):
             self.stack.push_matrix()
             self.stack.scale(0.04, 0.04, 0.04)
             self.stack.rotate_axis_angle(self.rotation * 2, 0, 1, 0)
-            self._draw_current(render_pass, self.octahedron, (abs(x), abs(y), abs(z), 1.0))
+            self._draw_current(
+                render_pass, self.octahedron, (abs(x), abs(y), abs(z), 1.0)
+            )
             self.stack.pop_matrix()
             self.stack.pop_matrix()
             i += 0.05
@@ -854,7 +867,12 @@ import traceback
 
 import OpenGL.GL as gl
 from ncca.ngl import Mat4, Prims, Vec3, logger, look_at, ortho, perspective
-from ncca.ngl.opengl import DefaultShader, Primitives, PySideEventHandlingMixin, ShaderLib
+from ncca.ngl.opengl import (
+    DefaultShader,
+    Primitives,
+    PySideEventHandlingMixin,
+    ShaderLib,
+)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
@@ -1131,7 +1149,9 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication
 from wgpu.utils import get_default_device
 
-UNIFORM_DTYPE = np.dtype([("mvp", np.float32, (4, 4)), ("normal_matrix", np.float32, (4, 4))])
+UNIFORM_DTYPE = np.dtype(
+    [("mvp", np.float32, (4, 4)), ("normal_matrix", np.float32, (4, 4))]
+)
 
 
 class WebGPUScene(WebGPUWidget):
@@ -1288,7 +1308,9 @@ class WebGPUScene(WebGPUWidget):
                     project = ortho(-1, 1, -1, 1, 0.01, 200, PerspMode.WebGPU)
                     model = Mat4()
                 else:
-                    project = perspective(45.0, pw / max(ph, 1), 0.01, 100.0, PerspMode.WebGPU)
+                    project = perspective(
+                        45.0, pw / max(ph, 1), 0.01, 100.0, PerspMode.WebGPU
+                    )
                     model = self.mouse_global_tx
                 self._draw_pane(render_pass, view, project, model)
 
@@ -1615,7 +1637,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             tx.set_position(position.x, position.y, position.z)
             mv = self.view @ global_tx @ tx.matrix()
             ShaderLib.set_uniform("MVP", self.project @ mv)
-            ShaderLib.set_uniform("normalMatrix", Mat3.from_mat4(mv).inverse().transposed())
+            ShaderLib.set_uniform(
+                "normalMatrix", Mat3.from_mat4(mv).inverse().transposed()
+            )
             Primitives.draw("cube")
 
         if self.last_click_screen is not None and self.click_positions:
@@ -1643,7 +1667,9 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             position = event.position()
             x, y = int(position.x()), int(position.y())
             view_projection = (self.project @ self.view).to_numpy()
-            world = unproject_point(x, y, self.window_width, self.window_height, view_projection)
+            world = unproject_point(
+                x, y, self.window_width, self.window_height, view_projection
+            )
             self.click_positions.append(Vec3(*world))
             self.last_click_screen = (x, y)
             self.update()
@@ -1811,7 +1837,9 @@ from PySide6.QtWidgets import QApplication
 from view_to_world import unproject_point
 from wgpu.utils import get_default_device
 
-UNIFORM_DTYPE = np.dtype([("mvp", np.float32, (4, 4)), ("normal_matrix", np.float32, (4, 4))])
+UNIFORM_DTYPE = np.dtype(
+    [("mvp", np.float32, (4, 4)), ("normal_matrix", np.float32, (4, 4))]
+)
 
 
 class WebGPUScene(WebGPUWidget):
@@ -1837,7 +1865,9 @@ class WebGPUScene(WebGPUWidget):
         self.last_click_screen: tuple[int, int] | None = None
 
         self.view = look_at(Vec3(0, 0, 4), Vec3(0, 0, 0), Vec3(0, 1, 0))
-        self.project = perspective(45.0, self.width() / self.height(), 0.5, 50.0, PerspMode.WebGPU)
+        self.project = perspective(
+            45.0, self.width() / self.height(), 0.5, 50.0, PerspMode.WebGPU
+        )
 
         self.device = get_default_device()
         self._create_pipeline()
@@ -2326,9 +2356,23 @@ from PySide6.QtWidgets import (
 )
 
 _VBO_NAMES = [
-    "sphere", "cylinder", "cone", "disk", "plane", "torus", "teapot",
-    "octahedron", "dodecahedron", "icosahedron", "tetrahedron", "football",
-    "cube", "troll", "buddah", "dragon", "bunny",
+    "sphere",
+    "cylinder",
+    "cone",
+    "disk",
+    "plane",
+    "torus",
+    "teapot",
+    "octahedron",
+    "dodecahedron",
+    "icosahedron",
+    "tetrahedron",
+    "football",
+    "cube",
+    "troll",
+    "buddah",
+    "dragon",
+    "bunny",
 ]
 
 
@@ -2374,12 +2418,16 @@ class Scene(PySideEventHandlingMixin, QOpenGLWindow):
         Primitives.create(Prims.CYLINDER, "cylinder", 0.5, 1.4, 40, 40)
         Primitives.create(Prims.CONE, "cone", 0.5, 1.4, 20, 20)
         Primitives.create(Prims.DISK, "disk", 0.5, 40)
-        Primitives.create(Prims.TRIANGLE_PLANE, "plane", 1.0, 1.0, 10, 10, Vec3(0, 1, 0))
+        Primitives.create(
+            Prims.TRIANGLE_PLANE, "plane", 1.0, 1.0, 10, 10, Vec3(0, 1, 0)
+        )
         Primitives.create(Prims.TORUS, "torus", 0.15, 0.4, 40, 40)
 
         shader_dir = Path(__file__).parent / "shaders"
         ShaderLib.load_shader(
-            "PBR", str(shader_dir / "PBRVertex.glsl"), str(shader_dir / "PBRFragment.glsl")
+            "PBR",
+            str(shader_dir / "PBRVertex.glsl"),
+            str(shader_dir / "PBRFragment.glsl"),
         )
         ShaderLib.use("PBR")
         ShaderLib.set_uniform("camPos", from_pos)
@@ -2430,7 +2478,9 @@ class Scene(PySideEventHandlingMixin, QOpenGLWindow):
         self.makeCurrent()
         gl.glViewport(0, 0, self.window_width, self.window_height)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE if self.wireframe else gl.GL_FILL)
+        gl.glPolygonMode(
+            gl.GL_FRONT_AND_BACK, gl.GL_LINE if self.wireframe else gl.GL_FILL
+        )
 
         rot_x = Mat4().rotate_x(self.spin_x_face)
         rot_y = Mat4().rotate_y(self.spin_y_face)
@@ -2445,7 +2495,9 @@ class Scene(PySideEventHandlingMixin, QOpenGLWindow):
         ShaderLib.use("PBR")
         ShaderLib.set_uniform("MVP", self.project @ mv)
         ShaderLib.set_uniform("M", global_tx @ model)
-        ShaderLib.set_uniform("normal_matrix", Mat3.from_mat4(mv).inverse().transposed())
+        ShaderLib.set_uniform(
+            "normal_matrix", Mat3.from_mat4(mv).inverse().transposed()
+        )
         ShaderLib.set_uniform("albedo", *self.colour)
         Primitives.draw(_VBO_NAMES[self.draw_index])
 
@@ -2518,7 +2570,9 @@ class MainWindow(QMainWindow):
         self.scale_widget.valueChanged.connect(self._on_scale_changed)
         outer.addWidget(self.scale_widget)
 
-        axis_group = QGroupBox("Axis-Angle (used when order is Translate -> Axis-Angle -> Scale)")
+        axis_group = QGroupBox(
+            "Axis-Angle (used when order is Translate -> Axis-Angle -> Scale)"
+        )
         axis_layout = QVBoxLayout(axis_group)
         self.axis_widget = Vec3Widget(axis_group, "Axis", Vec3(1, 0, 0))
         self.axis_widget.valueChanged.connect(self._on_axis_changed)
@@ -2793,7 +2847,16 @@ from pathlib import Path
 
 import numpy as np
 import wgpu
-from ncca.ngl import Mat4, PerspMode, PrimData, Prims, Quaternion, Vec3, look_at, perspective
+from ncca.ngl import (
+    Mat4,
+    PerspMode,
+    PrimData,
+    Prims,
+    Quaternion,
+    Vec3,
+    look_at,
+    perspective,
+)
 from ncca.ngl.webgpu import WebGPUWidget
 from ncca.ngl.widgets import Mat4Widget, Vec3Widget
 from PySide6.QtCore import Qt, QTimer
@@ -2813,12 +2876,25 @@ from PySide6.QtWidgets import (
 from wgpu.utils import get_default_device
 
 _MESH_NAMES = [
-    "teapot", "cube", "troll", "buddah", "dragon", "bunny", "football",
-    "octahedron", "dodecahedron", "icosahedron", "tetrahedron",
+    "teapot",
+    "cube",
+    "troll",
+    "buddah",
+    "dragon",
+    "bunny",
+    "football",
+    "octahedron",
+    "dodecahedron",
+    "icosahedron",
+    "tetrahedron",
 ]
 
 UNIFORM_DTYPE = np.dtype(
-    [("mvp", np.float32, (4, 4)), ("normal_matrix", np.float32, (4, 4)), ("colour", np.float32, 4)]
+    [
+        ("mvp", np.float32, (4, 4)),
+        ("normal_matrix", np.float32, (4, 4)),
+        ("colour", np.float32, 4),
+    ]
 )
 
 
@@ -2857,7 +2933,9 @@ class WebGPUScene(WebGPUWidget):
         self.colour = (0.95, 0.71, 0.29)
 
         self.view = look_at(Vec3(0, 0, 8), Vec3(0, 0, 0), Vec3(0, 1, 0))
-        self.project = perspective(45.0, self.width() / self.height(), 0.05, 450.0, PerspMode.WebGPU)
+        self.project = perspective(
+            45.0, self.width() / self.height(), 0.05, 450.0, PerspMode.WebGPU
+        )
 
         self.device = get_default_device()
         self._create_pipeline()
@@ -2932,7 +3010,9 @@ class WebGPUScene(WebGPUWidget):
         self.meshes = {}
         for name in _MESH_NAMES:
             data = PrimData.primitive(name)
-            buf = self.device.create_buffer_with_data(data=data, usage=wgpu.BufferUsage.VERTEX)
+            buf = self.device.create_buffer_with_data(
+                data=data, usage=wgpu.BufferUsage.VERTEX
+            )
             self.meshes[name] = (buf, data.size // 8)
 
     def transform_matrix(self) -> Mat4:
@@ -3088,7 +3168,9 @@ class MainWindow(QMainWindow):
         self.scale_widget.valueChanged.connect(self._on_scale_changed)
         outer.addWidget(self.scale_widget)
 
-        axis_group = QGroupBox("Axis-Angle (used when order is Translate -> Axis-Angle -> Scale)")
+        axis_group = QGroupBox(
+            "Axis-Angle (used when order is Translate -> Axis-Angle -> Scale)"
+        )
         axis_layout = QVBoxLayout(axis_group)
         self.axis_widget = Vec3Widget(axis_group, "Axis", Vec3(1, 0, 0))
         self.axis_widget.valueChanged.connect(self._on_axis_changed)

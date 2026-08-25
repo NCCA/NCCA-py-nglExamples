@@ -717,7 +717,7 @@ class ObjLoaderNodeItem(BaseNodeItem):
         self,
         node_id: str,
         array_node_ids: tuple[str, str, str, str],
-        on_load_clicked: Callable[["ObjLoaderNodeItem"], None],
+        on_load_clicked: Callable[[ObjLoaderNodeItem], None],
     ) -> None:
         """Create the load button and the four labelled output sockets."""
         height = NODE_HEADER_HEIGHT + len(MESH_ARRAY_LABELS) * 26.0 + 76.0
@@ -905,7 +905,7 @@ class MeshViewerNodeItem(BaseNodeItem):
         if self._popup is not None:
             self._popup.update()
 
-    def set_mesh_inputs(self, mesh_inputs: "MeshViewerInputs") -> None:
+    def set_mesh_inputs(self, mesh_inputs: MeshViewerInputs) -> None:
         """Clear any error status and render the given merged mesh."""
         self.status_text_item.setPlainText("")
         self.render_state.set_mesh(mesh_inputs)

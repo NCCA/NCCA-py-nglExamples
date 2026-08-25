@@ -3,8 +3,9 @@
 import argparse
 import sys
 import traceback
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Any
 
 from GLSLHighlighter import GLSLHighlighter
 from ncca.ngl import Vec3, logger
@@ -153,7 +154,7 @@ class MainWindow(QMainWindow):
         self.resize(1024, 720)
         self._connect_slots()
         self.scene.uniform_found.connect(self.add_uniform_widget)
-        self._widget_factory: Dict[str, Callable] = {
+        self._widget_factory: dict[str, Callable] = {
             "vec3": self._create_vec3_widget,
             "colour3": self._create_rgb_colour_widget,
             "vec4": self._create_vec4_widget,

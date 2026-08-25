@@ -7,7 +7,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from collision_maths import (  # noqa: E402
+from collision_maths import (
     ray_sphere_intersect,
     ray_triangle_intersect,
     sphere_bbox_reflect,

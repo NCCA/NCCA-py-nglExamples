@@ -7,7 +7,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from view_to_world import unproject_point  # noqa: E402
+from view_to_world import unproject_point
 
 
 class TestUnprojectPoint:

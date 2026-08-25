@@ -199,10 +199,24 @@ class MainWindow(QOpenGLWindow):
 
         aspect = self.window_width / self.window_height
         self.cameras = [
-            UVNCamera(Vec3(0, 0, 20), Vec3(0, 0, 0), Vec3(0, 1, 0), 65.0, aspect, 0.2, 150.0),
-            UVNCamera(Vec3(0, 20, 0.001), Vec3(0, 0, 0), Vec3(0, 1, 0), 65.0, aspect, 0.2, 150.0),
-            UVNCamera(Vec3(20, 0, 0), Vec3(0, 0, 0), Vec3(0, 1, 0), 65.0, aspect, 0.2, 150.0),
-            UVNCamera(Vec3(8, 6, 20), Vec3(0, 0, 0), Vec3(0, 1, 0), 65.0, aspect, 0.2, 150.0),
+            UVNCamera(
+                Vec3(0, 0, 20), Vec3(0, 0, 0), Vec3(0, 1, 0), 65.0, aspect, 0.2, 150.0
+            ),
+            UVNCamera(
+                Vec3(0, 20, 0.001),
+                Vec3(0, 0, 0),
+                Vec3(0, 1, 0),
+                65.0,
+                aspect,
+                0.2,
+                150.0,
+            ),
+            UVNCamera(
+                Vec3(20, 0, 0), Vec3(0, 0, 0), Vec3(0, 1, 0), 65.0, aspect, 0.2, 150.0
+            ),
+            UVNCamera(
+                Vec3(8, 6, 20), Vec3(0, 0, 0), Vec3(0, 1, 0), 65.0, aspect, 0.2, 150.0
+            ),
         ]
 
         ShaderLib.load_shader(
@@ -552,7 +566,9 @@ class ColourObj(Obj):
                 n = self.normals[norm_idx] if norm_idx >= 0 else Vec3(0, 1, 0)
                 uv = self.uvs[uv_idx] if uv_idx >= 0 else (0.0, 0.0)
                 c = self.colours[vert_idx]
-                verts.extend([p.x, p.y, p.z, n.x, n.y, n.z, uv[0], uv[1], c.x, c.y, c.z])
+                verts.extend(
+                    [p.x, p.y, p.z, n.x, n.y, n.z, uv[0], uv[1], c.x, c.y, c.z]
+                )
 
         data = np.array(verts, dtype=np.float32)
         self.vao = VAOFactory.create_vao("simple", mode=4)  # GL_TRIANGLES
@@ -580,41 +596,43 @@ Note: `Obj.faces`/`.vertices`/`.normals`/`.uvs` attribute names and `VAOFactory.
 Copy the `VAOPrimitives/main.py` skeleton to `ColourObj/main.py`, replacing `initializeGL`/`paintGL`/`resizeGL`:
 
 ```python
-    def initializeGL(self) -> None:
-        self.makeCurrent()
-        gl.glClearColor(0.4, 0.4, 0.4, 1.0)
-        gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glEnable(gl.GL_MULTISAMPLE)
-        self.view = look_at(Vec3(0, 2, 2), Vec3(0, 0, 0), Vec3(0, 1, 0))
+def initializeGL(self) -> None:
+    self.makeCurrent()
+    gl.glClearColor(0.4, 0.4, 0.4, 1.0)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_MULTISAMPLE)
+    self.view = look_at(Vec3(0, 2, 2), Vec3(0, 0, 0), Vec3(0, 1, 0))
 
-        ShaderLib.load_shader(
-            "Colour", "shaders/ColourVertex.glsl", "shaders/ColourFragment.glsl"
-        )
+    ShaderLib.load_shader(
+        "Colour", "shaders/ColourVertex.glsl", "shaders/ColourFragment.glsl"
+    )
 
-        self.mesh = ColourObj.from_file("models/face_mesh_neutral.obj")
-        self.mesh.create_colour_vao()
+    self.mesh = ColourObj.from_file("models/face_mesh_neutral.obj")
+    self.mesh.create_colour_vao()
 
-    def paintGL(self) -> None:
-        self.makeCurrent()
-        gl.glViewport(0, 0, self.window_width, self.window_height)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        rot_x = Mat4().rotate_x(self.spin_x_face)
-        rot_y = Mat4().rotate_y(self.spin_y_face)
-        self.mouse_global_tx = rot_y @ rot_x
-        self.mouse_global_tx[3, 0] = self.model_position.x
-        self.mouse_global_tx[3, 1] = self.model_position.y
-        self.mouse_global_tx[3, 2] = self.model_position.z
+def paintGL(self) -> None:
+    self.makeCurrent()
+    gl.glViewport(0, 0, self.window_width, self.window_height)
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        ShaderLib.use("Colour")
-        mvp = self.project @ self.view @ self.mouse_global_tx
-        ShaderLib.set_uniform("MVP", mvp)
-        self.mesh.draw()
+    rot_x = Mat4().rotate_x(self.spin_x_face)
+    rot_y = Mat4().rotate_y(self.spin_y_face)
+    self.mouse_global_tx = rot_y @ rot_x
+    self.mouse_global_tx[3, 0] = self.model_position.x
+    self.mouse_global_tx[3, 1] = self.model_position.y
+    self.mouse_global_tx[3, 2] = self.model_position.z
 
-    def resizeGL(self, w: int, h: int) -> None:
-        self.window_width = int(w * self.devicePixelRatio())
-        self.window_height = int(h * self.devicePixelRatio())
-        self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
+    ShaderLib.use("Colour")
+    mvp = self.project @ self.view @ self.mouse_global_tx
+    ShaderLib.set_uniform("MVP", mvp)
+    self.mesh.draw()
+
+
+def resizeGL(self, w: int, h: int) -> None:
+    self.window_width = int(w * self.devicePixelRatio())
+    self.window_height = int(h * self.devicePixelRatio())
+    self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
 ```
 
 Add `from colour_obj import ColourObj` to the imports, set `self.setTitle("ColourObj")`, and add the `--smoketest` handling identical to Task 1 Step 4's `__main__` block.
@@ -667,62 +685,66 @@ Expected: confirms `control_points` is the property name holding the list of `Ve
 Copy `VAOPrimitives/main.py` skeleton to `CurveDemos/main.py`:
 
 ```python
-    def initializeGL(self) -> None:
-        self.makeCurrent()
-        gl.glClearColor(0.4, 0.4, 0.4, 1.0)
-        gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glEnable(gl.GL_MULTISAMPLE)
-        self.view = look_at(Vec3(0, 1, 15), Vec3(0, 0, 0), Vec3(0, 1, 0))
+def initializeGL(self) -> None:
+    self.makeCurrent()
+    gl.glClearColor(0.4, 0.4, 0.4, 1.0)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_MULTISAMPLE)
+    self.view = look_at(Vec3(0, 1, 15), Vec3(0, 0, 0), Vec3(0, 1, 0))
 
-        self.curve = BezierCurve()
-        self.curve.add_point(Vec3(-5, 0, -5))
-        self.curve.add_point(Vec3(-2, 2, 1))
-        self.curve.add_point(Vec3(3, -3, -3))
-        self.curve.add_point(Vec3(2, -6, 2))
+    self.curve = BezierCurve()
+    self.curve.add_point(Vec3(-5, 0, -5))
+    self.curve.add_point(Vec3(-2, 2, 1))
+    self.curve.add_point(Vec3(3, -3, -3))
+    self.curve.add_point(Vec3(2, -6, 2))
 
-        lod = 200
-        self.curve_points = [self.curve.get_point_on_curve(i / (lod - 1)) for i in range(lod)]
+    lod = 200
+    self.curve_points = [
+        self.curve.get_point_on_curve(i / (lod - 1)) for i in range(lod)
+    ]
 
-    def paintGL(self) -> None:
-        self.makeCurrent()
-        gl.glViewport(0, 0, self.window_width, self.window_height)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        rot_x = Mat4().rotate_x(self.spin_x_face)
-        rot_y = Mat4().rotate_y(self.spin_y_face)
-        self.mouse_global_tx = rot_y @ rot_x
-        self.mouse_global_tx[3, 0] = self.model_position.x
-        self.mouse_global_tx[3, 1] = self.model_position.y
-        self.mouse_global_tx[3, 2] = self.model_position.z
+def paintGL(self) -> None:
+    self.makeCurrent()
+    gl.glViewport(0, 0, self.window_width, self.window_height)
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        ShaderLib.use(DefaultShader.COLOUR)
-        mvp = self.project @ self.view @ self.mouse_global_tx
-        ShaderLib.set_uniform("MVP", mvp)
+    rot_x = Mat4().rotate_x(self.spin_x_face)
+    rot_y = Mat4().rotate_y(self.spin_y_face)
+    self.mouse_global_tx = rot_y @ rot_x
+    self.mouse_global_tx[3, 0] = self.model_position.x
+    self.mouse_global_tx[3, 1] = self.model_position.y
+    self.mouse_global_tx[3, 2] = self.model_position.z
 
-        gl.glBegin(gl.GL_LINE_STRIP)
-        ShaderLib.set_uniform("Colour", 1.0, 1.0, 1.0, 1.0)
-        for p in self.curve_points:
-            gl.glVertex3f(p.x, p.y, p.z)
-        gl.glEnd()
+    ShaderLib.use(DefaultShader.COLOUR)
+    mvp = self.project @ self.view @ self.mouse_global_tx
+    ShaderLib.set_uniform("MVP", mvp)
 
-        gl.glBegin(gl.GL_LINE_STRIP)
-        ShaderLib.set_uniform("Colour", 1.0, 0.0, 0.0, 1.0)
-        for p in self.curve.control_points:
-            gl.glVertex3f(p.x, p.y, p.z)
-        gl.glEnd()
+    gl.glBegin(gl.GL_LINE_STRIP)
+    ShaderLib.set_uniform("Colour", 1.0, 1.0, 1.0, 1.0)
+    for p in self.curve_points:
+        gl.glVertex3f(p.x, p.y, p.z)
+    gl.glEnd()
 
-        gl.glPointSize(4)
-        gl.glBegin(gl.GL_POINTS)
-        ShaderLib.set_uniform("Colour", 0.0, 1.0, 0.0, 1.0)
-        for p in self.curve.control_points:
-            gl.glVertex3f(p.x, p.y, p.z)
-        gl.glEnd()
-        gl.glPointSize(1)
+    gl.glBegin(gl.GL_LINE_STRIP)
+    ShaderLib.set_uniform("Colour", 1.0, 0.0, 0.0, 1.0)
+    for p in self.curve.control_points:
+        gl.glVertex3f(p.x, p.y, p.z)
+    gl.glEnd()
 
-    def resizeGL(self, w: int, h: int) -> None:
-        self.window_width = int(w * self.devicePixelRatio())
-        self.window_height = int(h * self.devicePixelRatio())
-        self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
+    gl.glPointSize(4)
+    gl.glBegin(gl.GL_POINTS)
+    ShaderLib.set_uniform("Colour", 0.0, 1.0, 0.0, 1.0)
+    for p in self.curve.control_points:
+        gl.glVertex3f(p.x, p.y, p.z)
+    gl.glEnd()
+    gl.glPointSize(1)
+
+
+def resizeGL(self, w: int, h: int) -> None:
+    self.window_width = int(w * self.devicePixelRatio())
+    self.window_height = int(h * self.devicePixelRatio())
+    self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
 ```
 
 Note: `glBegin`/`glEnd`/`glVertex3f` immediate-mode calls are deprecated under a Core Profile context (the `__main__` block requests `QSurfaceFormat.CoreProfile`). **Before relying on immediate mode, verify it actually works** by running the smoke test (Step 4). If it fails (core profile rejects `glBegin`), replace with a small ad-hoc VAO: build a `numpy.float32` array of the polyline/points and use `ncca.ngl.SimpleVAO`/`VAOFactory.create_vao("simple", mode=gl.GL_LINE_STRIP)` the same way as `ColourObj`'s `create_colour_vao` (Task 2 Step 4), with a single `vec3` position attribute at location 0, paired with `nglColourShader`'s `Colour` uniform (no per-vertex colour needed — draw 3 separate VAOs: curve polyline, hull polyline, control points).
@@ -778,77 +800,84 @@ git commit -m "feat: add CurveDemos demo"
 Copy `VAOPrimitives/main.py` skeleton to `QuatSlerp/main.py`. This demo drops the original's Qt-Designer spin-box UI in favour of keyboard controls, matching this repo's plain-`QOpenGLWindow` convention (per design spec):
 
 ```python
-    def initializeGL(self) -> None:
-        self.makeCurrent()
-        gl.glClearColor(0.4, 0.4, 0.4, 1.0)
-        gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glEnable(gl.GL_MULTISAMPLE)
-        self.view = look_at(Vec3(0, 0, 8), Vec3(0, 0, 0), Vec3(0, 1, 0))
+def initializeGL(self) -> None:
+    self.makeCurrent()
+    gl.glClearColor(0.4, 0.4, 0.4, 1.0)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_MULTISAMPLE)
+    self.view = look_at(Vec3(0, 0, 8), Vec3(0, 0, 0), Vec3(0, 1, 0))
 
-        ShaderLib.use(DefaultShader.DIFFUSE)
-        ShaderLib.set_uniform("lightPos", 1.0, 1.0, 1.0)
-        ShaderLib.set_uniform("lightDiffuse", 1.0, 1.0, 1.0, 1.0)
-        Primitives.load_default_primitives()
+    ShaderLib.use(DefaultShader.DIFFUSE)
+    ShaderLib.set_uniform("lightPos", 1.0, 1.0, 1.0)
+    ShaderLib.set_uniform("lightDiffuse", 1.0, 1.0, 1.0, 1.0)
+    Primitives.load_default_primitives()
 
-        self.start_rotation = Vec3(45, 90, 80)
-        self.end_rotation = Vec3(-300, 270, 360)
-        start_mat = Mat4().rotate_z(self.start_rotation.z) @ Mat4().rotate_y(
-            self.start_rotation.y
-        ) @ Mat4().rotate_x(self.start_rotation.x)
-        end_mat = Mat4().rotate_z(self.end_rotation.z) @ Mat4().rotate_y(
-            self.end_rotation.y
-        ) @ Mat4().rotate_x(self.end_rotation.x)
-        self.start_quat = Quaternion.from_mat4(start_mat)
-        self.end_quat = Quaternion.from_mat4(end_mat)
-        self.interp: float = 0.0
+    self.start_rotation = Vec3(45, 90, 80)
+    self.end_rotation = Vec3(-300, 270, 360)
+    start_mat = (
+        Mat4().rotate_z(self.start_rotation.z)
+        @ Mat4().rotate_y(self.start_rotation.y)
+        @ Mat4().rotate_x(self.start_rotation.x)
+    )
+    end_mat = (
+        Mat4().rotate_z(self.end_rotation.z)
+        @ Mat4().rotate_y(self.end_rotation.y)
+        @ Mat4().rotate_x(self.end_rotation.x)
+    )
+    self.start_quat = Quaternion.from_mat4(start_mat)
+    self.end_quat = Quaternion.from_mat4(end_mat)
+    self.interp: float = 0.0
 
-    def load_matrices_to_shader(self, transform) -> None:
-        ShaderLib.use(DefaultShader.DIFFUSE)
-        mv = self.view @ self.mouse_global_tx @ transform.matrix()
-        mvp = self.project @ mv
-        normal_matrix = Mat3.from_mat4(mv).inverse().transposed()
-        ShaderLib.set_uniform("MVP", mvp)
-        ShaderLib.set_uniform("MV", mv)
-        ShaderLib.set_uniform("normalMatrix", normal_matrix)
 
-    def paintGL(self) -> None:
-        self.makeCurrent()
-        gl.glViewport(0, 0, self.window_width, self.window_height)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+def load_matrices_to_shader(self, transform) -> None:
+    ShaderLib.use(DefaultShader.DIFFUSE)
+    mv = self.view @ self.mouse_global_tx @ transform.matrix()
+    mvp = self.project @ mv
+    normal_matrix = Mat3.from_mat4(mv).inverse().transposed()
+    ShaderLib.set_uniform("MVP", mvp)
+    ShaderLib.set_uniform("MV", mv)
+    ShaderLib.set_uniform("normalMatrix", normal_matrix)
 
-        rot_x = Mat4().rotate_x(self.spin_x_face)
-        rot_y = Mat4().rotate_y(self.spin_y_face)
-        self.mouse_global_tx = rot_y @ rot_x
-        self.mouse_global_tx[3, 0] = self.model_position.x
-        self.mouse_global_tx[3, 1] = self.model_position.y
-        self.mouse_global_tx[3, 2] = self.model_position.z
 
-        interp_quat = self.start_quat.slerp(self.end_quat, self.interp)
+def paintGL(self) -> None:
+    self.makeCurrent()
+    gl.glViewport(0, 0, self.window_width, self.window_height)
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        ShaderLib.set_uniform("Colour", 1.0, 1.0, 0.0, 1.0)
+    rot_x = Mat4().rotate_x(self.spin_x_face)
+    rot_y = Mat4().rotate_y(self.spin_y_face)
+    self.mouse_global_tx = rot_y @ rot_x
+    self.mouse_global_tx[3, 0] = self.model_position.x
+    self.mouse_global_tx[3, 1] = self.model_position.y
+    self.mouse_global_tx[3, 2] = self.model_position.z
 
-        tx = Transform()
-        tx.set_position(0, 0, 0)
-        tx.set_rotation_matrix(interp_quat.to_mat4())
-        self.load_matrices_to_shader(tx)
-        Primitives.draw("teapot")
+    interp_quat = self.start_quat.slerp(self.end_quat, self.interp)
 
-        tx2 = Transform()
-        tx2.set_position(-2, 0, 0)
-        tx2.set_rotation_matrix(self.start_quat.to_mat4())
-        self.load_matrices_to_shader(tx2)
-        Primitives.draw("teapot")
+    ShaderLib.set_uniform("Colour", 1.0, 1.0, 0.0, 1.0)
 
-        tx3 = Transform()
-        tx3.set_position(2, 0, 0)
-        tx3.set_rotation_matrix(self.end_quat.to_mat4())
-        self.load_matrices_to_shader(tx3)
-        Primitives.draw("teapot")
+    tx = Transform()
+    tx.set_position(0, 0, 0)
+    tx.set_rotation_matrix(interp_quat.to_mat4())
+    self.load_matrices_to_shader(tx)
+    Primitives.draw("teapot")
 
-    def resizeGL(self, w: int, h: int) -> None:
-        self.window_width = int(w * self.devicePixelRatio())
-        self.window_height = int(h * self.devicePixelRatio())
-        self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
+    tx2 = Transform()
+    tx2.set_position(-2, 0, 0)
+    tx2.set_rotation_matrix(self.start_quat.to_mat4())
+    self.load_matrices_to_shader(tx2)
+    Primitives.draw("teapot")
+
+    tx3 = Transform()
+    tx3.set_position(2, 0, 0)
+    tx3.set_rotation_matrix(self.end_quat.to_mat4())
+    self.load_matrices_to_shader(tx3)
+    Primitives.draw("teapot")
+
+
+def resizeGL(self, w: int, h: int) -> None:
+    self.window_width = int(w * self.devicePixelRatio())
+    self.window_height = int(h * self.devicePixelRatio())
+    self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
 ```
 
 Add `from ncca.ngl import DefaultShader, Primitives, Prims, Quaternion, ShaderLib, Transform` to imports, `self.setTitle("QuatSlerp")`.
@@ -1034,58 +1063,60 @@ void main()
 Copy `VAOPrimitives/main.py` skeleton to `KleinBottle/main.py`:
 
 ```python
-    def initializeGL(self) -> None:
-        self.makeCurrent()
-        gl.glClearColor(0.4, 0.4, 0.4, 1.0)
-        gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glEnable(gl.GL_MULTISAMPLE)
-        gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
-        self.view = look_at(Vec3(0, 1, 4), Vec3(0, 0, 0), Vec3(0, 1, 0))
+def initializeGL(self) -> None:
+    self.makeCurrent()
+    gl.glClearColor(0.4, 0.4, 0.4, 1.0)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_MULTISAMPLE)
+    gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
+    self.view = look_at(Vec3(0, 1, 4), Vec3(0, 0, 0), Vec3(0, 1, 0))
 
-        ShaderLib.load_shader(
-            "Phong", "shaders/PhongVertex.glsl", "shaders/PhongFragment.glsl"
-        )
+    ShaderLib.load_shader(
+        "Phong", "shaders/PhongVertex.glsl", "shaders/PhongFragment.glsl"
+    )
 
-        data = build_klein_bottle(40)
-        self.vertex_count = len(data) // 6
-        self.vao = VAOFactory.create_vao("simple", mode=gl.GL_TRIANGLES)
-        self.vao.bind()
-        self.vao.set_data(data)
-        self.vao.set_vertex_attribute_pointer(0, 3, "float", 6 * 4, 0)
-        self.vao.set_vertex_attribute_pointer(1, 3, "float", 6 * 4, 3 * 4)
-        self.vao.set_num_indices(self.vertex_count)
-        self.vao.unbind()
+    data = build_klein_bottle(40)
+    self.vertex_count = len(data) // 6
+    self.vao = VAOFactory.create_vao("simple", mode=gl.GL_TRIANGLES)
+    self.vao.bind()
+    self.vao.set_data(data)
+    self.vao.set_vertex_attribute_pointer(0, 3, "float", 6 * 4, 0)
+    self.vao.set_vertex_attribute_pointer(1, 3, "float", 6 * 4, 3 * 4)
+    self.vao.set_num_indices(self.vertex_count)
+    self.vao.unbind()
 
-    def paintGL(self) -> None:
-        self.makeCurrent()
-        gl.glViewport(0, 0, self.window_width, self.window_height)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        rot_x = Mat4().rotate_x(self.spin_x_face)
-        rot_y = Mat4().rotate_y(self.spin_y_face)
-        self.mouse_global_tx = rot_y @ rot_x
-        self.mouse_global_tx[3, 0] = self.model_position.x
-        self.mouse_global_tx[3, 1] = self.model_position.y
-        self.mouse_global_tx[3, 2] = self.model_position.z
+def paintGL(self) -> None:
+    self.makeCurrent()
+    gl.glViewport(0, 0, self.window_width, self.window_height)
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        ShaderLib.use("Phong")
-        mv = self.view @ self.mouse_global_tx
-        mvp = self.project @ mv
-        normal_matrix = Mat3.from_mat4(mv).inverse().transposed()
-        ShaderLib.set_uniform("MVP", mvp)
-        ShaderLib.set_uniform("MV", mv)
-        ShaderLib.set_uniform("normalMatrix", normal_matrix)
-        ShaderLib.set_uniform("lightPos", 2.0, 2.0, 2.0)
-        ShaderLib.set_uniform("viewerPos", 0.0, 1.0, 4.0)
+    rot_x = Mat4().rotate_x(self.spin_x_face)
+    rot_y = Mat4().rotate_y(self.spin_y_face)
+    self.mouse_global_tx = rot_y @ rot_x
+    self.mouse_global_tx[3, 0] = self.model_position.x
+    self.mouse_global_tx[3, 1] = self.model_position.y
+    self.mouse_global_tx[3, 2] = self.model_position.z
 
-        self.vao.bind()
-        self.vao.draw()
-        self.vao.unbind()
+    ShaderLib.use("Phong")
+    mv = self.view @ self.mouse_global_tx
+    mvp = self.project @ mv
+    normal_matrix = Mat3.from_mat4(mv).inverse().transposed()
+    ShaderLib.set_uniform("MVP", mvp)
+    ShaderLib.set_uniform("MV", mv)
+    ShaderLib.set_uniform("normalMatrix", normal_matrix)
+    ShaderLib.set_uniform("lightPos", 2.0, 2.0, 2.0)
+    ShaderLib.set_uniform("viewerPos", 0.0, 1.0, 4.0)
 
-    def resizeGL(self, w: int, h: int) -> None:
-        self.window_width = int(w * self.devicePixelRatio())
-        self.window_height = int(h * self.devicePixelRatio())
-        self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
+    self.vao.bind()
+    self.vao.draw()
+    self.vao.unbind()
+
+
+def resizeGL(self, w: int, h: int) -> None:
+    self.window_width = int(w * self.devicePixelRatio())
+    self.window_height = int(h * self.devicePixelRatio())
+    self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
 ```
 
 Add `from ncca.ngl import Mat3, ShaderLib, VAOFactory` and `from klein_bottle import build_klein_bottle` to imports, `self.setTitle("KleinBottle")`. Add a `w`/`s` polygon-mode toggle in `keyPressEvent` matching `VAOPrimitives`.
@@ -1216,76 +1247,83 @@ Note: `Plane.distance` sign convention must be confirmed with a quick manual che
 Copy `VAOPrimitives/main.py` skeleton to `FrustumCull/main.py`. Use a **reduced grid** (step 4, extent ±20, i.e. 11 positions per axis = 1331 candidate spheres) rather than the C++'s huge ±150 step-2 grid, since this is an interactive Python demo, not a benchmark:
 
 ```python
-    def initializeGL(self) -> None:
-        self.makeCurrent()
-        gl.glClearColor(0.15, 0.15, 0.15, 1.0)
-        gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glEnable(gl.GL_MULTISAMPLE)
+def initializeGL(self) -> None:
+    self.makeCurrent()
+    gl.glClearColor(0.15, 0.15, 0.15, 1.0)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_MULTISAMPLE)
 
-        aspect = self.window_width / self.window_height
-        self.test_camera = FrustumCamera(
-            Vec3(0, 0, 0), Vec3(0, 0, -1), Vec3(0, 1, 0), 45.0, aspect, 2.0, 15.0
-        )
-        self.observer_camera = FrustumCamera(
-            Vec3(0, 40, 0.001), Vec3(0, 0, 0), Vec3(0, 1, 0), 60.0, aspect, 0.5, 100.0
-        )
-        self.active_camera_index = 1
+    aspect = self.window_width / self.window_height
+    self.test_camera = FrustumCamera(
+        Vec3(0, 0, 0), Vec3(0, 0, -1), Vec3(0, 1, 0), 45.0, aspect, 2.0, 15.0
+    )
+    self.observer_camera = FrustumCamera(
+        Vec3(0, 40, 0.001), Vec3(0, 0, 0), Vec3(0, 1, 0), 60.0, aspect, 0.5, 100.0
+    )
+    self.active_camera_index = 1
 
-        ShaderLib.load_shader(
-            "Phong", "shaders/PhongVertex.glsl", "shaders/PhongFragment.glsl"
-        )
-        Primitives.load_default_primitives()
-        Primitives.create(Prims.SPHERE, "sphere", 1.0, 12)
+    ShaderLib.load_shader(
+        "Phong", "shaders/PhongVertex.glsl", "shaders/PhongFragment.glsl"
+    )
+    Primitives.load_default_primitives()
+    Primitives.create(Prims.SPHERE, "sphere", 1.0, 12)
 
-        self.grid_positions = [
-            Vec3(x, y, z)
-            for x in range(-20, 21, 4)
-            for y in range(-8, 9, 4)
-            for z in range(-20, 21, 4)
-        ]
+    self.grid_positions = [
+        Vec3(x, y, z)
+        for x in range(-20, 21, 4)
+        for y in range(-8, 9, 4)
+        for z in range(-20, 21, 4)
+    ]
 
-    def paintGL(self) -> None:
-        self.makeCurrent()
-        gl.glViewport(0, 0, self.window_width, self.window_height)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        rot_x = Mat4().rotate_x(self.spin_x_face)
-        rot_y = Mat4().rotate_y(self.spin_y_face)
-        self.mouse_global_tx = rot_y @ rot_x
-        self.mouse_global_tx[3, 0] = self.model_position.x
-        self.mouse_global_tx[3, 1] = self.model_position.y
-        self.mouse_global_tx[3, 2] = self.model_position.z
+def paintGL(self) -> None:
+    self.makeCurrent()
+    gl.glViewport(0, 0, self.window_width, self.window_height)
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        camera = (
-            self.test_camera if self.active_camera_index == 0 else self.observer_camera
-        )
+    rot_x = Mat4().rotate_x(self.spin_x_face)
+    rot_y = Mat4().rotate_y(self.spin_y_face)
+    self.mouse_global_tx = rot_y @ rot_x
+    self.mouse_global_tx[3, 0] = self.model_position.x
+    self.mouse_global_tx[3, 1] = self.model_position.y
+    self.mouse_global_tx[3, 2] = self.model_position.z
 
-        ShaderLib.use("Phong")
-        drawn = 0
-        for pos in self.grid_positions:
-            state = self.test_camera.is_sphere_in_frustum(pos, 1.0)
-            if state == "OUTSIDE":
-                continue
-            drawn += 1
-            mv = camera.view @ self.mouse_global_tx @ Mat4().translate(pos.x, pos.y, pos.z)
-            mvp = camera.project @ mv
-            normal_matrix = Mat3.from_mat4(mv).inverse().transposed()
-            ShaderLib.set_uniform("MVP", mvp)
-            ShaderLib.set_uniform("MV", mv)
-            ShaderLib.set_uniform("normalMatrix", normal_matrix)
-            ShaderLib.set_uniform("lightPos", 10.0, 10.0, 10.0)
-            ShaderLib.set_uniform("viewerPos", camera.eye.x, camera.eye.y, camera.eye.z)
-            Primitives.draw("sphere")
+    camera = self.test_camera if self.active_camera_index == 0 else self.observer_camera
 
-        self.last_drawn = drawn
-        self.setTitle(f"FrustumCull - drawn {drawn}/{len(self.grid_positions)}")
+    ShaderLib.use("Phong")
+    drawn = 0
+    for pos in self.grid_positions:
+        state = self.test_camera.is_sphere_in_frustum(pos, 1.0)
+        if state == "OUTSIDE":
+            continue
+        drawn += 1
+        mv = camera.view @ self.mouse_global_tx @ Mat4().translate(pos.x, pos.y, pos.z)
+        mvp = camera.project @ mv
+        normal_matrix = Mat3.from_mat4(mv).inverse().transposed()
+        ShaderLib.set_uniform("MVP", mvp)
+        ShaderLib.set_uniform("MV", mv)
+        ShaderLib.set_uniform("normalMatrix", normal_matrix)
+        ShaderLib.set_uniform("lightPos", 10.0, 10.0, 10.0)
+        ShaderLib.set_uniform("viewerPos", camera.eye.x, camera.eye.y, camera.eye.z)
+        Primitives.draw("sphere")
 
-    def resizeGL(self, w: int, h: int) -> None:
-        self.window_width = int(w * self.devicePixelRatio())
-        self.window_height = int(h * self.devicePixelRatio())
-        aspect = float(w) / h
-        self.test_camera.set_shape(self.test_camera.fov, aspect, self.test_camera.near, self.test_camera.far)
-        self.observer_camera.set_shape(self.observer_camera.fov, aspect, self.observer_camera.near, self.observer_camera.far)
+    self.last_drawn = drawn
+    self.setTitle(f"FrustumCull - drawn {drawn}/{len(self.grid_positions)}")
+
+
+def resizeGL(self, w: int, h: int) -> None:
+    self.window_width = int(w * self.devicePixelRatio())
+    self.window_height = int(h * self.devicePixelRatio())
+    aspect = float(w) / h
+    self.test_camera.set_shape(
+        self.test_camera.fov, aspect, self.test_camera.near, self.test_camera.far
+    )
+    self.observer_camera.set_shape(
+        self.observer_camera.fov,
+        aspect,
+        self.observer_camera.near,
+        self.observer_camera.far,
+    )
 ```
 
 Add `from uvn_camera import FrustumCamera`, `from ncca.ngl import Mat3, Primitives, Prims, ShaderLib`, `self.setTitle("FrustumCull")`. Add key `1`/`2` to switch `self.active_camera_index`, matching Task 1.
@@ -1369,7 +1407,9 @@ class PointCloud:
                 parts = line.split()
                 if len(parts) < 3:
                     continue
-                cloud.points.append(Vec3(float(parts[0]), float(parts[1]), float(parts[2])))
+                cloud.points.append(
+                    Vec3(float(parts[0]), float(parts[1]), float(parts[2]))
+                )
         cloud._calculate_bounding_box()
         cloud._calculate_bounding_sphere()
         cloud._unitize()
@@ -1428,62 +1468,64 @@ Note: confirm `Vec3.length_squared()`/`.length()` are the actual method names (`
 Copy `VAOPrimitives/main.py` skeleton to `PointCloud/main.py`. Since the source shader's per-point "normal" attribute has no real data (flagged in research — the C++ demo never uploads a normal buffer either), render with a flat uniform colour instead of a fabricated per-point colour:
 
 ```python
-    def initializeGL(self) -> None:
-        self.makeCurrent()
-        gl.glClearColor(0.05, 0.05, 0.05, 1.0)
-        gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glEnable(gl.GL_MULTISAMPLE)
+def initializeGL(self) -> None:
+    self.makeCurrent()
+    gl.glClearColor(0.05, 0.05, 0.05, 1.0)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_MULTISAMPLE)
 
-        self.cloud = PointCloud.from_file("data/test.xyz")
-        cam_z = 1.25 * 1.0
-        self.view = look_at(
-            Vec3(self.cloud.sphere_center.x, self.cloud.sphere_center.y, cam_z),
-            self.cloud.bbox_center,
-            Vec3(0, 1, 1),
-        )
-        self.point_size = 5
+    self.cloud = PointCloud.from_file("data/test.xyz")
+    cam_z = 1.25 * 1.0
+    self.view = look_at(
+        Vec3(self.cloud.sphere_center.x, self.cloud.sphere_center.y, cam_z),
+        self.cloud.bbox_center,
+        Vec3(0, 1, 1),
+    )
+    self.point_size = 5
 
-        data = []
-        for p in self.cloud.points:
-            data.extend([p.x, p.y, p.z])
-        import numpy as np
+    data = []
+    for p in self.cloud.points:
+        data.extend([p.x, p.y, p.z])
+    import numpy as np
 
-        arr = np.array(data, dtype=np.float32)
-        self.vao = VAOFactory.create_vao("simple", mode=gl.GL_POINTS)
-        self.vao.bind()
-        self.vao.set_data(arr)
-        self.vao.set_vertex_attribute_pointer(0, 3, "float", 3 * 4, 0)
-        self.vao.set_num_indices(len(self.cloud.points))
-        self.vao.unbind()
+    arr = np.array(data, dtype=np.float32)
+    self.vao = VAOFactory.create_vao("simple", mode=gl.GL_POINTS)
+    self.vao.bind()
+    self.vao.set_data(arr)
+    self.vao.set_vertex_attribute_pointer(0, 3, "float", 3 * 4, 0)
+    self.vao.set_num_indices(len(self.cloud.points))
+    self.vao.unbind()
 
-        ShaderLib.use(DefaultShader.COLOUR)
+    ShaderLib.use(DefaultShader.COLOUR)
 
-    def paintGL(self) -> None:
-        self.makeCurrent()
-        gl.glViewport(0, 0, self.window_width, self.window_height)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        gl.glPointSize(self.point_size)
 
-        rot_x = Mat4().rotate_x(self.spin_x_face)
-        rot_y = Mat4().rotate_y(self.spin_y_face)
-        self.mouse_global_tx = rot_y @ rot_x
-        self.mouse_global_tx[3, 0] = self.model_position.x
-        self.mouse_global_tx[3, 1] = self.model_position.y
-        self.mouse_global_tx[3, 2] = self.model_position.z
+def paintGL(self) -> None:
+    self.makeCurrent()
+    gl.glViewport(0, 0, self.window_width, self.window_height)
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+    gl.glPointSize(self.point_size)
 
-        ShaderLib.use(DefaultShader.COLOUR)
-        mvp = self.project @ self.view @ self.mouse_global_tx
-        ShaderLib.set_uniform("MVP", mvp)
-        ShaderLib.set_uniform("Colour", 0.2, 0.8, 1.0, 1.0)
+    rot_x = Mat4().rotate_x(self.spin_x_face)
+    rot_y = Mat4().rotate_y(self.spin_y_face)
+    self.mouse_global_tx = rot_y @ rot_x
+    self.mouse_global_tx[3, 0] = self.model_position.x
+    self.mouse_global_tx[3, 1] = self.model_position.y
+    self.mouse_global_tx[3, 2] = self.model_position.z
 
-        self.vao.bind()
-        self.vao.draw()
-        self.vao.unbind()
+    ShaderLib.use(DefaultShader.COLOUR)
+    mvp = self.project @ self.view @ self.mouse_global_tx
+    ShaderLib.set_uniform("MVP", mvp)
+    ShaderLib.set_uniform("Colour", 0.2, 0.8, 1.0, 1.0)
 
-    def resizeGL(self, w: int, h: int) -> None:
-        self.window_width = int(w * self.devicePixelRatio())
-        self.window_height = int(h * self.devicePixelRatio())
-        self.project = perspective(45.0, float(w) / h, 0.001, 20.0)
+    self.vao.bind()
+    self.vao.draw()
+    self.vao.unbind()
+
+
+def resizeGL(self, w: int, h: int) -> None:
+    self.window_width = int(w * self.devicePixelRatio())
+    self.window_height = int(h * self.devicePixelRatio())
+    self.project = perspective(45.0, float(w) / h, 0.001, 20.0)
 ```
 
 Add `from ncca.ngl import DefaultShader, ShaderLib, VAOFactory`, `from point_cloud import PointCloud`, `self.setTitle("PointCloud")`. Add `+`/`-` (`Qt.Key_Equal`/`Qt.Key_Minus`) key handling to grow/shrink `self.point_size` (min 1).
@@ -1663,92 +1705,94 @@ Expected: confirms `load_shader(name, vert, frag, geo=None)` accepts a geometry-
 Copy `VAOPrimitives/main.py` skeleton to `AnimatedTextures/main.py`:
 
 ```python
-    def initializeGL(self) -> None:
-        self.makeCurrent()
-        gl.glClearColor(0.0, 0.0, 0.0, 1.0)
-        gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glDisable(gl.GL_DEPTH_TEST)
-        gl.glEnable(gl.GL_BLEND)
-        gl.glBlendFunc(gl.GL_ONE, gl.GL_ONE_MINUS_SRC_ALPHA)
+def initializeGL(self) -> None:
+    self.makeCurrent()
+    gl.glClearColor(0.0, 0.0, 0.0, 1.0)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glDisable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_BLEND)
+    gl.glBlendFunc(gl.GL_ONE, gl.GL_ONE_MINUS_SRC_ALPHA)
 
-        self.view = look_at(Vec3(0, 4, 20), Vec3(0, 2, 0), Vec3(0, 1, 0))
+    self.view = look_at(Vec3(0, 4, 20), Vec3(0, 2, 0), Vec3(0, 1, 0))
 
-        ShaderLib.load_shader(
-            "Billboard",
-            "shaders/BillboardVert.glsl",
-            "shaders/BillboardFrag.glsl",
-            geo="shaders/BillboardGeo.glsl",
-        )
+    ShaderLib.load_shader(
+        "Billboard",
+        "shaders/BillboardVert.glsl",
+        "shaders/BillboardFrag.glsl",
+        geo="shaders/BillboardGeo.glsl",
+    )
 
-        self.textures = []
-        for i, fname in enumerate(["map1.png", "map2.png", "map3.png"]):
-            tex = Texture(f"textures/{fname}")
-            tex.set_texture_gl()
-            self.textures.append(tex)
+    self.textures = []
+    for i, fname in enumerate(["map1.png", "map2.png", "map3.png"]):
+        tex = Texture(f"textures/{fname}")
+        tex.set_texture_gl()
+        self.textures.append(tex)
 
-        import math
-        import random
+    import math
+    import random
 
-        data = []
-        for i in range(500):
-            radius = random.uniform(8.0, 9.0)
-            angle = math.radians(i)
-            x = radius * math.cos(angle)
-            z = radius * math.sin(angle)
-            y = random.uniform(0.0, 8.0)
-            tex_index = float(random.randint(0, 2))
-            offset = random.uniform(0.0, 10.0)
-            data.extend([x, y, z, tex_index, offset])
+    data = []
+    for i in range(500):
+        radius = random.uniform(8.0, 9.0)
+        angle = math.radians(i)
+        x = radius * math.cos(angle)
+        z = radius * math.sin(angle)
+        y = random.uniform(0.0, 8.0)
+        tex_index = float(random.randint(0, 2))
+        offset = random.uniform(0.0, 10.0)
+        data.extend([x, y, z, tex_index, offset])
 
-        import numpy as np
+    import numpy as np
 
-        arr = np.array(data, dtype=np.float32)
-        self.vao = VAOFactory.create_vao("simple", mode=gl.GL_POINTS)
-        self.vao.bind()
-        self.vao.set_data(arr)
-        self.vao.set_vertex_attribute_pointer(0, 4, "float", 5 * 4, 0)
-        self.vao.set_vertex_attribute_pointer(1, 1, "float", 5 * 4, 4 * 4)
-        self.vao.set_num_indices(500)
-        self.vao.unbind()
+    arr = np.array(data, dtype=np.float32)
+    self.vao = VAOFactory.create_vao("simple", mode=gl.GL_POINTS)
+    self.vao.bind()
+    self.vao.set_data(arr)
+    self.vao.set_vertex_attribute_pointer(0, 4, "float", 5 * 4, 0)
+    self.vao.set_vertex_attribute_pointer(1, 1, "float", 5 * 4, 4 * 4)
+    self.vao.set_num_indices(500)
+    self.vao.unbind()
 
-        self.time: float = 0.0
-        self.animate: bool = True
+    self.time: float = 0.0
+    self.animate: bool = True
 
-    def paintGL(self) -> None:
-        self.makeCurrent()
-        gl.glViewport(0, 0, self.window_width, self.window_height)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        rot_x = Mat4().rotate_x(self.spin_x_face)
-        rot_y = Mat4().rotate_y(self.spin_y_face)
-        self.mouse_global_tx = rot_y @ rot_x
-        self.mouse_global_tx[3, 0] = self.model_position.x
-        self.mouse_global_tx[3, 1] = self.model_position.y
-        self.mouse_global_tx[3, 2] = self.model_position.z
+def paintGL(self) -> None:
+    self.makeCurrent()
+    gl.glViewport(0, 0, self.window_width, self.window_height)
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        ShaderLib.use("Billboard")
-        mvp = self.project @ self.view @ self.mouse_global_tx
-        ShaderLib.set_uniform("MVP", mvp)
-        ShaderLib.set_uniform("cameraPos", 0.0, 4.0, 20.0)
-        ShaderLib.set_uniform("time", self.time)
-        for i, tex in enumerate(self.textures):
-            tex.set_multi_texture(i)
-        ShaderLib.set_uniform("tex1", 0)
-        ShaderLib.set_uniform("tex2", 1)
-        ShaderLib.set_uniform("tex3", 2)
+    rot_x = Mat4().rotate_x(self.spin_x_face)
+    rot_y = Mat4().rotate_y(self.spin_y_face)
+    self.mouse_global_tx = rot_y @ rot_x
+    self.mouse_global_tx[3, 0] = self.model_position.x
+    self.mouse_global_tx[3, 1] = self.model_position.y
+    self.mouse_global_tx[3, 2] = self.model_position.z
 
-        self.vao.bind()
-        self.vao.draw()
-        self.vao.unbind()
+    ShaderLib.use("Billboard")
+    mvp = self.project @ self.view @ self.mouse_global_tx
+    ShaderLib.set_uniform("MVP", mvp)
+    ShaderLib.set_uniform("cameraPos", 0.0, 4.0, 20.0)
+    ShaderLib.set_uniform("time", self.time)
+    for i, tex in enumerate(self.textures):
+        tex.set_multi_texture(i)
+    ShaderLib.set_uniform("tex1", 0)
+    ShaderLib.set_uniform("tex2", 1)
+    ShaderLib.set_uniform("tex3", 2)
 
-        if self.animate:
-            self.time += 0.1
-        self.update()
+    self.vao.bind()
+    self.vao.draw()
+    self.vao.unbind()
 
-    def resizeGL(self, w: int, h: int) -> None:
-        self.window_width = int(w * self.devicePixelRatio())
-        self.window_height = int(h * self.devicePixelRatio())
-        self.project = perspective(45.0, float(w) / h, 0.1, 100.0)
+    if self.animate:
+        self.time += 0.1
+    self.update()
+
+
+def resizeGL(self, w: int, h: int) -> None:
+    self.window_width = int(w * self.devicePixelRatio())
+    self.window_height = int(h * self.devicePixelRatio())
+    self.project = perspective(45.0, float(w) / h, 0.1, 100.0)
 ```
 
 Add `from ncca.ngl import ShaderLib, Texture, VAOFactory`, `self.setTitle("AnimatedTextures")`. Add `Qt.Key_Space` toggling `self.animate` in `keyPressEvent`.
@@ -1867,95 +1911,99 @@ void main()
 Copy `VAOPrimitives/main.py` skeleton to `Interpolation/main.py`:
 
 ```python
-    MATERIALS = {
-        "gold": (
-            Vec3(0.274725, 0.1995, 0.0745),
-            Vec3(0.75164, 0.60648, 0.22648),
-            Vec3(0.628281, 0.555802, 0.3666065),
-            51.2,
-        ),
-        "brass": (
-            Vec3(0.329412, 0.223529, 0.027451),
-            Vec3(0.780392, 0.568627, 0.113725),
-            Vec3(0.992157, 0.941176, 0.807843),
-            27.8974,
-        ),
-        "pewter": (
-            Vec3(0.10588, 0.058824, 0.113725),
-            Vec3(0.427451, 0.470588, 0.541176),
-            Vec3(0.3333, 0.3333, 0.521569),
-            9.84615,
-        ),
-    }
+MATERIALS = {
+    "gold": (
+        Vec3(0.274725, 0.1995, 0.0745),
+        Vec3(0.75164, 0.60648, 0.22648),
+        Vec3(0.628281, 0.555802, 0.3666065),
+        51.2,
+    ),
+    "brass": (
+        Vec3(0.329412, 0.223529, 0.027451),
+        Vec3(0.780392, 0.568627, 0.113725),
+        Vec3(0.992157, 0.941176, 0.807843),
+        27.8974,
+    ),
+    "pewter": (
+        Vec3(0.10588, 0.058824, 0.113725),
+        Vec3(0.427451, 0.470588, 0.541176),
+        Vec3(0.3333, 0.3333, 0.521569),
+        9.84615,
+    ),
+}
 
-    def initializeGL(self) -> None:
-        self.makeCurrent()
-        gl.glClearColor(0.4, 0.4, 0.4, 1.0)
-        gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glEnable(gl.GL_MULTISAMPLE)
-        self.view = look_at(Vec3(0, 0, 25), Vec3(0, 0, 0), Vec3(0, 1, 0))
 
-        ShaderLib.load_shader(
-            "Phong", "shaders/PhongVertex.glsl", "shaders/PhongFragment.glsl"
-        )
-        Primitives.load_default_primitives()
+def initializeGL(self) -> None:
+    self.makeCurrent()
+    gl.glClearColor(0.4, 0.4, 0.4, 1.0)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_MULTISAMPLE)
+    self.view = look_at(Vec3(0, 0, 25), Vec3(0, 0, 0), Vec3(0, 1, 0))
 
-        self.start = Vec3(-8, -5, 0)
-        self.end = Vec3(8, 5, 0)
-        self.time: float = 0.0
-        self.animate: bool = True
+    ShaderLib.load_shader(
+        "Phong", "shaders/PhongVertex.glsl", "shaders/PhongFragment.glsl"
+    )
+    Primitives.load_default_primitives()
 
-    def _set_material(self, name: str) -> None:
-        ambient, diffuse, specular, shininess = self.MATERIALS[name]
-        ShaderLib.set_uniform("ambient", ambient.x, ambient.y, ambient.z)
-        ShaderLib.set_uniform("diffuseColour", diffuse.x, diffuse.y, diffuse.z)
-        ShaderLib.set_uniform("specularColour", specular.x, specular.y, specular.z)
-        ShaderLib.set_uniform("shininess", shininess)
+    self.start = Vec3(-8, -5, 0)
+    self.end = Vec3(8, 5, 0)
+    self.time: float = 0.0
+    self.animate: bool = True
 
-    def paintGL(self) -> None:
-        self.makeCurrent()
-        gl.glViewport(0, 0, self.window_width, self.window_height)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        rot_x = Mat4().rotate_x(self.spin_x_face)
-        rot_y = Mat4().rotate_y(self.spin_y_face)
-        self.mouse_global_tx = rot_y @ rot_x
-        self.mouse_global_tx[3, 0] = self.model_position.x
-        self.mouse_global_tx[3, 1] = self.model_position.y
-        self.mouse_global_tx[3, 2] = self.model_position.z
+def _set_material(self, name: str) -> None:
+    ambient, diffuse, specular, shininess = self.MATERIALS[name]
+    ShaderLib.set_uniform("ambient", ambient.x, ambient.y, ambient.z)
+    ShaderLib.set_uniform("diffuseColour", diffuse.x, diffuse.y, diffuse.z)
+    ShaderLib.set_uniform("specularColour", specular.x, specular.y, specular.z)
+    ShaderLib.set_uniform("shininess", shininess)
 
-        ShaderLib.use("Phong")
-        ShaderLib.set_uniform("lightPos", 5.0, 5.0, 10.0)
-        ShaderLib.set_uniform("viewerPos", 0.0, 0.0, 25.0)
 
-        def draw_teapot(pos: Vec3, material: str) -> None:
-            mv = self.view @ self.mouse_global_tx @ Mat4().translate(pos.x, pos.y, pos.z)
-            mvp = self.project @ mv
-            normal_matrix = Mat3.from_mat4(mv).inverse().transposed()
-            ShaderLib.set_uniform("MVP", mvp)
-            ShaderLib.set_uniform("MV", mv)
-            ShaderLib.set_uniform("normalMatrix", normal_matrix)
-            self._set_material(material)
-            Primitives.draw("teapot")
+def paintGL(self) -> None:
+    self.makeCurrent()
+    gl.glViewport(0, 0, self.window_width, self.window_height)
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        linear_pos = self.start + (self.end - self.start) * self.time
-        trig_pos = trig_interp(self.start, self.end, self.time) + Vec3(0, 2, 0)
-        cubic_pos = cubic_interp(self.start, self.end, self.time) + Vec3(0, -2, 0)
+    rot_x = Mat4().rotate_x(self.spin_x_face)
+    rot_y = Mat4().rotate_y(self.spin_y_face)
+    self.mouse_global_tx = rot_y @ rot_x
+    self.mouse_global_tx[3, 0] = self.model_position.x
+    self.mouse_global_tx[3, 1] = self.model_position.y
+    self.mouse_global_tx[3, 2] = self.model_position.z
 
-        draw_teapot(linear_pos, "gold")
-        draw_teapot(trig_pos, "brass")
-        draw_teapot(cubic_pos, "pewter")
+    ShaderLib.use("Phong")
+    ShaderLib.set_uniform("lightPos", 5.0, 5.0, 10.0)
+    ShaderLib.set_uniform("viewerPos", 0.0, 0.0, 25.0)
 
-        if self.animate:
-            self.time += 0.005
-            if self.time >= 1.0:
-                self.time = 0.0
-        self.update()
+    def draw_teapot(pos: Vec3, material: str) -> None:
+        mv = self.view @ self.mouse_global_tx @ Mat4().translate(pos.x, pos.y, pos.z)
+        mvp = self.project @ mv
+        normal_matrix = Mat3.from_mat4(mv).inverse().transposed()
+        ShaderLib.set_uniform("MVP", mvp)
+        ShaderLib.set_uniform("MV", mv)
+        ShaderLib.set_uniform("normalMatrix", normal_matrix)
+        self._set_material(material)
+        Primitives.draw("teapot")
 
-    def resizeGL(self, w: int, h: int) -> None:
-        self.window_width = int(w * self.devicePixelRatio())
-        self.window_height = int(h * self.devicePixelRatio())
-        self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
+    linear_pos = self.start + (self.end - self.start) * self.time
+    trig_pos = trig_interp(self.start, self.end, self.time) + Vec3(0, 2, 0)
+    cubic_pos = cubic_interp(self.start, self.end, self.time) + Vec3(0, -2, 0)
+
+    draw_teapot(linear_pos, "gold")
+    draw_teapot(trig_pos, "brass")
+    draw_teapot(cubic_pos, "pewter")
+
+    if self.animate:
+        self.time += 0.005
+        if self.time >= 1.0:
+            self.time = 0.0
+    self.update()
+
+
+def resizeGL(self, w: int, h: int) -> None:
+    self.window_width = int(w * self.devicePixelRatio())
+    self.window_height = int(h * self.devicePixelRatio())
+    self.project = perspective(45.0, float(w) / h, 0.01, 350.0)
 ```
 
 Add `from ncca.ngl import Mat3, Primitives, ShaderLib`, `from easing import trig_interp, cubic_interp`, `self.setTitle("Interpolation")`. In `keyPressEvent` add `Qt.Key_Space` to toggle `self.animate`, and `Qt.Key_Left`/`Qt.Key_Right` to step `self.time` by ∓0.01 clamped to `[0, 1]`.
@@ -2114,51 +2162,53 @@ Expected: `PIL` import succeeds (add `Pillow` as a script dependency via `uv add
 Copy `VAOPrimitives/main.py` skeleton to `ImageHeightMap/main.py`:
 
 ```python
-    def initializeGL(self) -> None:
-        self.makeCurrent()
-        gl.glClearColor(0.4, 0.4, 0.4, 1.0)
-        gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glEnable(gl.GL_MULTISAMPLE)
-        self.view = look_at(Vec3(0, 10, 54), Vec3(0, 0, 0), Vec3(0, 1, 0))
+def initializeGL(self) -> None:
+    self.makeCurrent()
+    gl.glClearColor(0.4, 0.4, 0.4, 1.0)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glEnable(gl.GL_MULTISAMPLE)
+    self.view = look_at(Vec3(0, 10, 54), Vec3(0, 0, 0), Vec3(0, 1, 0))
 
-        ShaderLib.load_shader(
-            "Colour", "shaders/ColourVert.glsl", "shaders/ColourFrag.glsl"
-        )
+    ShaderLib.load_shader(
+        "Colour", "shaders/ColourVert.glsl", "shaders/ColourFrag.glsl"
+    )
 
-        verts, indices = build_heightmap_mesh("textures/FractalMap.bmp")
-        self.index_count = len(indices)
-        self.vao = VAOFactory.create_vao("simpleIndex", mode=gl.GL_TRIANGLES)
-        self.vao.bind()
-        self.vao.set_data(verts, indices)
-        self.vao.set_vertex_attribute_pointer(0, 3, "float", 6 * 4, 0)
-        self.vao.set_vertex_attribute_pointer(1, 3, "float", 6 * 4, 3 * 4)
-        self.vao.set_num_indices(self.index_count)
-        self.vao.unbind()
+    verts, indices = build_heightmap_mesh("textures/FractalMap.bmp")
+    self.index_count = len(indices)
+    self.vao = VAOFactory.create_vao("simpleIndex", mode=gl.GL_TRIANGLES)
+    self.vao.bind()
+    self.vao.set_data(verts, indices)
+    self.vao.set_vertex_attribute_pointer(0, 3, "float", 6 * 4, 0)
+    self.vao.set_vertex_attribute_pointer(1, 3, "float", 6 * 4, 3 * 4)
+    self.vao.set_num_indices(self.index_count)
+    self.vao.unbind()
 
-    def paintGL(self) -> None:
-        self.makeCurrent()
-        gl.glViewport(0, 0, self.window_width, self.window_height)
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        rot_x = Mat4().rotate_x(self.spin_x_face)
-        rot_y = Mat4().rotate_y(self.spin_y_face)
-        self.mouse_global_tx = rot_y @ rot_x
-        self.mouse_global_tx[3, 0] = self.model_position.x
-        self.mouse_global_tx[3, 1] = self.model_position.y
-        self.mouse_global_tx[3, 2] = self.model_position.z
+def paintGL(self) -> None:
+    self.makeCurrent()
+    gl.glViewport(0, 0, self.window_width, self.window_height)
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-        ShaderLib.use("Colour")
-        mvp = self.project @ self.view @ self.mouse_global_tx
-        ShaderLib.set_uniform("MVP", mvp)
+    rot_x = Mat4().rotate_x(self.spin_x_face)
+    rot_y = Mat4().rotate_y(self.spin_y_face)
+    self.mouse_global_tx = rot_y @ rot_x
+    self.mouse_global_tx[3, 0] = self.model_position.x
+    self.mouse_global_tx[3, 1] = self.model_position.y
+    self.mouse_global_tx[3, 2] = self.model_position.z
 
-        self.vao.bind()
-        self.vao.draw()
-        self.vao.unbind()
+    ShaderLib.use("Colour")
+    mvp = self.project @ self.view @ self.mouse_global_tx
+    ShaderLib.set_uniform("MVP", mvp)
 
-    def resizeGL(self, w: int, h: int) -> None:
-        self.window_width = int(w * self.devicePixelRatio())
-        self.window_height = int(h * self.devicePixelRatio())
-        self.project = perspective(45.0, float(w) / h, 0.001, 150.0)
+    self.vao.bind()
+    self.vao.draw()
+    self.vao.unbind()
+
+
+def resizeGL(self, w: int, h: int) -> None:
+    self.window_width = int(w * self.devicePixelRatio())
+    self.window_height = int(h * self.devicePixelRatio())
+    self.project = perspective(45.0, float(w) / h, 0.001, 150.0)
 ```
 
 Add `from ncca.ngl import ShaderLib, VAOFactory`, `from heightmap import build_heightmap_mesh`, `self.setTitle("ImageHeightMap")`. Note: `VAOFactory.create_vao("simpleIndex", ...)` and `.set_data(verts, indices)` are placeholder names pending Step 4's grep confirmation — replace with the real indexed-VAO class name/constructor and however it distinguishes vertex data from index data (may be two separate calls, e.g. `set_data(verts)` then `set_indices(indices)`).

@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from picking_maths import (  # noqa: E402
+from picking_maths import (
     bounding_sphere,
     intersect_sphere,
     intersect_triangles,

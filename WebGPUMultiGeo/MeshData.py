@@ -1,5 +1,3 @@
-from typing import Dict, Optional
-
 import numpy as np
 import wgpu
 from ncca.ngl import Mat4, PrimData
@@ -26,19 +24,19 @@ class MeshData:
         """
         self.device: wgpu.GPUDevice = device
         # Maps instance name to mesh_name
-        self._raw_meshes: Dict[str, str] = {}
+        self._raw_meshes: dict[str, str] = {}
         # Maps mesh_name to prim_data
-        self._raw_geometries: Dict[str, PrimData] = {}
+        self._raw_geometries: dict[str, PrimData] = {}
 
-        self.vertex_data: Optional[np.ndarray] = None
-        self.storage_data: Optional[np.ndarray] = None
+        self.vertex_data: np.ndarray | None = None
+        self.storage_data: np.ndarray | None = None
 
-        self.vertex_buffer: Optional[wgpu.GPUBuffer] = None
-        self.storage_buffer: Optional[wgpu.GPUBuffer] = None
+        self.vertex_buffer: wgpu.GPUBuffer | None = None
+        self.storage_buffer: wgpu.GPUBuffer | None = None
 
         # Metadata for rendering
-        self._mesh_info: Dict[str, Dict[str, int]] = {}
-        self._geometry_info: Dict[str, Dict[str, int]] = {}
+        self._mesh_info: dict[str, dict[str, int]] = {}
+        self._geometry_info: dict[str, dict[str, int]] = {}
         self._instance_count: int = 0
 
     def add_geometry(self, mesh_name: str, prim_data: PrimData) -> None:
@@ -205,7 +203,7 @@ class MeshData:
                 self.storage_buffer, 0, self.storage_data.tobytes()
             )
 
-    def get_mesh_info(self, name: str) -> Optional[Dict[str, int]]:
+    def get_mesh_info(self, name: str) -> dict[str, int] | None:
         """
         Returns the rendering metadata for a given mesh instance.
 

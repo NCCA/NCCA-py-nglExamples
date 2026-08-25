@@ -14,7 +14,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from skinning_maths import (  # noqa: E402
+from skinning_maths import (
     bind_pose,
     dlb_blend,
     dq_to_mat,

@@ -11,9 +11,9 @@ import os
 import shlex
 import subprocess
 import sys
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
 
 # Default smoketest run time in milliseconds, matching the default used by
 # the demos' own `--smoketest` argparse option.

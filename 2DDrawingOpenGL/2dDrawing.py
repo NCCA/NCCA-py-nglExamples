@@ -260,10 +260,7 @@ class MainWindow(QOpenGLWindow):
                 The QMouseEvent object containing the new mouse position.
         """
         # Rotate the scene if the left mouse button is pressed
-        if event.buttons() == Qt.LeftButton:
-            self.update()
-        # Translate (pan) the scene if the right mouse button is pressed
-        elif event.buttons() == Qt.RightButton:
+        if event.buttons() == Qt.LeftButton or event.buttons() == Qt.RightButton:
             self.update()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:

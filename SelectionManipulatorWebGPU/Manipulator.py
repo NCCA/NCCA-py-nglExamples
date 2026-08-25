@@ -21,7 +21,6 @@ world-space translation, per-axis scale factor, or rotation angle.
 
 import math
 from enum import Enum
-from typing import Optional, Tuple
 
 import numpy as np
 import wgpu
@@ -95,7 +94,7 @@ def _world_to_screen(point: Vec3, mvp: np.ndarray, width: int, height: int):
 
 def _prim_buffer(
     device: wgpu.GPUDevice, data, label: str
-) -> Tuple[wgpu.GPUBuffer, int]:
+) -> tuple[wgpu.GPUBuffer, int]:
     """Create a vertex buffer from flat interleaved (pos,normal,uv) prim data."""
     arr = np.asarray(data, dtype=np.float32).ravel()
     buf = device.create_buffer_with_data(
@@ -113,7 +112,7 @@ class Manipulator:
     def __init__(self, device: wgpu.GPUDevice) -> None:
         self.device = device
         self.position = Vec3(0.0, 0.0, 0.0)
-        self.active_axis: Optional[Axis] = None
+        self.active_axis: Axis | None = None
 
         # gizmo part geometry (shared across axes)
         self._buffers = {

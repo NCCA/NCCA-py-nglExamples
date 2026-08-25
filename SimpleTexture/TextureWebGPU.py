@@ -10,7 +10,6 @@ with the 3D scene (rotate, pan, zoom).
 import argparse
 import sys
 import traceback
-from typing import Optional
 
 import numpy as np
 import wgpu
@@ -73,7 +72,7 @@ class WebGPUTextureScene(WebGPUWidget):
         """
         super().__init__()
         self.setWindowTitle("WebGPU Texture Cube")
-        self.pipeline: Optional[wgpu.GPURenderPipeline] = None
+        self.pipeline: wgpu.GPURenderPipeline | None = None
         self.msaa_sample_count: int = 4
 
         # --- Camera and Transformation Attributes ---

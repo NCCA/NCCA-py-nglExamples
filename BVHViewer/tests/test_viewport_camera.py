@@ -10,16 +10,16 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import main as bvh_viewer  # noqa: E402
-from ncca.ngl import FirstPersonCamera, Mat4, Vec3, look_at  # noqa: E402
-from PySide6.QtCore import QEvent, QPoint, QPointF, Qt  # noqa: E402
-from PySide6.QtGui import (  # noqa: E402
+import main as bvh_viewer
+from ncca.ngl import FirstPersonCamera, Mat4, Vec3, look_at
+from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
+from PySide6.QtGui import (
     QKeyEvent,
     QKeySequence,
     QMouseEvent,
     QWheelEvent,
 )
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtWidgets import QApplication
 
 
 @pytest.fixture(scope="module")

@@ -19,7 +19,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ibl_precompute import compute_brdf_lut, generate_irradiance_map  # noqa: E402
+from ibl_precompute import compute_brdf_lut, generate_irradiance_map
 
 
 def _uniform_cubemap(colour: tuple[float, float, float], size: int = 32) -> list:

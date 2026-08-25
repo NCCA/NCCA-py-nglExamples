@@ -25,7 +25,7 @@ from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from collision_maths import sphere_sphere_collide  # noqa: E402
+from collision_maths import sphere_sphere_collide
 
 _SPHERES = [
     {

@@ -2,7 +2,6 @@
 import argparse
 import sys
 import traceback
-from typing import List, Set, Tuple
 
 import wgpu
 from ncca.ngl import (
@@ -39,7 +38,7 @@ class WebGPUScene(WebGPUWidget):
 
         self.light_one_state = True
         self.light_rotation = 0.0
-        self.keys_pressed: Set[Qt.Key] = set()
+        self.keys_pressed: set[Qt.Key] = set()
         self.timer: QElapsedTimer = QElapsedTimer()
         self.timer.start()
         self.last_frame: float = 1.0
@@ -96,7 +95,7 @@ class WebGPUScene(WebGPUWidget):
 
         # 1. Define the objects in our scene as a list of tuples:
         # (mesh_name, transform_matrix, colour)
-        scene_objects: List[Tuple[str, Mat4, Tuple[float, float, float, float]]] = []
+        scene_objects: list[tuple[str, Mat4, tuple[float, float, float, float]]] = []
 
         tx = Transform()
         tx.set_scale(0.1, 0.1, 0.1)

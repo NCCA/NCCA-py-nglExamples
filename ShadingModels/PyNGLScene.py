@@ -1,5 +1,3 @@
-from typing import Optional
-
 import OpenGL.GL as gl
 from ncca.ngl import Mat3, Mat4, Prims, Vec3
 from ncca.ngl.opengl import Primitives
@@ -26,8 +24,8 @@ class PyNGLScene(QOpenGLWidget):
         self._model_name: str = "Teapot"
         self._model_transform: Mat4 = Mat4()
         self._model_rotation: Vec3 = Vec3(0.0, 0.0, 0.0)
-        self.shader: Optional[ShaderLoader] = None
-        self.camera: Optional[Camera] = None
+        self.shader: ShaderLoader | None = None
+        self.camera: Camera | None = None
         # --- Window and UI Attributes ---
         self.window_width: int = 1024  # Window width
         self.window_height: int = 720  # Window height

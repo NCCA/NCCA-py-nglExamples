@@ -19,8 +19,8 @@ from ncca.ngl import Vec3
 DEMO_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(DEMO_DIR))
 
-from collision_shapes import ShapeCatalogue, cone_hull, load_obj_hull  # noqa: E402
-from physics_world import PoolWorld, RecompileWorld, make_world  # noqa: E402
+from collision_shapes import ShapeCatalogue, cone_hull, load_obj_hull
+from physics_world import PoolWorld, RecompileWorld, make_world
 
 PRIMITIVES = ["box", "sphere", "capsule", "cylinder"]
 ALL_SHAPES = PRIMITIVES + ["cone", "teapot", "apple"]

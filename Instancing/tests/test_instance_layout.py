@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from instance_layout import cube, golden_spiral, grid  # noqa: E402
+from instance_layout import cube, golden_spiral, grid
 
 RECORD_FLOATS = 8  # offset.xyz, scale, colour.rgba
 
