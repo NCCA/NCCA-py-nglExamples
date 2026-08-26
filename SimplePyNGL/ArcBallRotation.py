@@ -376,8 +376,12 @@ class MainWindow(QOpenGLWindow):
 
         ShaderLib.use(DefaultShader.CHECKER)
         tx = Mat4().translate(0.0, -0.45, 0.0)
-        mvp = self.project @ self.view @ tx
-        normal_matrix = Mat3.from_mat4(mvp)
+        # The normal matrix comes from the model-view only. Deriving it from the
+        # full MVP drags the projection's non-uniform scale into the normals,
+        # which skews the diffuse term and leaves the floor black.
+        mv = self.view @ tx
+        mvp = self.project @ mv
+        normal_matrix = Mat3.from_mat4(mv)
         normal_matrix = normal_matrix.inverse().transposed()
         ShaderLib.set_uniform("MVP", mvp)
         ShaderLib.set_uniform("normalMatrix", normal_matrix)
