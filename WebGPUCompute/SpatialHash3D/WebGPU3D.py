@@ -784,7 +784,7 @@ class WebGPUScene3D(WebGPUWidget):
             self.is_rotating = True
             try:
                 self.last_mouse_pos = event.position()
-            except Exception:
+            except AttributeError:
                 self.last_mouse_pos = event.pos()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
@@ -797,7 +797,7 @@ class WebGPUScene3D(WebGPUWidget):
                 cur = event.position()
                 dx = cur.x() - self.last_mouse_pos.x()
                 dy = cur.y() - self.last_mouse_pos.y()
-            except Exception:
+            except AttributeError:
                 cur = event.pos()
                 dx = cur.x() - self.last_mouse_pos.x()
                 dy = cur.y() - self.last_mouse_pos.y()

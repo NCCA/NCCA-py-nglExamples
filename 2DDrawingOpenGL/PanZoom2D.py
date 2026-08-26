@@ -309,7 +309,7 @@ class MainWindow(QOpenGLWindow):
         # store the mouse position for drag operations
         try:
             self._last_mouse_pos = event.position()
-        except Exception:
+        except AttributeError:
             # fallback in case old PySide6 returns different type
             self._last_mouse_pos = event.pos()
         # Left button initiates rotation
@@ -332,7 +332,7 @@ class MainWindow(QOpenGLWindow):
             pos = event.position()
             mouse_x = pos.x()
             mouse_y = pos.y()
-        except Exception:
+        except AttributeError:
             p = event.pos()
             mouse_x = p.x()
             mouse_y = p.y()
