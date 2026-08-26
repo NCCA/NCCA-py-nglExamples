@@ -579,7 +579,10 @@ class WebGPUScene(WebGPUWidget):
         self.update()
 
     def keyPressEvent(self, event) -> None:
-        if event.key() == Qt.Key_Space:
+        key = event.key()
+        if key == Qt.Key_Escape:
+            self.close()
+        elif key == Qt.Key_Space:
             self.animate = not self.animate
         self.update()
 

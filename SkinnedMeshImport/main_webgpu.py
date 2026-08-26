@@ -362,6 +362,14 @@ class SkinWebGPUViewport(WebGPUWidget):
             self.camera.move(forward, strafe, delta_time)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.key() == Qt.Key_Escape:
+            # The viewport is embedded in the QMainWindow rather than being the
+            # top level thing itself, so self.close() would take the viewport
+            # away and leave the shell and its transport sitting there. Closing
+            # every top level window instead sends the QMainWindow a real close
+            # event, so its own closeEvent still gets to stop the timers.
+            QApplication.closeAllWindows()
+            return
         if event.key() in self._MOVE_KEYS:
             if not event.isAutoRepeat():
                 self.keys_pressed.add(event.key())

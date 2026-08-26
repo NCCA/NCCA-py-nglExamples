@@ -527,7 +527,9 @@ class WebGPUScene(WebGPUWidget):
 
     def keyPressEvent(self, event) -> None:
         key = event.key()
-        if key == Qt.Key_Space:
+        if key == Qt.Key_Escape:
+            self.close()
+        elif key == Qt.Key_Space:
             self.animate = not self.animate
         elif key == Qt.Key_S:
             self.check_sphere_sphere = not self.check_sphere_sphere

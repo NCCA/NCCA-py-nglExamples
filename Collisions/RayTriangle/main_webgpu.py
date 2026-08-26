@@ -595,7 +595,9 @@ class WebGPUScene(WebGPUWidget):
 
     def keyPressEvent(self, event) -> None:
         key = event.key()
-        if key == Qt.Key_Up:
+        if key == Qt.Key_Escape:
+            self.close()
+        elif key == Qt.Key_Up:
             self.ray_end.y += _STEP
         elif key == Qt.Key_Down:
             self.ray_end.y -= _STEP

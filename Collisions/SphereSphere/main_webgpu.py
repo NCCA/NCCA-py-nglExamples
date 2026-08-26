@@ -324,7 +324,10 @@ class WebGPUScene(WebGPUWidget):
         self.update()
 
     def keyPressEvent(self, event) -> None:
-        if event.key() == Qt.Key_Space:
+        key = event.key()
+        if key == Qt.Key_Escape:
+            self.close()
+        elif key == Qt.Key_Space:
             self.spin_x_face = 0
             self.spin_y_face = 0
             self.model_position = Vec3(0, 0, 0)

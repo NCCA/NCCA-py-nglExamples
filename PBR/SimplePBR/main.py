@@ -1,10 +1,11 @@
 #!/usr/bin/env -S uv run --script
 """
-A template for creating a PySide6 application with an OpenGL viewport using py-ngl.
+A simple physically based rendering demo using PySide6, OpenGL and py-ngl.
 
-This script sets up a basic window, initializes an OpenGL context, and provides
-standard mouse and keyboard controls for interacting with a 3D scene (rotate, pan, zoom).
-It is designed to be a starting point for more complex OpenGL applications.
+Draws a 7x7 grid of spheres lit by four point lights, with metallic increasing
+across the rows and roughness across the columns, using the Cook-Torrance BRDF
+described in https://learnopengl.com/PBR/Lighting. Mouse controls are the usual
+ones: left button rotates, right button pans, wheel zooms.
 """
 
 import argparse
@@ -59,7 +60,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         # --- Window and UI Attributes ---
         self.window_width: int = 1024  # Window width¦
         self.window_height: int = 720  # Window height
-        self.setTitle("Blank PySide6 py-ngl")
+        self.setTitle("SimplePBR")
         self.transform = Transform()
 
     def initializeGL(self) -> None:

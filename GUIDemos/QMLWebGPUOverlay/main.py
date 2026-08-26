@@ -9,7 +9,7 @@ import ncca.ngl.qml
 from panel_registry import PanelRegistry
 from PyNGLScene import PyNGLScene
 from PySide6.QtCore import QEvent, Qt, QTimer, QUrl
-from PySide6.QtGui import QMouseEvent
+from PySide6.QtGui import QKeyEvent, QMouseEvent
 from PySide6.QtQuickControls2 import QQuickStyle
 from PySide6.QtQuickWidgets import QQuickWidget
 from PySide6.QtWidgets import QApplication, QMainWindow
@@ -90,6 +90,15 @@ class MainWindow(QMainWindow):
             QUrl.fromLocalFile(str(Path(__file__).parent / "main.qml"))
         )
         self.overlay.setGeometry(self.scene.rect())
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        # Neither the QML overlay nor the scene beneath it takes Escape, so it
+        # arrives here by the usual widget parent chain and this is the only
+        # place the demo can be quit from the keyboard.
+        if event.key() == Qt.Key_Escape:
+            self.close()
+            return
+        super().keyPressEvent(event)
 
     def resizeEvent(self, event: QEvent) -> None:
         super().resizeEvent(event)
