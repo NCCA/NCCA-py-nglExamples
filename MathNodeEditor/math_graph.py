@@ -873,7 +873,7 @@ class MathGraph:
         """Replace one parameter's components on a generator node."""
         node = self._nodes[node_id]
         if not isinstance(node, GeneratorNode):
-            raise ValueError("Only generator nodes store editable parameters")
+            raise TypeError("Only generator nodes store editable parameters")
         parameter_type = OPERATION_PARAMETER_TYPES[node.operation][parameter_index]
         _validate_components(parameter_type, components)
         node.parameters[parameter_index] = tuple(components)
@@ -893,7 +893,7 @@ class MathGraph:
         """Replace the components stored by a value node."""
         node = self._nodes[node_id]
         if not isinstance(node, ValueNode):
-            raise ValueError("Only value nodes store editable components")
+            raise TypeError("Only value nodes store editable components")
         _validate_components(node.math_type, components)
         node.components = tuple(components)
 
@@ -901,14 +901,14 @@ class MathGraph:
         """Return the exact components stored by a value node."""
         node = self._nodes[node_id]
         if not isinstance(node, ValueNode):
-            raise ValueError("Only value nodes store editable components")
+            raise TypeError("Only value nodes store editable components")
         return node.components
 
     def generator_parameters(self, node_id: str) -> tuple[tuple[float, ...], ...]:
         """Return an immutable snapshot of a generator node's parameters."""
         node = self._nodes[node_id]
         if not isinstance(node, GeneratorNode):
-            raise ValueError("Only generator nodes store editable parameters")
+            raise TypeError("Only generator nodes store editable parameters")
         return tuple(node.parameters)
 
     def generator_rotation_order(self, node_id: str) -> str:
@@ -934,7 +934,7 @@ class MathGraph:
         """Replace the value stored by a literal node."""
         node = self._nodes[node_id]
         if not isinstance(node, LiteralNode):
-            raise ValueError("Only literal nodes store replaceable values")
+            raise TypeError("Only literal nodes store replaceable values")
         node.value = value
 
     def add_mesh_viewer(self) -> str:
@@ -945,14 +945,14 @@ class MathGraph:
         """Connect a source node to an input on another node."""
         target = self._nodes[target_id]
         if isinstance(target, (ValueNode, LiteralNode, GeneratorNode)):
-            raise ValueError("This node type does not have inputs")
+            raise TypeError("This node type does not have inputs")
         target.inputs[input_index] = source_id
 
     def disconnect(self, target_id: str, input_index: int) -> None:
         """Remove one input wire without deleting either node."""
         target = self._nodes[target_id]
         if isinstance(target, (ValueNode, LiteralNode, GeneratorNode)):
-            raise ValueError("This node type does not have inputs")
+            raise TypeError("This node type does not have inputs")
         target.inputs.pop(input_index, None)
 
     def remove_node(self, node_id: str) -> None:
@@ -973,7 +973,7 @@ class MathGraph:
         """Evaluate a Mesh Viewer node's inputs, ready to merge and render."""
         node = self._nodes[node_id]
         if not isinstance(node, MeshViewerNode):
-            raise ValueError("Only mesh viewer nodes can be evaluated this way")
+            raise TypeError("Only mesh viewer nodes can be evaluated this way")
         if 0 not in node.inputs:
             raise GraphError("Mesh Viewer needs input Vertices")
         if 1 not in node.inputs:

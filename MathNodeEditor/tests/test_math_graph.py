@@ -970,7 +970,7 @@ def test_set_literal_rejects_non_literal_nodes() -> None:
     graph = graph_module.MathGraph()
     value_node = graph.add_value(graph_module.MathType.FLOAT, (1.0,))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         graph.set_literal(value_node, 2.0)
 
 
@@ -1032,7 +1032,7 @@ def test_generator_node_rejects_wired_connections() -> None:
         ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
     )
 
-    with pytest.raises(ValueError, match="does not have inputs"):
+    with pytest.raises(TypeError, match="does not have inputs"):
         graph.connect(value_node, operation, 0)
 
 
