@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import time
 from io import BytesIO
@@ -61,7 +62,6 @@ def _(encoded):
     </script>
     """
     display = mo.Html(html)
-    display
     return display
 
 
@@ -76,7 +76,7 @@ def _():
     async def auto_refresh(interval=1.0):
         while True:
             await mo.stop()  # yields to Marimo scheduler
-            time.sleep(interval)
+            await asyncio.sleep(interval)
 
     # This won't run automatically, but you can rerun cells manually or with an external trigger.
 

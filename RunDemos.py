@@ -220,6 +220,7 @@ class DemoRunner(QMainWindow):
                 [self.active_demo.app_full_path],
                 shell=True,
                 cwd=self.active_demo.root_path,
+                check=False,
             )
 
     def on_smoketest_all_clicked(self) -> None:
@@ -254,6 +255,7 @@ class DemoRunner(QMainWindow):
                         shell=True,
                         cwd=demo.root_path,
                         timeout=(smoketest_ms / 1000.0) + 30.0,
+                        check=False,
                     )
                     if result.returncode != 0:
                         failures.append(demo.button_name)

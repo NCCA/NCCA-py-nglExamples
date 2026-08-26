@@ -99,6 +99,7 @@ def run_smoketests(executables: list[Demo], smoketest_ms: int) -> list[str]:
                 shell=True,
                 cwd=demo.root_path,
                 timeout=(smoketest_ms / 1000.0) + 30.0,
+                check=False,
             )
             if result.returncode != 0:
                 failures.append(demo.button_name)
