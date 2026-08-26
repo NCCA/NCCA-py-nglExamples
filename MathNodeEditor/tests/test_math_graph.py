@@ -69,7 +69,7 @@ def test_generate_python_recreates_connected_output_values() -> None:
 
     generated = graph.generate_python([output])
     namespace: dict[str, object] = {}
-    exec(generated, namespace)
+    exec(generated, namespace)  # noqa: S102 - verify generated graph source
 
     assert "from ncca.ngl import" in generated
     assert f"print({multiply.replace('-', '_')})" in generated
@@ -90,7 +90,7 @@ def test_generate_python_preserves_transform_rotation_order_and_shared_nodes() -
 
     generated = graph.generate_python([second_output, first_output])
     namespace: dict[str, object] = {}
-    exec(generated, namespace)
+    exec(generated, namespace)  # noqa: S102 - verify generated graph source
 
     assert generated.count("Transform()") == 1
     assert generated.count(f"print({transform.replace('-', '_')})") == 2
@@ -111,7 +111,7 @@ def test_generate_python_keeps_valid_outputs_when_another_branch_is_incomplete()
 
     generated = graph.generate_python([invalid_output, valid_output])
     namespace: dict[str, object] = {}
-    exec(generated, namespace)
+    exec(generated, namespace)  # noqa: S102 - verify generated graph source
 
     assert "# Output node-4 could not be generated:" in generated
     assert "print(node_1)" in generated
@@ -130,7 +130,7 @@ def test_generate_python_component_multiply_supports_float_values() -> None:
 
     generated = graph.generate_python([output])
     namespace: dict[str, object] = {}
-    exec(generated, namespace)
+    exec(generated, namespace)  # noqa: S102 - verify generated graph source
 
     assert "def _component_multiply" in generated
     assert "print(node_3)" in generated

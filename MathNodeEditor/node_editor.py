@@ -277,8 +277,8 @@ class MathNodeWindow(QMainWindow):
         output = io.StringIO()
         try:
             with contextlib.redirect_stdout(output):
-                exec(code, {})
-        except Exception:
+                exec(code, {})  # noqa: S102 - MathGraph generated code preview
+        except Exception:  # noqa: BLE001 - return the generated-code traceback
             return traceback.format_exc()
         return output.getvalue()
 
