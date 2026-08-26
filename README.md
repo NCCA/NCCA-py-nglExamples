@@ -1,5 +1,7 @@
 # Py-NGL Demos
 
+[![UV Tests](https://github.com/NCCA/PyNGLDemos/actions/workflows/uv.yml/badge.svg)](https://github.com/NCCA/PyNGLDemos/actions/workflows/uv.yml)
+
 This repository contains a collection of examples for the PyNGL library and used in teaching across a number of NCCA courses.
 
 It is expected you will use uv to run all the python applications. The [RunDemos.py](RunDemos.py) will launch all the demos in the repository.
