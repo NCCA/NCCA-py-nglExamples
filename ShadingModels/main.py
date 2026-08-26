@@ -195,16 +195,18 @@ class MainWindow(QMainWindow):
             editor.setFont(font)
             return True
         # catch double-click on editor viewports to toggle fullscreen for them
-        if event.type() == QEvent.MouseButtonDblClick:
-            if obj in (self.vert_editor.viewport(), self.frag_editor.viewport()):
-                # map viewport back to the editor widget
-                widget = (
-                    self.vert_editor
-                    if obj is self.vert_editor.viewport()
-                    else self.frag_editor
-                )
-                self.toggle_fullscreen_widget(widget)
-                return True
+        if event.type() == QEvent.MouseButtonDblClick and obj in (
+            self.vert_editor.viewport(),
+            self.frag_editor.viewport(),
+        ):
+            # map viewport back to the editor widget
+            widget = (
+                self.vert_editor
+                if obj is self.vert_editor.viewport()
+                else self.frag_editor
+            )
+            self.toggle_fullscreen_widget(widget)
+            return True
         # also allow normal event processing for other events
         return super().eventFilter(obj, event)
 
@@ -223,10 +225,7 @@ class MainWindow(QMainWindow):
                 w.setVisible(False)
 
             # remove and re-add widget to span all columns (0..2) and full rows (0..5)
-            try:
-                layout.removeWidget(widget)
-            except Exception:
-                pass
+            layout.removeWidget(widget)
             layout.addWidget(widget, 0, 0, 6, 3)
             widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             widget.update()
@@ -243,10 +242,7 @@ class MainWindow(QMainWindow):
                 w.setVisible(True)
 
             # remove and re-add scene/editor back to original span (scene: colSpan 1)
-            try:
-                layout.removeWidget(widget)
-            except Exception:
-                pass
+            layout.removeWidget(widget)
 
             # If toggled widget is the scene, restore to its original span (0,0,6,1).
             if widget is self.scene:
@@ -315,7 +311,7 @@ class MainWindow(QMainWindow):
         spin.setSingleStep(0.01)
         try:
             spin.setValue(float(value))
-        except Exception:
+        except (TypeError, ValueError):
             spin.setValue(0.0)
         spin.valueChanged.connect(
             lambda val, name=name: self.scene.set_uniform_value(name, float(val))
@@ -388,7 +384,7 @@ class MainWindow(QMainWindow):
                 self.frag_editor.setPlainText(frag_file.read_text())
             else:
                 self.frag_editor.setPlainText(f"Fragment shader not found: {frag_file}")
-        except Exception as e:
+        except (OSError, UnicodeError) as e:
             self.vert_editor.setPlainText(f"Error loading shader sources: {e}")
             self.frag_editor.setPlainText(f"Error loading shader sources: {e}")
 

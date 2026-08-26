@@ -45,8 +45,8 @@ class Pipeline:
             try:
                 self.mesh_data.add_mesh(prim.value, PrimData.primitive(prim))
                 print(f"Added mesh: {prim.value}")
-            except Exception:
-                pass  # some prims need to call the create functions instead
+            except ValueError:
+                continue
 
         self.mesh_data.add_mesh(
             "floor", PrimData.triangle_plane(10, 10, 20, 20, Vec3(0, 1, 0))

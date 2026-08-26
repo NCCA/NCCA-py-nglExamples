@@ -70,10 +70,10 @@ class MeshData:
 
         # --- Pass 2: Fill arrays and store metadata ---
         current_vertex = 0
-        instance_index = 0
-
         # Use sorted keys to ensure a deterministic order
-        for name, prim_data in sorted(self._raw_meshes.items()):
+        for instance_index, (name, prim_data) in enumerate(
+            sorted(self._raw_meshes.items())
+        ):
             # Convert memoryview to numpy array before using .view()
             vertex_count = (
                 np.array(prim_data.data, copy=False).view(vertex_dtype).shape[0]
@@ -93,7 +93,6 @@ class MeshData:
             )
 
             current_vertex += vertex_count
-            instance_index += 1
 
         # --- Create device-side (GPU) buffers ---
         self.vertex_buffer = self.device.create_buffer_with_data(

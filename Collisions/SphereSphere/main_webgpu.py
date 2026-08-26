@@ -261,10 +261,8 @@ class WebGPUScene(WebGPUWidget):
             },
         )
         render_pass.set_pipeline(self.pipeline)
-        draw_index = 0
-        for s in self.spheres:
+        for draw_index, s in enumerate(self.spheres):
             self._draw_sphere(render_pass, draw_index, s, self.mouse_global_tx)
-            draw_index += 1
         render_pass.end()
         self.device.queue.submit([command_encoder.finish()])
         self._update_colour_buffer()

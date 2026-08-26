@@ -16,7 +16,7 @@ def dump_numpy(file_path):
         if not obj.load(file_path):
             print(f"Error: Invalid OBJ file {file_path}")
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - OBJ backends do not share one error type.
         print(f"Error: {file_path} {e}")
     mesh_data = create_np_array(obj)
     print(mesh_data.shape, mesh_data.dtype, mesh_data.nbytes)

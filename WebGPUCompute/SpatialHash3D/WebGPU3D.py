@@ -177,7 +177,7 @@ class WebGPUScene3D(WebGPUWidget):
             self.timer.start()
             self.last_time = self.timer.elapsed() / 1000.0
             print("WebGPU 3D initialization complete")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to initialize WebGPU 3D: {e}")
             import traceback
 
@@ -592,7 +592,7 @@ class WebGPUScene3D(WebGPUWidget):
 
                 # print("DEBUG: Compute pass completed")
             self.device.queue.submit([command_encoder.finish()])
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to run compute pass: {e}")
             import traceback
 
@@ -650,7 +650,7 @@ class WebGPUScene3D(WebGPUWidget):
             # its Particle stride is 32 bytes (padded vec3s) while the render
             # vertex buffer is tightly packed 12-byte positions.
             self.device.queue.submit([command_encoder.finish()])
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to paint WebGPU content: {e}")
             import traceback
 

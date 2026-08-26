@@ -100,8 +100,7 @@ class MainWindow(QOpenGLWindow):
         # create a framebuffer object
         self.fbo_id = gl.glGenFramebuffers(1)
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.fbo_id)
-        attachment = 0
-        for t in self.textures:
+        for attachment, t in enumerate(self.textures):
             gl.glFramebufferTexture2D(
                 gl.GL_FRAMEBUFFER,
                 gl.GL_COLOR_ATTACHMENT0 + attachment,
@@ -109,7 +108,6 @@ class MainWindow(QOpenGLWindow):
                 t,
                 0,
             )
-            attachment += 1
 
         # create a renderbuffer object for depth and stencil attachment
         # It is possible to do both at the same time in C / C++ python is not

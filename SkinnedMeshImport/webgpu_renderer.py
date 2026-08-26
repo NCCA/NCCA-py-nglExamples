@@ -272,7 +272,7 @@ class SkinWebGPURenderer:
                 rgba[:, :, 3] = 255
             else:
                 rgba = pixels
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 - image loaders use backend-specific errors.
             # impasse.errors.AssimpError and a missing/corrupt image file both
             # land here -- keep the mesh visible (flat white) rather than
             # losing it, same fallback the OpenGL path uses.

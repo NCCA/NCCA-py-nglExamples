@@ -300,7 +300,7 @@ class SkinViewport(QOpenGLWindow):
                 texture_id = Texture(path).set_texture_gl()
                 if texture_id == 0:
                     raise RuntimeError("empty image")
-            except Exception as error:
+            except Exception as error:  # noqa: BLE001 - image loaders use backend-specific errors.
                 # Test assets pulled in from elsewhere sometimes reference a
                 # texture that was never shipped alongside them -- keep the
                 # mesh visible (flat white) rather than losing the whole load.
@@ -734,7 +734,7 @@ class MainWindow(QMainWindow):
         # impasse.errors.AssimpError subclasses BaseException, not Exception,
         # so a plain `except Exception` misses the exact case this exists
         # for -- a file assimp can't import.
-        except (Exception, AssimpError) as error:
+        except (Exception, AssimpError) as error:  # noqa: BLE001 - importers use backend-specific errors.
             QMessageBox.critical(
                 self,
                 "Unable to load mesh",

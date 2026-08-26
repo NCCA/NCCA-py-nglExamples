@@ -22,6 +22,8 @@ from ncca.ngl.opengl import (
     VAOType,
     VertexData,
 )
+
+logger = logging.getLogger(__name__)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
@@ -71,7 +73,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             vert="shaders/ColourVertex.glsl",
             frag="shaders/ColourFragment.glsl",
         ):
-            logging.error("Error loading shaders")
+            logger.error("Error loading shaders")
             self.close()
         ShaderLib.use(COLOUR_SHADER)
         ShaderLib.print_registered_uniforms()

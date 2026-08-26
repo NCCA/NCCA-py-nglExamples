@@ -143,15 +143,15 @@ class MeshData:
             )
             current_vertex += vertex_count
 
-        instance_index = 0
-        for name, mesh_name in sorted(self._raw_meshes.items()):
+        for instance_index, (name, mesh_name) in enumerate(
+            sorted(self._raw_meshes.items())
+        ):
             geom_info = self._geometry_info[mesh_name]
             self._mesh_info[name] = {
                 "first_vertex": geom_info["first_vertex"],
                 "vertex_count": geom_info["vertex_count"],
                 "instance_index": instance_index,
             }
-            instance_index += 1
 
         self.vertex_buffer = self.device.create_buffer_with_data(
             data=self.vertex_data.tobytes(),

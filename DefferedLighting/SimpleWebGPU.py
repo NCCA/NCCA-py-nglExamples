@@ -81,7 +81,7 @@ class WebGPUScene(QWidget):
             self._init_buffers()
             self._create_render_pipeline()
             self.startTimer(16)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to initialize WebGPU: {e}")
             sys.exit(1)
 
@@ -559,7 +559,7 @@ class WebGPUScene(QWidget):
 
             # Unmap the buffer when done
             self.readback_buffer.unmap()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - readback failures keep the last frame usable.
             print(f"Failed to update colour buffer: {e}")
             # Fallback: create a simple gray buffer if texture copy fails
             if self.frame_buffer is not None:

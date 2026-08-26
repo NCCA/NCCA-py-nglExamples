@@ -533,12 +533,12 @@ class WebGPUScene(WebGPUWidget):
             self.check_sphere_sphere = not self.check_sphere_sphere
         elif key == Qt.Key_R:
             self.spheres = [_spawn_sphere() for _ in range(len(self.spheres))]
-        elif key == Qt.Key_Minus:
-            if len(self.spheres) > 1:
-                self.spheres.pop()
-        elif key == Qt.Key_Plus or key == Qt.Key_Equal:
-            if len(self.spheres) < _POOL_CAP:
-                self.spheres.append(_spawn_sphere())
+        elif key == Qt.Key_Minus and len(self.spheres) > 1:
+            self.spheres.pop()
+        elif (key == Qt.Key_Plus or key == Qt.Key_Equal) and len(
+            self.spheres
+        ) < _POOL_CAP:
+            self.spheres.append(_spawn_sphere())
         self.update()
 
 

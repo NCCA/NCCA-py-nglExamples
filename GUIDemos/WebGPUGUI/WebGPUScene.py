@@ -138,7 +138,7 @@ class WebGPUScene(WebGPUWidget):
             self._create_render_buffer()
             self._create_render_pipeline()
             self.start_update_timer(16)  # ~60 FPS
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to initialize WebGPU: {e}")
             sys.exit(1)
 

@@ -747,20 +747,26 @@ class MathNodeView(QGraphicsView):
 
     def event(self, event: QEvent) -> bool:
         """Catch Tab and Delete before Qt uses them for other purposes."""
-        if event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
-            if self._handle_key_press(event):
-                event.accept()
-                return True
+        if (
+            event.type() == QEvent.Type.KeyPress
+            and isinstance(event, QKeyEvent)
+            and self._handle_key_press(event)
+        ):
+            event.accept()
+            return True
         return super().event(event)
 
     def eventFilter(self, watched: object, event: QEvent) -> bool:
         """Catch Tab, Delete and right-clicks on the graphics view viewport."""
         if watched is not self.viewport():
             return super().eventFilter(watched, event)
-        if event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent):
-            if self._handle_key_press(event):
-                event.accept()
-                return True
+        if (
+            event.type() == QEvent.Type.KeyPress
+            and isinstance(event, QKeyEvent)
+            and self._handle_key_press(event)
+        ):
+            event.accept()
+            return True
         if event.type() == QEvent.Type.ContextMenu and isinstance(
             event, QContextMenuEvent
         ):

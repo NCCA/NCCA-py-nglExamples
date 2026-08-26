@@ -352,9 +352,12 @@ class MathNodeWindow(QMainWindow):
     def _load_startup_graph(self) -> None:
         """Reopen the last file used, falling back to the bundled example."""
         recent_file = self.settings.value("recentFile", "", type=str)
-        if recent_file and Path(recent_file).is_file():
-            if self._open_path(Path(recent_file)):
-                return
+        if (
+            recent_file
+            and Path(recent_file).is_file()
+            and self._open_path(Path(recent_file))
+        ):
+            return
         self.canvas.load_example()
         self.current_file = None
 

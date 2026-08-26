@@ -21,6 +21,8 @@ from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLWindow
 from PySide6.QtWidgets import QApplication
 
+logger = logging.getLogger(__name__)
+
 COLOUR_SHADER = "ColourShader"
 
 
@@ -68,7 +70,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             vert="shaders/ColourVertex.glsl",
             frag="shaders/ColourFragment.glsl",
         ):
-            logging.error("Error loading shaders")
+            logger.error("Error loading shaders")
             self.close()
         ShaderLib.use(COLOUR_SHADER)
 

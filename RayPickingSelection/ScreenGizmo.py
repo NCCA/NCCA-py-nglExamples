@@ -220,9 +220,11 @@ class ScreenGizmo:
 
         # centre handle first: it lives where all three shafts meet, so it
         # would otherwise always lose to one of them
-        if mode in (ManipMode.TRANSLATE, ManipMode.SCALE):
-            if float(np.linalg.norm(mouse - screen_pivot)) <= PICK_TOLERANCE:
-                return CENTER
+        if (
+            mode in (ManipMode.TRANSLATE, ManipMode.SCALE)
+            and float(np.linalg.norm(mouse - screen_pivot)) <= PICK_TOLERANCE
+        ):
+            return CENTER
 
         best_axis = None
         best_distance = PICK_TOLERANCE

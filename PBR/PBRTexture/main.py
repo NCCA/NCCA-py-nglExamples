@@ -118,7 +118,7 @@ class MainWindow(QOpenGLWindow):
             vert="shaders/PBRVertex.glsl",
             frag="shaders/PBRFragment.glsl",
         ):
-            logging.error("Error loading PBR shaders")
+            logger.error("Error loading PBR shaders")
             self.close()
         ShaderLib.use(PBR_SHADER)
         # Map texture units to shader samplers

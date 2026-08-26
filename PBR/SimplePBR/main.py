@@ -8,7 +8,6 @@ It is designed to be a starting point for more complex OpenGL applications.
 """
 
 import argparse
-import logging
 import sys
 import traceback
 
@@ -83,7 +82,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
             vert="shaders/PBRVertex.glsl",
             frag="shaders/PBRFragment.glsl",
         ):
-            logging.error("Error loading shaders")
+            logger.error("Error loading shaders")
             self.close()
         ShaderLib.use(PBR_SHADER)
         ShaderLib.print_registered_uniforms()

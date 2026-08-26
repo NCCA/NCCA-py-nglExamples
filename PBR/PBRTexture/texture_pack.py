@@ -79,7 +79,7 @@ class TexturePack:
                     )
                     if t.id != 0:
                         pack.append(t)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 - image loaders use backend-specific errors.
                     print(f"Error loading texture {texture_path}: {e}")
 
             TexturePack.s_textures[material] = pack

@@ -168,7 +168,7 @@ class WebGPUScene(WebGPUWidget):
             self.timer.start()
             self.last_time = self.timer.elapsed() / 1000.0
             print("WebGPU initialization complete")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to initialize WebGPU: {e}")
             import traceback
 
@@ -532,7 +532,7 @@ class WebGPUScene(WebGPUWidget):
                 compute_pass.dispatch_workgroups(particle_workgroups, 1, 1)
                 compute_pass.end()
             self.device.queue.submit([command_encoder.finish()])
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to paint WebGPU content: {e}")
 
     def _read_back_pass(self):
@@ -652,7 +652,7 @@ class WebGPUScene(WebGPUWidget):
             render_pass.end()
             self.device.queue.submit([command_encoder.finish()])
             self._update_colour_buffer()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to paint WebGPU content: {e}")
 
     def paintWebGPU(self) -> None:
@@ -784,24 +784,23 @@ class WebGPUScene(WebGPUWidget):
         if event.buttons() == Qt.LeftButton:
             self.update()
         # Translate (pan) the scene if the right mouse button is pressed
-        elif event.buttons() == Qt.RightButton:
+        elif event.buttons() == Qt.RightButton and self._last_mouse_pos is not None:
             # perform panning: compute pixel delta and convert to world delta
-            if self._last_mouse_pos is not None:
-                cur = event.position()
-                # pixel delta (consider device pixel ratio)
-                dx = (cur.x() - self._last_mouse_pos.x()) * self.ratio
-                dy = (cur.y() - self._last_mouse_pos.y()) * self.ratio
+            cur = event.position()
+            # pixel delta (consider device pixel ratio)
+            dx = (cur.x() - self._last_mouse_pos.x()) * self.ratio
+            dy = (cur.y() - self._last_mouse_pos.y()) * self.ratio
 
-                view_w = SIM_WIDTH * self.zoom
-                view_h = SIM_HEIGHT * self.zoom
+            view_w = SIM_WIDTH * self.zoom
+            view_h = SIM_HEIGHT * self.zoom
 
-                # convert pixel delta to world units: moving mouse right should pan view left (so subtract)
-                self.pan[0] -= dx / max(1, self.window_width) * view_w
-                # for y: pixel y increases downwards; moving mouse down should pan view up, so add
-                self.pan[1] += dy / max(1, self.window_height) * view_h
+            # convert pixel delta to world units: moving mouse right should pan view left (so subtract)
+            self.pan[0] -= dx / max(1, self.window_width) * view_w
+            # for y: pixel y increases downwards; moving mouse down should pan view up, so add
+            self.pan[1] += dy / max(1, self.window_height) * view_h
 
-                self._last_mouse_pos = cur
-                self.update()
+            self._last_mouse_pos = cur
+            self.update()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         """

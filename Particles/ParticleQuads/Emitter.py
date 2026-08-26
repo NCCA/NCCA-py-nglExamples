@@ -15,11 +15,11 @@ class Emitter:
     def __init__(
         self,
         num_particles: int = 2000,
-        pos: np.ndarray = np.zeros(4),
+        pos: np.ndarray | None = None,
         max_alive: int = 100,
         num_per_frame: int = 10,
     ) -> None:
-        self.emitter_pos = pos
+        self.emitter_pos = np.zeros(4) if pos is None else pos
         self.num_particles = num_particles
         self.max_alive = max_alive
         self.min_life = 100

@@ -32,8 +32,8 @@ class MassSpringChain(AbstractRK4Integrator):
 
     def __init__(
         self,
-        start: Vec3 = Vec3(0.0, 2.0, 0.0),
-        end: Vec3 = Vec3(0.0, -2.0, 0.0),
+        start: Vec3 | None = None,
+        end: Vec3 | None = None,
         num_masses: int = 2,
         rest_length: float = 1.0,
         k: float = 5.0,
@@ -42,8 +42,8 @@ class MassSpringChain(AbstractRK4Integrator):
         # These defaults are the C++ demo's own (its MainWindow.ui): a vertical
         # spring stretched to 4 against a resting length of 1, pinned at the
         # top. At num_masses=2 this really is that demo.
-        self._start = start
-        self._end = end
+        self._start = start if start is not None else Vec3(0.0, 2.0, 0.0)
+        self._end = end if end is not None else Vec3(0.0, -2.0, 0.0)
         self._num_masses = num_masses
         self._rest_length = rest_length
         self._k = k

@@ -111,7 +111,7 @@ class WebGPUTextureScene(WebGPUWidget):
 
             self.view = look_at(eye=Vec3(0, 1, 4), look=Vec3(0, 0, 0), up=Vec3(0, 1, 0))
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to initialize WebGPU: {e}")
             traceback.print_exc()
 

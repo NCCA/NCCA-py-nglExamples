@@ -371,7 +371,7 @@ Wind: [{self.webgpu_widget.wind[0]:.2f}, {self.webgpu_widget.wind[1]:.2f}]
 Zoom: {self.webgpu_widget.zoom:.2f}"""
 
                 self.stats_text.setPlainText(stats_text)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - keep the statistics panel usable.
             self.stats_text.setPlainText(f"Error updating stats: {e}")
 
 
@@ -445,7 +445,7 @@ class WebGPU2DGui(QMainWindow):
             # Reinitialize WebGPU components
             self.webgpu_widget._initialize_web_gpu()
             self.webgpu_widget.update()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - reset needs the backend traceback.
             print(f"Error resetting simulation: {e}")
             traceback.print_exc()
 
@@ -507,7 +507,7 @@ def main():
             )
         return_code = app.exec()
         sys.exit(return_code)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - report any startup failure to the user.
         print(f"Application error: {e}")
         traceback.print_exc()
         sys.exit(1)

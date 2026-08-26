@@ -78,7 +78,7 @@ class WebGPUScene(WebGPUWidget):
             self.device = get_default_device()
             self._create_render_buffer()
             self._create_render_pipeline()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to initialize WebGPU: {e}")
             traceback.print_exc()
         self.startTimer(16)
@@ -148,7 +148,7 @@ class WebGPUScene(WebGPUWidget):
             render_pass.end()
             self.device.queue.submit([command_encoder.finish()])
             self._update_colour_buffer()
-        except Exception:
+        except Exception:  # noqa: BLE001 - paint errors need the full traceback.
             traceback.print_exc()
 
     def update_uniform_buffers(self) -> None:

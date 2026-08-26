@@ -646,7 +646,7 @@ class SciFiWebGPU(WebGPUWidget):
         clock = f"MU-TH-UR 6000  T+{self.tick // 60:06d}"
         text(20 * s, hx + hw - int(320 * s), hy + hh - int(12 * s), clock, faint)
 
-        cx, cy, cw, ch = lay["centre"]
+        cx, cy, _cw, ch = lay["centre"]
         text(
             20 * s,
             cx + int(16 * s),

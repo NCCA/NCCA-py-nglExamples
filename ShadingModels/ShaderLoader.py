@@ -7,6 +7,8 @@ import OpenGL.GL as gl
 from ncca.ngl import Mat3, Mat4, Vec2, Vec3, Vec4
 from ncca.ngl.opengl import ShaderLib
 
+logger = logging.getLogger(__name__)
+
 
 class ShaderLoader:
     """A class to load and manage shaders from a JSON definition file."""
@@ -86,7 +88,7 @@ class ShaderLoader:
         if name in self.uniform_defs:
             self.uniform_defs[name]["value"] = value
         else:
-            logging.warning(f"Attempted to set non-existent uniform '{name}'")
+            logger.warning(f"Attempted to set non-existent uniform '{name}'")
 
     def load_json(self, json_file: str) -> None:
         """
@@ -144,7 +146,7 @@ class ShaderLoader:
             try:
                 if definition["value"] is not None:
                     ShaderLib.set_uniform(name, definition["value"])
-            except Exception:
-                logging.warning(
+            except Exception:  # noqa: BLE001 - shader backends do not share one error type.
+                logger.warning(
                     f"Uniform '{name}' defined in JSON but not found in shader '{shader_name}'"
                 )

@@ -39,7 +39,7 @@ class WebGPUScene(WebGPUWidget):
             self.device = get_default_device()
             self._create_render_buffer()
             self._create_render_pipeline()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to initialize WebGPU: {e}")
 
     def _create_render_pipeline(self) -> None:
@@ -133,7 +133,7 @@ class WebGPUScene(WebGPUWidget):
             render_pass.end()
             self.device.queue.submit([command_encoder.finish()])
             self._update_colour_buffer()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to paint WebGPU content: {e}")
 
     def keyPressEvent(self, event) -> None:

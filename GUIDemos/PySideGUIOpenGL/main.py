@@ -169,7 +169,7 @@ def main():
             )
 
         sys.exit(app.exec())
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - report any startup failure to the user.
         print(f"Application error: {e}")
         sys.exit(1)
 

@@ -221,5 +221,5 @@ class FloorPipeline:
             render_pass.draw(self.grid_size)
             render_pass.end()
             self.device.queue.submit([command_encoder.finish()])
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to paint WebGPU content: {e}")
