@@ -67,8 +67,18 @@ uv run main.py
 ## WebGPU version
 
 `main_webgpu.py` compares the same three matrix orders using a simpler
-diffuse shader (no PBR) and a primitive selector limited to the baked mesh
-set (`PrimData.primitive` has no sphere/cylinder/cone/disk/plane/torus data
-— those are GL-only runtime tessellations). It omits the axis gizmo and the
-geometry-shader normal visualisation; WebGPU has no geometry-shader stage
-at all, which is why that feature is GL-only in the first place.
+diffuse shader (no PBR) and a mesh selector limited to the baked set
+(`PrimData.primitive` has no sphere/cylinder/cone/disk/plane/torus data —
+those are runtime tessellations). It omits the geometry-shader normal
+visualisation; WebGPU has no geometry-shader stage at all, which is why
+that feature is GL-only in the first place.
+
+It gets the same gizmo from `axis_webgpu.py` and `AxisShader.wgsl`. The
+tessellations the baked set lacks are still there as generator functions —
+`PrimData.cylinder()` and `PrimData.cone()` hand back plain numpy arrays,
+nothing GL about them — so the gizmo builds its shafts and heads the same
+way the GL version does. What differs is the drawing: `axis.py` issues nine
+draws, one per shaft or head, each with its own MVP, which in WebGPU would
+mean a bind group per part or dynamic offsets. Instead the nine transforms
+are baked into the vertex data when the gizmo is built and the whole thing
+goes down as one draw of position/colour vertices.
