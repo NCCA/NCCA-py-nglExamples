@@ -650,6 +650,10 @@ class WebGPUScene3D(WebGPUWidget):
             # its Particle stride is 32 bytes (padded vec3s) while the render
             # vertex buffer is tightly packed 12-byte positions.
             self.device.queue.submit([command_encoder.finish()])
+            # Read the resolved colour target back to the CPU so the widget
+            # has something to present - without this the frame buffer stays
+            # zeroed and the window shows nothing but the text overlay.
+            self._update_colour_buffer()
         except Exception as e:  # noqa: BLE001 - wgpu exposes backend-specific errors.
             print(f"Failed to paint WebGPU content: {e}")
             import traceback
