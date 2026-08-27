@@ -88,6 +88,12 @@ fn fragment_main(@builtin(position) frag_coord: vec4<f32>) -> @location(0) vec4<
         textureLoad(g_albedo, vec2<i32>(frag_coord.xy), 0)
     );
 
+    // Nothing was rasterised here, so the G-buffer still holds the clear value.
+    // Bail out before normalize(vec3(0.0)) turns the whole pixel into NaN.
+    if (dot(g_buffer.normal.xyz, g_buffer.normal.xyz) < 0.5) {
+        return vec4<f32>(0.4, 0.4, 0.4, 1.0);
+    }
+
     let N = normalize(g_buffer.normal.xyz);
     let V = normalize(view.camPos - g_buffer.position.xyz);
     let albedo = g_buffer.albedo.rgb;

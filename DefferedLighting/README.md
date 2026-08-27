@@ -1,8 +1,8 @@
 # DefferedLighting
 
-A WebGPU deferred shading demo. The first pass renders a teapot and floor into a G-buffer of position, normal and albedo textures (`GBuffer.wgsl`), then a lighting pass (`lighting.wgsl`) reads the G-buffer and shades the scene with two lights.
+A WebGPU deferred shading demo. The first pass renders a teapot and floor into a G-buffer of position, normal and albedo textures (`GBuffer.wgsl`), then a lighting pass (`lighting.wgsl`) reads the G-buffer and shades the scene with two lights, one white and one red, using the same Cook-Torrance BRDF as the [PBR](../PBR) demos.
 
-Note this demo is currently broken (see [TODO.md](../TODO.md)) so don't expect too much from it yet.
+The G-buffer packs the extra material terms into the alpha channels so three textures are enough: world position + ambient occlusion, normal + roughness, albedo + metallic. Pixels the geometry pass never touched keep their cleared normal of zero, and the lighting pass tests for that and writes the background colour rather than feeding a zero vector to `normalize`.
 
 ```bash
 uv run DefferedLighting/SimpleWebGPU.py

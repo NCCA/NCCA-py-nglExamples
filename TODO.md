@@ -18,7 +18,6 @@ Check out the mouse controls on some of the demos
 
 - WebGPURenderToTexture fix to be like SimpleFBO
 - Easing Functions arrow keys not working in pause (maybe add timeline at bottom)
-- Deffered lighting not working at all
 - Make FrustumCull better
 - Add tesselation to PyNGLs shader lib then update Tessellation demo
 - Lights demo check the re-comp of shaders

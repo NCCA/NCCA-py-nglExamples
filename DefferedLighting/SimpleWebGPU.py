@@ -120,6 +120,9 @@ class WebGPUScene(QWidget):
             "normal": self.g_buffer["normal"].create_view(),
             "albedo": self.g_buffer["albedo"].create_view(),
         }
+        # the lighting pass samples these, so re-bind it to the new textures
+        if len(self.pipelines) == 3:
+            self.pipelines[2].set_g_buffer(self.g_buffer_views)
 
     def _create_render_pipeline(self) -> None:
         """
@@ -149,7 +152,7 @@ class WebGPUScene(QWidget):
         self.pipelines.append(
             LightingPipeline(
                 self.device,
-                self.g_buffer,
+                self.g_buffer_views,
                 teapot_pipeline.view_buffer,
                 width,
                 height,
@@ -245,6 +248,9 @@ class WebGPUScene(QWidget):
         for pipeline in self.pipelines:
             pipeline.width = width
             pipeline.height = height
+        # the geometry pipelines hold their own copy of the projection matrix
+        self.pipelines[0].set_projection(self.project)
+        self.pipelines[1].set_projection(self.project)
 
         self.update()
 
@@ -348,9 +354,9 @@ class WebGPUScene(QWidget):
         """
         num_pixels = event.angleDelta()
         # Zoom in or out by adjusting the Z position of the model
-        if num_pixels.x() > 0:
+        if num_pixels.y() > 0:
             self.model_position.z += self.ZOOM
-        elif num_pixels.x() < 0:
+        elif num_pixels.y() < 0:
             self.model_position.z -= self.ZOOM
         self.update()
 
@@ -384,13 +390,6 @@ class WebGPUScene(QWidget):
         self.texture_size = (width, height)
 
         self.resizeWebGPU(width, height)
-
-        # Recreate render buffers for the new window size
-        self._create_render_buffer()
-
-        # Resize the numpy buffer to match new window dimensions
-        if self.frame_buffer is not None:
-            self.frame_buffer = np.zeros([height, width, 4], dtype=np.uint8)
 
         return super().resizeEvent(event)
 

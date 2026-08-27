@@ -1,6 +1,10 @@
+from pathlib import Path
+
 import numpy as np
 import wgpu
 from ncca.ngl import PrimData, Transform, Vec3
+
+SHADER_DIR = Path(__file__).parent
 
 
 class FloorPipeline:
@@ -29,7 +33,7 @@ class FloorPipeline:
         """
         Create a render pipeline.
         """
-        with open("GBufferChecker.wgsl", "r") as f:
+        with open(SHADER_DIR / "GBufferChecker.wgsl", "r") as f:
             shader_code = f.read()
 
         shader_module = self.device.create_shader_module(code=shader_code)
@@ -141,6 +145,17 @@ class FloorPipeline:
                 }
             ],
         )
+
+    def set_projection(self, project) -> None:
+        """
+        Update the projection matrix after a window resize.
+
+        Parameters
+        ----------
+            project : Mat4
+                The new projection matrix.
+        """
+        self.project = project
 
     def update_uniform_buffers(self, model) -> None:
         """

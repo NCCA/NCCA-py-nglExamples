@@ -1,18 +1,23 @@
+from pathlib import Path
+
 import numpy as np
 import wgpu
 
+SHADER_DIR = Path(__file__).parent
+
 
 class LightingPipeline:
-    def __init__(self, device, g_buffer_textures, view_buffer, width, height):
+    def __init__(self, device, g_buffer_views, view_buffer, width, height):
         self.device = device
         self.pipeline = None
         self.bind_group = None
-        self.g_buffer_textures = g_buffer_textures
+        self.g_buffer_views = g_buffer_views
         self.view_buffer = view_buffer
         self.width = width
         self.height = height
         self._create_light_buffer()
         self._create_render_pipeline()
+        self._create_bind_group()
 
     def _create_light_buffer(self):
         # Create a buffer for the lights
@@ -50,7 +55,7 @@ class LightingPipeline:
         )
 
     def _create_render_pipeline(self):
-        with open("lighting.wgsl", "r") as f:
+        with open(SHADER_DIR / "lighting.wgsl", "r") as f:
             shader_code = f.read()
         shader_module = self.device.create_shader_module(code=shader_code)
 
@@ -70,20 +75,37 @@ class LightingPipeline:
             primitive={"topology": wgpu.PrimitiveTopology.triangle_list},
         )
 
+    def set_g_buffer(self, g_buffer_views) -> None:
+        """
+        Point the lighting pass at a new set of G-buffer views.
+
+        The textures are thrown away and rebuilt on every resize, so the bind
+        group has to be rebuilt with them or the pass keeps sampling the old,
+        now unwritten, textures.
+
+        Parameters
+        ----------
+            g_buffer_views : dict
+                The position, normal and albedo texture views to read.
+        """
+        self.g_buffer_views = g_buffer_views
+        self._create_bind_group()
+
+    def _create_bind_group(self):
         self.bind_group = self.device.create_bind_group(
             layout=self.pipeline.get_bind_group_layout(0),
             entries=[
                 {
                     "binding": 0,
-                    "resource": self.g_buffer_textures["position"].create_view(),
+                    "resource": self.g_buffer_views["position"],
                 },
                 {
                     "binding": 1,
-                    "resource": self.g_buffer_textures["normal"].create_view(),
+                    "resource": self.g_buffer_views["normal"],
                 },
                 {
                     "binding": 2,
-                    "resource": self.g_buffer_textures["albedo"].create_view(),
+                    "resource": self.g_buffer_views["albedo"],
                 },
                 {
                     "binding": 3,
@@ -104,8 +126,7 @@ class LightingPipeline:
             ],
         )
 
-    def paint(self, texture_view):
-        command_encoder = self.device.create_command_encoder()
+    def paint(self, command_encoder, texture_view):
         render_pass = command_encoder.begin_render_pass(
             color_attachments=[
                 {
@@ -120,4 +141,3 @@ class LightingPipeline:
         render_pass.set_bind_group(0, self.bind_group, [], 0, 999999)
         render_pass.draw(6)
         render_pass.end()
-        self.device.queue.submit([command_encoder.finish()])

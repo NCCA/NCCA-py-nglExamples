@@ -22,8 +22,9 @@ struct VertexOut {
 @vertex
 fn vertex_main(input: VertexIn) -> VertexOut {
     var output: VertexOut;
-    // Note that the M matrix is not used here as the floor is not transformed
-    output.worldPos = vec4<f32>(input.position, 1.0).xyz;
+    // The floor carries the mouse rotation and a -0.45 y offset, so the G-buffer
+    // needs the transformed position or the lighting pass shades the wrong point.
+    output.worldPos = (transforms.M * vec4<f32>(input.position, 1.0)).xyz;
     output.normal = normalize((transforms.normalMatrix * vec4<f32>(input.normal, 0.0)).xyz);
     output.position = transforms.MVP * vec4<f32>(input.position, 1.0);
     output.uv = input.uv;
