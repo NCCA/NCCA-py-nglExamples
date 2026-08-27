@@ -42,6 +42,23 @@ shaft Y [0. 1. 0.]   head +Y [0. 1. 0.]   head -Y [ 0. -1.  0.]
 shaft Z [0. 0. 1.]   head +Z [0. 0. 1.]   head -Z [ 0.  0. -1.]
 ```
 
+## The WebGPU version had no gizmo at all
+
+`main_webgpu.py` never drew one, so the two versions of the same lesson
+disagreed about where the origin was. The README blamed the baked mesh set,
+but that only rules out `PrimData.primitive("cylinder")` — the runtime
+tessellations are still there as generator functions, and
+`PrimData.cylinder()` / `PrimData.cone()` hand back plain numpy arrays with
+nothing GL about them.
+
+What genuinely doesn't port is the drawing. `axis.py` issues nine draws, one
+per shaft or head, each with its own MVP; in WebGPU that means a bind group
+per part or a uniform buffer with dynamic offsets. `axis_webgpu.py` bakes the
+nine transforms into the vertex data when the gizmo is built instead, and
+draws the lot as one call of position/colour vertices with `AxisShader.wgsl`
+— unlit, matching `DefaultShader.COLOUR`. The proportions and the rotation
+table are kept in step with `axis.py` by hand.
+
 ## Files changed
 
 - `AffineTransforms/axis.py` — rewritten shaft/head placement, own primitives
@@ -50,6 +67,9 @@ shaft Z [0. 0. 1.]   head +Z [0. 0. 1.]   head -Z [ 0.  0. -1.]
   the old borrowed-primitives behaviour
 - `AffineTransforms/AffineTransforms.png` — regenerated; the old one shows the
   broken gizmo
+- `AffineTransforms/axis_webgpu.py`, `AffineTransforms/AxisShader.wgsl` — new,
+  the WebGPU gizmo
+- `AffineTransforms/main_webgpu.py` — builds and draws it
 
 ## Commands run
 
@@ -58,6 +78,7 @@ git worktree add .worktrees/affine-axis-fix -b agent/affine-axis-fix
 uv run ruff format AffineTransforms/ && uv run ruff check AffineTransforms/
 uv run pytest -q                      # 834 passed
 cd AffineTransforms && uv run main.py --smoketest 800
+uv run main_webgpu.py --smoketest 800
 ```
 
 The screenshot is composed in-process — `MainWindow.grab()` for the panel with
