@@ -85,6 +85,11 @@ class PyNGLScene(WebGPUWidget):
             self.multisample_texture_view,
             self.depth_buffer_view,
         )
+        # Copy the resolved colour target back into the numpy frame buffer the
+        # widget blits with QPainter. Since ncca-ngl Version1.0 this is the
+        # subclass's job, not paintEvent's - without it the render pass fills
+        # its textures and nothing ever reaches the screen.
+        self._update_colour_buffer()
 
     def resizeWebGPU(self, width: int, height: int) -> None:
         self.project = perspective(
