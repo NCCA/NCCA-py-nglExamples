@@ -14,9 +14,7 @@ The demo turns the model with `Mat4().rotate_y(actor.rotation)` and nothing
 else, so the rotation is only correct if you know which way the mesh points to
 begin with. Nobody had checked. Rendering `Prims.TROLL` at rotation 0 from a
 camera on +z gives a clean side profile with the face towards screen right, and
-screen right from there is +x:
-
-![](../../ImageMaze/ImageMaze.png)
+screen right from there is +x.
 
 Everything was therefore a quarter turn out, in the same direction for all four
 compass points, which is why it reads as "never faces the right way" rather
