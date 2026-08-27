@@ -8,6 +8,7 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from maze_scene import (
+    TROLL_FACING,
     ActorState,
     Direction,
     Maze,
@@ -16,7 +17,7 @@ from maze_scene import (
     move_actor,
     top_view,
 )
-from ncca.ngl import perspective
+from ncca.ngl import Mat4, perspective
 
 
 def test_maze_loads_grayscale_png_as_rgb(tmp_path):
@@ -59,7 +60,7 @@ def test_actor_moves_to_an_open_pixel_and_turns():
 
     moved = move_actor(maze, actor, Direction.EAST)
 
-    assert moved == ActorState(x=4, z=3, rotation=270.0)
+    assert moved == ActorState(x=4, z=3, rotation=180.0)
 
 
 def test_actor_does_not_move_or_turn_into_a_wall():
@@ -93,10 +94,10 @@ def test_actor_world_position_matches_source_transform():
 @pytest.mark.parametrize(
     ("rotation", "expected"),
     [
-        (0.0, (0.0, 0.0, 1.0)),
-        (180.0, (0.0, 0.0, -1.0)),
-        (270.0, (-1.0, 0.0, 0.0)),
-        (90.0, (1.0, 0.0, 0.0)),
+        (0.0, (1.0, 0.0, 0.0)),
+        (90.0, (0.0, 0.0, -1.0)),
+        (180.0, (-1.0, 0.0, 0.0)),
+        (270.0, (0.0, 0.0, 1.0)),
     ],
 )
 def test_actor_forward_follows_the_direction_of_travel(rotation, expected):
@@ -155,3 +156,21 @@ def test_arrow_directions_move_the_actor_the_same_way_on_screen():
     ):
         moved = screen(move_actor(maze, actor, direction))
         assert tuple(np.sign(np.round(moved - start, 6))) == expected, direction.name
+
+
+def test_the_troll_model_faces_the_way_it_travels():
+    """Rotating the model by the actor's rotation must land on the travel direction."""
+    maze = Maze.from_pixels(np.full((9, 9, 3), 255, dtype=np.uint8))
+    actor = ActorState(x=4, z=4)
+    before = np.array(actor_world_position(maze, actor))
+
+    for direction in Direction:
+        moved = move_actor(maze, actor, direction)
+        travel = np.array(actor_world_position(maze, moved)) - before
+
+        # rotate through PyNGL itself, so the test cannot disagree with the
+        # demo about which way rotate_y turns
+        model = Mat4().rotate_y(moved.rotation).to_numpy().reshape(4, 4)
+        facing = np.array([*TROLL_FACING, 0.0]) @ model
+
+        assert np.allclose(facing[:3], travel, atol=1e-9), direction.name

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import enum
+import math
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -10,19 +11,25 @@ import numpy as np
 from ncca.ngl import Mat4, Vec3, look_at
 from PIL import Image
 
+# The NGL troll mesh looks down +x in model space, not the +z you might assume,
+# so every rotation below is its compass bearing turned a quarter turn.
+TROLL_FACING = (1.0, 0.0, 0.0)
+
 
 class Direction(enum.Enum):
-    NORTH = (0, -1, 0.0)
-    SOUTH = (0, 1, 180.0)
-    EAST = (1, 0, 270.0)
-    WEST = (-1, 0, 90.0)
+    """Grid step and the model rotation that points the troll along it."""
+
+    NORTH = (0, -1, 270.0)
+    SOUTH = (0, 1, 90.0)
+    EAST = (1, 0, 180.0)
+    WEST = (-1, 0, 0.0)
 
 
 @dataclass(frozen=True)
 class ActorState:
     x: int
     z: int
-    rotation: float = 0.0
+    rotation: float = Direction.NORTH.value[2]
 
 
 @dataclass(frozen=True)
@@ -110,12 +117,18 @@ def actor_world_position(maze: Maze, actor: ActorState) -> tuple[float, float, f
 
 
 def actor_forward(actor: ActorState) -> tuple[float, float, float]:
-    return {
-        0.0: (0.0, 0.0, 1.0),
-        180.0: (0.0, 0.0, -1.0),
-        270.0: (-1.0, 0.0, 0.0),
-        90.0: (1.0, 0.0, 0.0),
-    }[actor.rotation]
+    """Where the troll is looking, worked out from the rotation it is drawn with.
+
+    Deriving this rather than tabulating it keeps the troll camera pointing the
+    same way as the model, whatever the rotations in Direction are set to.
+    """
+    radians = math.radians(actor.rotation)
+    x, _, z = TROLL_FACING
+    return (
+        x * math.cos(radians) + z * math.sin(radians),
+        0.0,
+        -x * math.sin(radians) + z * math.cos(radians),
+    )
 
 
 def top_view() -> Mat4:
