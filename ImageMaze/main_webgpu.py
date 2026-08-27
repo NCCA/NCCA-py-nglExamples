@@ -15,6 +15,7 @@ from maze_scene import (
     actor_forward,
     actor_world_position,
     move_actor,
+    top_view,
 )
 from mesh_data import (
     build_coloured_mesh,
@@ -65,11 +66,7 @@ class WebGPUScene(WebGPUWidget):
         self.translation_sensitivity = 0.01
         self.zoom_sensitivity = 0.1
 
-        self.top_view = look_at(
-            Vec3(0.0, 30.0, 0.0),
-            Vec3(0.0, 0.0, 0.0),
-            Vec3(0.0, 0.0, -1.0),
-        )
+        self.top_view = top_view()
         self.actor_view = Mat4()
         self._update_actor_camera()
         self.project = perspective(

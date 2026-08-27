@@ -14,6 +14,7 @@ from maze_scene import (
     actor_forward,
     actor_world_position,
     move_actor,
+    top_view,
 )
 from ncca.ngl import Mat4, Prims, Vec3, logger, look_at, perspective
 from ncca.ngl.opengl import (
@@ -58,11 +59,7 @@ class MainWindow(PySideEventHandlingMixin, QOpenGLWindow):
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glEnable(gl.GL_MULTISAMPLE)
 
-        self.top_view = look_at(
-            Vec3(0.0, 30.0, 0.0),
-            Vec3(0.0, 0.0, 0.0),
-            Vec3(0.0, 0.0, -1.0),
-        )
+        self.top_view = top_view()
         self.project = perspective(
             45.0, self.width() / max(self.height(), 1), 0.5, 50.0
         )

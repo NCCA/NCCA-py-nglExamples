@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+from ncca.ngl import Mat4, Vec3, look_at
 from PIL import Image
 
 
@@ -115,3 +116,14 @@ def actor_forward(actor: ActorState) -> tuple[float, float, float]:
         270.0: (-1.0, 0.0, 0.0),
         90.0: (1.0, 0.0, 0.0),
     }[actor.rotation]
+
+
+def top_view() -> Mat4:
+    """The overhead camera, looking down the maze with +z up the screen.
+
+    The up vector is ngl::Vec3::in() from the C++ demo, which is (0, 0, 1). Use
+    (0, 0, -1) and the view spins through 180 degrees: the maze renders upside
+    down and back to front, and every arrow key drives the troll the opposite
+    way to the one you pressed.
+    """
+    return look_at(Vec3(0.0, 30.0, 0.0), Vec3(0.0, 0.0, 0.0), Vec3(0.0, 0.0, 1.0))
