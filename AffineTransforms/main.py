@@ -230,13 +230,10 @@ class Scene(PySideEventHandlingMixin, QOpenGLWindow):
             Primitives.draw(_VBO_NAMES[self.draw_index])
 
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
-        # draw_axis()'s own default scale (1.5) is sized for a much larger
-        # scene -- against ncca.ngl's stock teapot (roughly 1.9 units along
-        # its longest axis) it swallows the primitive whole, so the very
-        # thing this demo exists to show never appears. Pass an explicit
-        # smaller scale here rather than touching axis.py's default, since
-        # the signature is this task's produced interface.
-        draw_axis(self.view, self.project, global_tx, scale=0.35)
+        # scale is the half-length of each axis, so 1.5 puts the arrow tips
+        # just outside ncca.ngl's stock teapot (roughly 1.9 units along its
+        # longest axis) without hiding it.
+        draw_axis(self.view, self.project, global_tx, scale=1.5)
 
     def resizeGL(self, w: int, h: int) -> None:
         self.window_width = int(w * self.devicePixelRatio())

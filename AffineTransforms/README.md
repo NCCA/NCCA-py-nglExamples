@@ -46,8 +46,14 @@ uv run main.py
 ## Notes
 
 - `axis.py` is a small standalone RGB gizmo (X red, Y green, Z blue) drawn
-  with `DefaultShader.COLOUR` — it only needs `Primitives.load_default_primitives()`
-  to have been called first for its cylinder/cone primitives to exist.
+  with `DefaultShader.COLOUR`. It registers its own unit cylinder and cone
+  the first time it draws, so every dimension comes from the `scale`
+  argument (the half-length of each axis) and the proportions hold however
+  big you draw it — borrowing the demo's own "cylinder"/"cone" instead gave
+  a gizmo fatter than it was long. If you port the C++ NGL version, note
+  that `PrimData.cylinder` is aligned down y and centred on the origin
+  whilst `PrimData.cone` runs from the origin along +z, so the shaft and
+  the head need different rotations to point the same way.
 - Reuses `Camera/shaders/PBRVertex.glsl` and `PBRFragment.glsl` rather than
   porting AffineTransforms' own single-light PBR variant from NGL9Demos —
   one working PBR permutation is enough, the point of this demo is matrix
