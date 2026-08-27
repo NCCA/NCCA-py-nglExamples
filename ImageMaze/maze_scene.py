@@ -32,6 +32,19 @@ class WallCell:
 
 
 class Maze:
+    """A maze image where the white pixels are paths and everything else is a wall.
+
+    Pixel (x, y) is drawn at world (width / 2 - x, height / 2 - y) in the x/z
+    plane, and the actor's grid position is that same pixel, so one test covers
+    both. Flip the sign of the z term and the actor walks a mirrored copy of the
+    maze whilst standing inside the wall cubes.
+
+    Attributes
+    ----------
+        pixels : np.ndarray
+            the RGB image, indexed [y, x]
+    """
+
     def __init__(self, pixels: np.ndarray) -> None:
         self.pixels = pixels
 
@@ -71,7 +84,7 @@ class Maze:
             cells.append(
                 WallCell(
                     x=half_width - float(image_x),
-                    z=float(image_y) - half_height,
+                    z=half_height - float(image_y),
                     colour=(float(rgb[0]), float(rgb[1]), float(rgb[2]), 1.0),
                 )
             )
@@ -82,8 +95,7 @@ def move_actor(maze: Maze, actor: ActorState, direction: Direction) -> ActorStat
     dx, dz, rotation = direction.value
     next_x = actor.x + dx
     next_z = actor.z + dz
-    image_y = maze.height - next_z
-    if not maze.is_open(next_x, image_y):
+    if not maze.is_open(next_x, next_z):
         return actor
     return ActorState(next_x, next_z, rotation)
 
