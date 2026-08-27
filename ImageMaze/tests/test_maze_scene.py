@@ -14,7 +14,9 @@ from maze_scene import (
     actor_forward,
     actor_world_position,
     move_actor,
+    top_view,
 )
+from ncca.ngl import perspective
 
 
 def test_maze_loads_grayscale_png_as_rgb(tmp_path):
@@ -129,3 +131,27 @@ def test_actor_can_move_in_every_direction_from_the_default_start():
 
     for direction in Direction:
         assert move_actor(maze, actor, direction) != actor, direction.name
+
+
+def test_arrow_directions_move_the_actor_the_same_way_on_screen():
+    """Up moves the troll up the overhead view, left moves it left, and so on."""
+    maze = Maze.from_pixels(np.full((9, 9, 3), 255, dtype=np.uint8))
+    actor = ActorState(x=4, z=4)
+    view_project = (
+        top_view().to_numpy() @ perspective(45.0, 4 / 3, 0.5, 50.0).to_numpy()
+    )
+
+    def screen(state):
+        x, y, z = actor_world_position(maze, state)
+        clip = np.array([x, y, z, 1.0]) @ view_project
+        return clip[:2] / clip[3]
+
+    start = screen(actor)
+    for direction, expected in (
+        (Direction.NORTH, (0.0, 1.0)),
+        (Direction.SOUTH, (0.0, -1.0)),
+        (Direction.EAST, (1.0, 0.0)),
+        (Direction.WEST, (-1.0, 0.0)),
+    ):
+        moved = screen(move_actor(maze, actor, direction))
+        assert tuple(np.sign(np.round(moved - start, 6))) == expected, direction.name
