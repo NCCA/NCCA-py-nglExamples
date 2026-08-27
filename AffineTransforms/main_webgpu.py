@@ -5,8 +5,8 @@ AffineTransforms: interactively compose translate/rotate/scale matrices (WebGPU)
 Same matrix-order comparison as the OpenGL version (main.py) — Rotate-
 Translate-Scale, Translate-Rotate-Scale, or Translate-(axis-angle)-Scale —
 using a simpler diffuse shader (no PBR, no geometry-shader normal
-visualization: WebGPU has no geometry-shader stage) and a primitive
-selector limited to the baked mesh set.
+visualization: WebGPU has no geometry-shader stage) and a mesh selector
+limited to the baked set. The RGB axis gizmo comes from axis_webgpu.py.
 
 Controls: all on the panel; left-drag in the viewport orbits the camera.
 """
@@ -19,6 +19,7 @@ from typing import ClassVar
 
 import numpy as np
 import wgpu
+from axis_webgpu import AxisPipeline
 from ncca.ngl import (
     Mat4,
     MatrixError,
@@ -115,6 +116,10 @@ class WebGPUScene(WebGPUWidget):
 
         self.device = get_default_device()
         self._create_pipeline()
+        # scale is the half-length of each axis, so 1.5 puts the arrow tips
+        # just outside the stock teapot (roughly 1.9 units along its longest
+        # axis) without hiding it.
+        self.axis = AxisPipeline(self.device, self.msaa_sample_count, scale=1.5)
         self._load_meshes()
         self._create_render_buffer()
 
@@ -239,6 +244,9 @@ class WebGPUScene(WebGPUWidget):
         self.uniforms["normal_matrix"] = normal_matrix.to_numpy()
         self.uniforms["colour"] = (*self.colour, 1.0)
         self.device.queue.write_buffer(self.uniform_buffer, 0, self.uniforms.tobytes())
+        # The gizmo marks the origin of the scene, so it gets the camera and
+        # the mouse rotation but not the object's model matrix.
+        self.axis.update_uniforms(self.project @ self.view @ self.mouse_global_tx)
 
         command_encoder = self.device.create_command_encoder()
         render_pass = command_encoder.begin_render_pass(
@@ -263,6 +271,7 @@ class WebGPUScene(WebGPUWidget):
         buf, count = self.meshes[_MESH_NAMES[self.mesh_index]]
         render_pass.set_vertex_buffer(0, buf)
         render_pass.draw(count)
+        self.axis.render(render_pass)
         render_pass.end()
         self.device.queue.submit([command_encoder.finish()])
         self._update_colour_buffer()

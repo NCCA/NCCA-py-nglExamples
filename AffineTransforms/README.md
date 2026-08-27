@@ -46,8 +46,14 @@ uv run main.py
 ## Notes
 
 - `axis.py` is a small standalone RGB gizmo (X red, Y green, Z blue) drawn
-  with `DefaultShader.COLOUR` — it only needs `Primitives.load_default_primitives()`
-  to have been called first for its cylinder/cone primitives to exist.
+  with `DefaultShader.COLOUR`. It registers its own unit cylinder and cone
+  the first time it draws, so every dimension comes from the `scale`
+  argument (the half-length of each axis) and the proportions hold however
+  big you draw it — borrowing the demo's own "cylinder"/"cone" instead gave
+  a gizmo fatter than it was long. If you port the C++ NGL version, note
+  that `PrimData.cylinder` is aligned down y and centred on the origin
+  whilst `PrimData.cone` runs from the origin along +z, so the shaft and
+  the head need different rotations to point the same way.
 - Reuses `Camera/shaders/PBRVertex.glsl` and `PBRFragment.glsl` rather than
   porting AffineTransforms' own single-light PBR variant from NGL9Demos —
   one working PBR permutation is enough, the point of this demo is matrix
@@ -61,8 +67,18 @@ uv run main.py
 ## WebGPU version
 
 `main_webgpu.py` compares the same three matrix orders using a simpler
-diffuse shader (no PBR) and a primitive selector limited to the baked mesh
-set (`PrimData.primitive` has no sphere/cylinder/cone/disk/plane/torus data
-— those are GL-only runtime tessellations). It omits the axis gizmo and the
-geometry-shader normal visualisation; WebGPU has no geometry-shader stage
-at all, which is why that feature is GL-only in the first place.
+diffuse shader (no PBR) and a mesh selector limited to the baked set
+(`PrimData.primitive` has no sphere/cylinder/cone/disk/plane/torus data —
+those are runtime tessellations). It omits the geometry-shader normal
+visualisation; WebGPU has no geometry-shader stage at all, which is why
+that feature is GL-only in the first place.
+
+It gets the same gizmo from `axis_webgpu.py` and `AxisShader.wgsl`. The
+tessellations the baked set lacks are still there as generator functions —
+`PrimData.cylinder()` and `PrimData.cone()` hand back plain numpy arrays,
+nothing GL about them — so the gizmo builds its shafts and heads the same
+way the GL version does. What differs is the drawing: `axis.py` issues nine
+draws, one per shaft or head, each with its own MVP, which in WebGPU would
+mean a bind group per part or dynamic offsets. Instead the nine transforms
+are baked into the vertex data when the gizmo is built and the whole thing
+goes down as one draw of position/colour vertices.
